@@ -39,12 +39,16 @@ export default function RootLayout({
           {children}
         </AuthProvider>
         <Toaster
+          position="bottom-right"
           theme="dark"
           toastOptions={{
             style: {
               background: "var(--bg-surface)",
               border: "1px solid var(--border-default)",
               color: "var(--text-primary)",
+              fontFamily: "var(--font-mono)",
+              fontSize: "12px",
+              borderRadius: "12px",
             },
           }}
         />

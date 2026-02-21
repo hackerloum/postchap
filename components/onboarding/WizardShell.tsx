@@ -92,9 +92,13 @@ export function WizardShell() {
           competitors: formData.competitors || undefined,
         }),
       });
+      const data = (await res.json()) as { success?: boolean; brandKitId?: string; error?: string };
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Failed to complete onboarding");
+      }
+
+      if (typeof window !== "undefined" && data.brandKitId) {
+        sessionStorage.setItem("welcome_brandName", formData.brandName);
       }
 
       const newToken = await user.getIdToken(true);
@@ -104,7 +108,7 @@ export function WizardShell() {
         body: JSON.stringify({ token: newToken }),
         credentials: "include",
       });
-      router.push("/dashboard");
+      router.push(`/welcome?brandKitId=${data.brandKitId ?? ""}`);
     } catch (err) {
       console.error(err);
       setIsSubmitting(false);

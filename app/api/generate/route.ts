@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
 
       setTimeout(() => {
         clearGenerationStatus(userId, posterId).catch(() => {});
-      }, 5000);
+      }, 10000);
 
       return NextResponse.json({ posterId });
     } catch (err) {
