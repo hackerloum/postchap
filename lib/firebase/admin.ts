@@ -58,8 +58,18 @@ export function getAdminAuth() {
   return getAuth(getAdminApp());
 }
 
-export function getAdminDb() {
-  return getFirestore(getAdminApp());
+/** Firestore instance (classic API). Typed so .collection().doc().collection().add() etc. type-check. */
+export type AdminFirestore = {
+  collection(id: string): {
+    doc(id: string): {
+      collection(id: string): { add(data: object): Promise<{ id: string }> };
+      set(data: object, opts?: { merge?: boolean }): Promise<void>;
+    };
+  };
+};
+
+export function getAdminDb(): AdminFirestore {
+  return getFirestore(getAdminApp()) as AdminFirestore;
 }
 
 export function getAdminStorage() {

@@ -1,7 +1,8 @@
 /* Type declarations for firebase-admin subpath exports so TS resolves during build.
  * Runtime uses webpack externals. */
 declare module "firebase-admin/app" {
-  export function initializeApp(options?: object): unknown;
+  export function initializeApp(options?: object, name?: string): unknown;
+  export function getApp(name?: string): unknown;
   export function getApps(): unknown[];
   export function cert(credential: object): unknown;
   export type App = unknown;
