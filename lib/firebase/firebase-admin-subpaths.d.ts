@@ -34,6 +34,9 @@ declare module "firebase-admin/firestore" {
   export function addDoc(ref: unknown, data: object): Promise<unknown>;
   export function serverTimestamp(): unknown;
   export type Timestamp = unknown;
+  export const FieldValue: {
+    serverTimestamp: () => unknown;
+  };
 }
 
 declare module "firebase-admin/auth" {

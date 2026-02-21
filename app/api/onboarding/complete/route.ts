@@ -5,7 +5,7 @@ import {
   doc,
   addDoc,
   updateDoc,
-  serverTimestamp,
+  FieldValue,
 } from "firebase-admin/firestore";
 
 export async function POST(request: NextRequest) {
@@ -112,8 +112,8 @@ export async function POST(request: NextRequest) {
         sampleContent,
         competitors,
         enabled: true,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       };
 
       console.log("[onboarding/complete] Writing brand kit to Firestore...");
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
         posterSize: "1080x1080",
         timezone: "Africa/Dar_es_Salaam",
         preferredTime: "08:00",
-        createdAt: serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
       });
       console.log("[onboarding/complete] Poster job created");
     } catch (jobError) {
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
       const userRef = doc(adminDb, "users", uid);
       await updateDoc(userRef, {
         hasOnboarded: true,
-        updatedAt: serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       });
       console.log("[onboarding/complete] User profile updated");
     } catch (profileError) {
