@@ -64,7 +64,7 @@ function getStatusMessage(status: string | undefined): string {
     case "generating_copy":
       return "Crafting your copy...";
     case "generating_image":
-      return "Generating your artwork...";
+      return "Freepik Mystic is rendering your artwork...";
     case "compositing":
       return "Compositing your poster...";
     case "uploading":
@@ -84,7 +84,7 @@ function getStatusSub(status: string | undefined, errorMessage?: string): string
     case "generating_copy":
       return "AI is writing headline, body, and hashtags";
     case "generating_image":
-      return "Freepik is rendering your brand artwork";
+      return "High quality generation takes 30–60 seconds";
     case "compositing":
       return "Adding your logo and text overlay";
     case "uploading":
@@ -136,8 +136,10 @@ export function GeneratingScreen({ brandKitName }: { brandKitName: string }) {
 
   useEffect(() => {
     if (currentStatus === "complete" || currentStatus === "failed") return;
+    // Image generation (Mystic) can take 30–90s; don't show timeout before 120s
+    const timeoutMs = 120000;
     const interval = setInterval(() => {
-      if (Date.now() - startTime.current >= 60000) {
+      if (Date.now() - startTime.current >= timeoutMs) {
         setTimedOut(true);
       }
     }, 2000);

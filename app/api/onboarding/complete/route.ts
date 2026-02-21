@@ -40,29 +40,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const brandKitData = {
+    const brandKitData: Record<string, unknown> = {
       userId: uid,
-      brandName: body.brandName,
+      brandName: String(body.brandName).trim(),
       industry: body.industry,
-      tagline: body.tagline ?? "",
-      website: body.website,
+      tagline: (body.tagline ?? "").trim(),
       primaryColor: body.primaryColor ?? "#000000",
       secondaryColor: body.secondaryColor ?? "#ffffff",
       accentColor: body.accentColor ?? "#E8FF47",
-      logoUrl: body.logoUrl,
-      targetAudience: body.targetAudience ?? "",
-      ageRange: body.ageRange ?? "",
-      location: body.location ?? "Tanzania",
+      targetAudience: (body.targetAudience ?? "").trim(),
+      ageRange: (body.ageRange ?? "").trim(),
+      location: (body.location ?? "Tanzania").trim(),
       platforms: Array.isArray(body.platforms) ? body.platforms : [],
       language: body.language ?? "en",
       tone: body.tone,
-      styleNotes: body.styleNotes ?? "",
-      sampleContent: body.sampleContent ?? "",
-      competitors: body.competitors ?? "",
+      styleNotes: (body.styleNotes ?? "").trim(),
+      sampleContent: (body.sampleContent ?? "").trim(),
+      competitors: (body.competitors ?? "").trim(),
       enabled: true,
     };
+    if (body.website != null && String(body.website).trim() !== "") {
+      brandKitData.website = String(body.website).trim();
+    }
+    if (body.logoUrl != null && String(body.logoUrl) !== "") {
+      brandKitData.logoUrl = String(body.logoUrl);
+    }
 
-    const created = await createBrandKit(uid, brandKitData);
+    const created = await createBrandKit(uid, brandKitData as Parameters<typeof createBrandKit>[1]);
     const brandKitId = created.id;
 
     await createPosterJob(uid, {
@@ -84,9 +88,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, brandKitId });
   } catch (e) {
     if (e instanceof Response) return e;
+    const message = e instanceof Error ? e.message : "Failed to complete onboarding";
     console.error("[onboarding/complete]", e);
+    const safeDetail =
+      process.env.NODE_ENV === "development"
+        ? message
+        : message.includes("Firebase Admin")
+          ? "Server: Firebase Admin is not configured. Set FIREBASE_ADMIN_* env vars."
+          : message.includes("PERMISSION_DENIED") || message.includes("permission")
+            ? "Server: Database permission denied. Check Firestore rules."
+            : undefined;
     return NextResponse.json(
-      { error: "Failed to complete onboarding" },
+      {
+        error: "Failed to complete onboarding",
+        detail: safeDetail,
+      },
       { status: 500 }
     );
   }

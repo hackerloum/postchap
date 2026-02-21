@@ -9,10 +9,11 @@ import {
 } from "@/lib/firebase/firestore";
 import { setGenerationStatus, clearGenerationStatus } from "@/lib/firebase/realtime";
 import { uploadPosterImage } from "@/lib/firebase/storage";
-import {
-  findOnePhotoId,
-  downloadPhotoBuffer,
-} from "@/lib/freepik";
+import { generateCopy } from "@/lib/generation/generateCopy";
+import { generateImagePrompt } from "@/lib/generation/generateImagePrompt";
+import { generateImage } from "@/lib/generation/generateImage";
+import { compositePoster } from "@/lib/generation/compositePoster";
+import type { PosterSize } from "@/types";
 
 function getTodayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -58,97 +59,55 @@ export async function POST(request: NextRequest) {
     const poster = await createPoster(userId, posterData);
     const posterId = poster.id;
 
-    await setGenerationStatus(userId, posterId, {
-      status: "pending",
-      progress: 0,
-      message: "Starting...",
-      updatedAt: Date.now(),
-    });
+    const posterSize: PosterSize = "1080x1080";
+
+    const updateStatus = async (
+      status: string,
+      progress: number,
+      message: string
+    ) => {
+      await setGenerationStatus(userId, posterId, {
+        status: status as "pending" | "generating_copy" | "generating_image" | "compositing" | "uploading" | "complete" | "failed",
+        progress,
+        message,
+        updatedAt: Date.now(),
+      });
+    };
+
+    await updateStatus("pending", 0, "Starting...");
 
     try {
-      await setGenerationStatus(userId, posterId, {
-        status: "generating_copy",
-        progress: 20,
-        message: "Crafting your copy...",
-        updatedAt: Date.now(),
-      });
-      // TODO: call OpenAI for copy; for now stub
-      const headline = "Your headline";
-      const subheadline = "Your subheadline";
-      const bodyText = "Body text";
-      const cta = "Learn more";
-      const hashtags = ["#brand"];
+      await updateStatus("generating_copy", 10, "Writing your copy...");
+      const copy = await generateCopy(brandKit);
 
-      await setGenerationStatus(userId, posterId, {
-        status: "generating_image",
-        progress: 50,
-        message: "Finding artwork...",
-        updatedAt: Date.now(),
-      });
+      await updateStatus("generating_copy", 25, "Building visual prompt...");
+      const imagePrompt = await generateImagePrompt(brandKit, copy);
 
-      const searchTerm =
-        brandKit.styleNotes?.trim() ||
-        brandKit.sampleContent?.trim() ||
-        "minimal social media background";
-      let imageBuffer: Buffer = Buffer.from(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
-        "base64"
-      );
-      let imageContentType = "image/png";
+      await updateStatus("generating_image", 35, "Submitting to Freepik Mystic...");
+      const backgroundBuffer = await generateImage(imagePrompt, posterSize);
 
-      if (process.env.FREEPIK_API_KEY) {
-        try {
-          const photoId = await findOnePhotoId(searchTerm);
-          if (photoId) {
-            const { buffer, contentType } = await downloadPhotoBuffer(
-              photoId,
-              "large"
-            );
-            imageBuffer = buffer;
-            imageContentType = contentType;
-          }
-        } catch {
-          // keep placeholder on Freepik errors
-        }
-      }
+      await updateStatus("compositing", 78, "Compositing your poster...");
+      const finalBuffer = await compositePoster(backgroundBuffer, copy, brandKit);
 
-      await setGenerationStatus(userId, posterId, {
-        status: "compositing",
-        progress: 75,
-        message: "Compositing your poster...",
-        updatedAt: Date.now(),
-      });
-
-      await setGenerationStatus(userId, posterId, {
-        status: "uploading",
-        progress: 90,
-        message: "Saving to library...",
-        updatedAt: Date.now(),
-      });
-
+      await updateStatus("uploading", 90, "Saving to your library...");
       const imageUrl = await uploadPosterImage(
         userId,
         posterId,
-        imageBuffer,
-        imageContentType
+        finalBuffer,
+        "image/png"
       );
 
       await updatePoster(userId, posterId, {
-        headline,
-        subheadline,
-        body: bodyText,
-        cta,
-        hashtags,
+        headline: copy.headline,
+        subheadline: copy.subheadline,
+        body: copy.body,
+        cta: copy.cta,
+        hashtags: copy.hashtags,
         imageUrl,
         status: "generated",
       });
 
-      await setGenerationStatus(userId, posterId, {
-        status: "complete",
-        progress: 100,
-        message: "Done!",
-        updatedAt: Date.now(),
-      });
+      await updateStatus("complete", 100, "Your poster is ready!");
 
       await logActivity(userId, posterId, "generated");
 

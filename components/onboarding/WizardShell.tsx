@@ -72,6 +72,7 @@ export function WizardShell() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify({
           brandName: formData.brandName,
           industry: formData.industry,
@@ -92,9 +93,15 @@ export function WizardShell() {
           competitors: formData.competitors || undefined,
         }),
       });
-      const data = (await res.json()) as { success?: boolean; brandKitId?: string; error?: string };
+      const data = (await res.json()) as {
+        success?: boolean;
+        brandKitId?: string;
+        error?: string;
+        detail?: string;
+      };
       if (!res.ok) {
-        throw new Error(data.error || "Failed to complete onboarding");
+        const msg = data.detail || data.error || "Failed to complete onboarding";
+        throw new Error(msg);
       }
 
       if (typeof window !== "undefined" && data.brandKitId) {
