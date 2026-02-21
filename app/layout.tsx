@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/context/AuthContext";
+import { RootErrorBoundary } from "@/components/RootErrorBoundary";
 
 export const dynamic = "force-dynamic";
 
@@ -35,9 +36,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen antialiased">
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <RootErrorBoundary>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </RootErrorBoundary>
         <Toaster
           position="bottom-right"
           theme="dark"

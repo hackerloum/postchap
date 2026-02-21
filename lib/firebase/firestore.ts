@@ -15,7 +15,7 @@ import {
   serverTimestamp,
 } from "firebase-admin/firestore";
 import type { Timestamp } from "firebase-admin/firestore";
-import { adminDb } from "./admin";
+import { adminDb, getAdminDb } from "./admin";
 import type {
   BrandKit,
   PosterJob,
@@ -27,15 +27,19 @@ import type {
 const USERS = "users";
 const BRAND_KITS = "brand_kits";
 
+/** Use classic API (same as onboarding/complete) so reads match writes. */
 export async function getHasOnboarded(userId: string): Promise<boolean> {
-  const ref = doc(adminDb, USERS, userId);
-  const snap = await getDoc(ref);
+  const db = getAdminDb() as import("firebase-admin/firestore").Firestore;
+  const snap = await db.collection(USERS).doc(userId).get();
   const data = snap.data() as { hasOnboarded?: boolean } | undefined;
-  if (snap.exists()) {
+  if (snap.exists) {
     return data?.hasOnboarded === true;
   }
   // Ensure user doc exists so setUserHasOnboarded can update later
-  await setDoc(ref, { hasOnboarded: false, updatedAt: serverTimestamp() });
+  await db.collection(USERS).doc(userId).set(
+    { hasOnboarded: false, updatedAt: serverTimestamp() },
+    { merge: true }
+  );
   return false;
 }
 
@@ -54,10 +58,10 @@ const POSTERS = "posters";
 const POSTER_ACTIVITY = "poster_activity";
 
 // ——— BRAND KITS ———
+/** Use classic API for initial onboarding check so it matches onboarding/complete writes. */
 export async function getBrandKits(userId: string): Promise<BrandKit[]> {
-  const snap = await getDocs(
-    collection(adminDb, USERS, userId, BRAND_KITS)
-  );
+  const db = getAdminDb() as import("firebase-admin/firestore").Firestore;
+  const snap = await db.collection(USERS).doc(userId).collection(BRAND_KITS).get();
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as BrandKit));
 }
 

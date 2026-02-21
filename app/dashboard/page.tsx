@@ -43,16 +43,14 @@ export default async function DashboardPage() {
     console.error("[Dashboard] getHasOnboarded error:", err);
   }
 
-  // If flag is false but user already has brand kits (e.g. just finished onboarding), treat as onboarded
+  // If flag is false but user already has brand kits (DB has records; keep in sync), treat as onboarded
   let brandKits: BrandKit[] = [];
   if (!hasOnboarded) {
     try {
       brandKits = await getBrandKits(uid);
       if (brandKits.length > 0) {
         hasOnboarded = true;
-        setUserHasOnboarded(uid).catch((e) =>
-          console.warn("[Dashboard] setUserHasOnboarded sync failed:", e)
-        );
+        await setUserHasOnboarded(uid);
       }
     } catch (err) {
       console.error("[Dashboard] getBrandKits error:", err);
