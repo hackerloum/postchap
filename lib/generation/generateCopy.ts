@@ -4,6 +4,7 @@
  */
 
 import type { BrandKit } from "@/types";
+import { getBrandLocation } from "@/lib/ai/locationContext";
 
 export interface GeneratedCopy {
   headline: string;
@@ -13,8 +14,11 @@ export interface GeneratedCopy {
   hashtags: string[];
 }
 
-export async function generateCopy(_brandKit: BrandKit): Promise<GeneratedCopy> {
-  // TODO: Use OpenAI to generate copy from brand kit
+export async function generateCopy(brandKit: BrandKit): Promise<GeneratedCopy> {
+  const loc = getBrandLocation(brandKit);
+  // When implementing OpenAI: use buildLocationContext(loc) in system/user message
+  // and location-relevant hashtags for loc.country
+  void loc;
   return {
     headline: "Your headline",
     subheadline: "Your subheadline",

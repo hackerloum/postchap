@@ -6,16 +6,16 @@ const ROW1_BRANDS = [
   "Vodacom",
   "Azam Media",
   "NMB Bank",
-  "Tanzania Breweries",
   "Jubilee Insurance",
-  "DStv Tanzania",
+  "DStv",
+  "Multichoice",
 ];
 
 const ROW2_BRANDS = [
   "Maxcom",
   "Precision Air",
-  "Multichoice",
-  "KCB Tanzania",
+  "KCB",
+  "Airtel",
 ];
 
 function LogoItem({

@@ -26,7 +26,8 @@ const INITIAL_FORM: WizardFormData = {
   logoPreviewUrl: "",
   targetAudience: "",
   ageRange: "",
-  location: "Tanzania",
+  selectedCountry: null,
+  city: "",
   platforms: [],
   language: "en",
   tone: "",
@@ -66,6 +67,28 @@ export function WizardShell() {
         logoUrl = await getDownloadURL(storageRef);
       }
 
+      const brandLocation = formData.selectedCountry
+        ? {
+            country: formData.selectedCountry.name,
+            countryCode: formData.selectedCountry.code,
+            city: formData.city || "",
+            region: formData.selectedCountry.continent,
+            continent: formData.selectedCountry.continent,
+            timezone: formData.selectedCountry.timezone,
+            currency: formData.selectedCountry.currency,
+            languages: formData.selectedCountry.languages,
+          }
+        : {
+            country: "Unknown",
+            countryCode: "XX",
+            city: "",
+            region: "Global",
+            continent: "Global",
+            timezone: "UTC",
+            currency: "USD",
+            languages: ["English"],
+          };
+
       const token = await user.getIdToken(true);
       console.log("[Wizard] Got ID token, length:", token.length);
       const res = await fetch("/api/onboarding/complete", {
@@ -86,7 +109,7 @@ export function WizardShell() {
           logoUrl,
           targetAudience: formData.targetAudience,
           ageRange: formData.ageRange,
-          location: formData.location,
+          brandLocation,
           platforms: formData.platforms,
           language: formData.language,
           tone: formData.tone,

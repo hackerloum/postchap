@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useBrandKit } from "@/hooks/useBrandKits";
+import { getBrandLocation } from "@/lib/ai/locationContext";
+import { getFlagEmoji } from "@/lib/utils/location";
 
 type Tab = "overview" | "posters" | "settings";
 
@@ -136,6 +138,36 @@ export default function BrandKitDetailPage() {
                 </section>
                 <section>
                   <h3 className="font-mono text-xs uppercase tracking-wider text-text-muted">
+                    Location
+                  </h3>
+                  {(() => {
+                    const loc = getBrandLocation(brandKit);
+                    return (
+                      <dl className="mt-2 grid gap-2 sm:grid-cols-2">
+                        <div className="sm:col-span-2 flex items-center gap-2">
+                          <span className="text-lg">{getFlagEmoji(loc.countryCode)}</span>
+                          <dd className="font-sans text-sm text-text-primary">
+                            {loc.city ? `${loc.city}, ` : ""}{loc.country}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="font-mono text-[11px] text-text-muted">Timezone</dt>
+                          <dd className="font-sans text-sm text-text-primary">{loc.timezone}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-mono text-[11px] text-text-muted">Currency</dt>
+                          <dd className="font-sans text-sm text-text-primary">{loc.currency}</dd>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <dt className="font-mono text-[11px] text-text-muted">Languages</dt>
+                          <dd className="font-sans text-sm text-text-primary">{loc.languages.join(", ")}</dd>
+                        </div>
+                      </dl>
+                    );
+                  })()}
+                </section>
+                <section>
+                  <h3 className="font-mono text-xs uppercase tracking-wider text-text-muted">
                     Audience
                   </h3>
                   <dl className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -146,10 +178,6 @@ export default function BrandKitDetailPage() {
                     <div>
                       <dt className="font-mono text-[11px] text-text-muted">Age range</dt>
                       <dd className="font-sans text-sm text-text-primary">{brandKit.ageRange || "—"}</dd>
-                    </div>
-                    <div>
-                      <dt className="font-mono text-[11px] text-text-muted">Location</dt>
-                      <dd className="font-sans text-sm text-text-primary">{brandKit.location || "—"}</dd>
                     </div>
                     <div>
                       <dt className="font-mono text-[11px] text-text-muted">Platforms</dt>

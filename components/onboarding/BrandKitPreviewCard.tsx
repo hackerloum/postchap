@@ -1,8 +1,16 @@
 "use client";
 
 import type { WizardFormData } from "@/types";
+import { getFlagEmoji } from "@/lib/utils/location";
 
 export function BrandKitPreviewCard({ formData }: { formData: WizardFormData }) {
+  const locationLine = formData.selectedCountry
+    ? (formData.city ? `${formData.city}, ` : "") + formData.selectedCountry.name
+    : null;
+  const flagEmoji = formData.selectedCountry
+    ? getFlagEmoji(formData.selectedCountry.code)
+    : null;
+
   return (
     <div className="sticky top-6 overflow-hidden rounded-2xl border border-border-default bg-bg-surface">
       <div
@@ -60,8 +68,9 @@ export function BrandKitPreviewCard({ formData }: { formData: WizardFormData }) 
             <p className="font-sans text-sm font-semibold text-text-primary">
               {formData.brandName || "Your Brand Kit"}
             </p>
-            <p className="mt-0.5 font-mono text-[11px] text-text-muted">
-              {formData.industry || "Industry not set"}
+            <p className="mt-0.5 font-mono text-[11px] text-text-muted flex items-center gap-1.5">
+              {flagEmoji && <span>{flagEmoji}</span>}
+              {locationLine ?? (formData.industry || "Industry not set")}
             </p>
           </div>
           <div className="flex gap-1">

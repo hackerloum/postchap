@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEnabledPosterJobs, getPosterByDate, createPoster, updatePoster, logActivity, getBrandKit } from "@/lib/firebase/firestore";
+import { getBrandLocation } from "@/lib/ai/locationContext";
 import { uploadPosterImage } from "@/lib/firebase/storage";
 import { findOnePhotoId, downloadPhotoBuffer } from "@/lib/freepik";
 
@@ -60,10 +61,11 @@ export async function GET(request: NextRequest) {
         if (process.env.FREEPIK_API_KEY) {
           try {
             const brandKit = await getBrandKit(job.userId, job.brandKitId);
+            const location = brandKit ? getBrandLocation(brandKit) : null;
             const searchTerm =
               brandKit?.styleNotes?.trim() ||
               brandKit?.sampleContent?.trim() ||
-              "minimal social media background";
+              (location ? `${location.continent} minimal social media background` : "minimal social media background");
             const photoId = await findOnePhotoId(searchTerm);
             if (photoId) {
               const downloaded = await downloadPhotoBuffer(photoId, "large");

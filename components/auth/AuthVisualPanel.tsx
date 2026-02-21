@@ -113,7 +113,7 @@ export function AuthVisualPanel() {
           without us thinking about it.
         </p>
         <p className="mt-2 font-mono text-[11px] text-text-muted">
-          — Marketing Lead, Vodacom Tanzania
+          — Marketing Lead, Vodacom
         </p>
       </div>
     </div>

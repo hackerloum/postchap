@@ -156,7 +156,7 @@ export function Step4Content({
           <textarea
             value={formData.styleNotes}
             onChange={(e) => updateForm({ styleNotes: e.target.value })}
-            placeholder="e.g. Always end posts with a question. Use short punchy sentences. Never use jargon. Reference local Tanzanian culture when relevant."
+            placeholder="e.g. Always end posts with a question. Use short punchy sentences. Never use jargon. Reference local culture when relevant."
             rows={3}
             maxLength={500}
             className="mt-1.5 w-full rounded-lg border border-border-default bg-bg-elevated px-3 py-2.5 font-apple text-sm text-text-primary placeholder:text-text-muted focus:border-border-strong focus:outline-none"
@@ -188,7 +188,7 @@ export function Step4Content({
           type="text"
           value={formData.competitors}
           onChange={(e) => updateForm({ competitors: e.target.value })}
-          placeholder="e.g. Airtel Tanzania, TTCL, Halotel"
+          placeholder="e.g. Competitor brands in your market"
         />
       </div>
 
@@ -233,7 +233,9 @@ export function Step4Content({
           <div>
             <p className="font-mono text-[11px] text-text-muted">Location</p>
             <p className="font-sans text-sm text-text-primary">
-              {formData.location || "—"}
+              {formData.selectedCountry
+                ? (formData.city ? `${formData.city}, ` : "") + formData.selectedCountry.name
+                : "—"}
             </p>
           </div>
           <div className="sm:col-span-2">

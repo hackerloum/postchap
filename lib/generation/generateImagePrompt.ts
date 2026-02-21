@@ -4,6 +4,7 @@
  */
 
 import type { BrandKit } from "@/types";
+import { getBrandLocation } from "@/lib/ai/locationContext";
 
 interface CopyData {
   headline: string;
@@ -18,6 +19,12 @@ export async function generateImagePrompt(
 ): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
+
+  const loc = getBrandLocation(brandKit);
+  const locationContext =
+    `Brand location: ${loc.country}${loc.city ? ` (${loc.city})` : ""}
+Continent: ${loc.continent}
+Visual context: The imagery should feel authentic and relevant to ${loc.country} audiences. Do not use generic stock photo aesthetics. Reflect the visual culture of ${loc.continent}.`;
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -61,6 +68,8 @@ Tone: ${brandKit.tone}
 Style notes: ${brandKit.styleNotes}
 Poster headline: ${copy.headline}
 Poster subheadline: ${copy.subheadline}
+
+${locationContext}
 
 Write the Freepik Mystic image prompt for the background of this poster.`,
         },

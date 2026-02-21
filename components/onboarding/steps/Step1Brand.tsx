@@ -71,7 +71,7 @@ export function Step1Brand({
           type="text"
           value={formData.brandName}
           onChange={(e) => updateForm({ brandName: e.target.value })}
-          placeholder="e.g. Vodacom Tanzania"
+          placeholder="e.g. Your brand name"
           error={errors.brandName}
         />
 

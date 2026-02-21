@@ -50,6 +50,28 @@ export type GenerationStatus =
   | "complete"
   | "failed";
 
+/** Structured location data for a country (used in wizard and brand kit). */
+export interface CountryData {
+  name: string;
+  code: string;
+  continent: string;
+  timezone: string;
+  currency: string;
+  languages: string[];
+}
+
+/** Brand location stored on BrandKit (from wizard). */
+export interface BrandLocation {
+  country: string;
+  countryCode: string;
+  city: string;
+  region: string;
+  continent: string;
+  timezone: string;
+  currency: string;
+  languages: string[];
+}
+
 export interface UserProfile {
   uid: string;
   email: string;
@@ -72,7 +94,10 @@ export interface BrandKit {
   logoStoragePath?: string;
   targetAudience: string;
   ageRange: string;
-  location: string;
+  /** Structured location; preferred. When reading from Firestore, use getBrandLocation() to support legacy `location` string. */
+  brandLocation?: BrandLocation;
+  /** @deprecated Legacy flat location. Use getBrandLocation(brandKit) for normalized brandLocation. */
+  location?: string;
   platforms: Platform[];
   language: Language;
   tone: Tone;
@@ -96,7 +121,10 @@ export interface WizardFormData {
   logoPreviewUrl: string;
   targetAudience: string;
   ageRange: string;
-  location: string;
+  selectedCountry: CountryData | null;
+  city: string;
+  /** When no country, distinguishes English vs French vs Arabic (all map to "en"). */
+  primaryLanguageKey?: string;
   platforms: Platform[];
   language: Language;
   tone: Tone | "";

@@ -24,8 +24,8 @@ const FAQ_ITEMS = [
     a: "Yes. Every poster goes through an approval flow. You review, edit if needed, and approve — ArtMaster never posts without your sign-off.",
   },
   {
-    q: "Does ArtMaster support Swahili content?",
-    a: "Absolutely. ArtMaster supports both English and Swahili content generation, making it the only poster automation tool built with East African brands in mind.",
+    q: "Does ArtMaster support multiple languages?",
+    a: "Yes. ArtMaster supports English, Swahili, French, Arabic, and other languages based on your brand location. Content is tailored to your region and audience.",
   },
   {
     q: "How many brands can I manage?",

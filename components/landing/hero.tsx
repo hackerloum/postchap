@@ -41,7 +41,7 @@ export function Hero() {
             className="mt-6 font-apple text-sm font-normal leading-relaxed text-text-secondary"
           >
             ArtMaster generates a fresh, on-brand social media poster every
-            morning — automatically. Built for East African businesses that take
+            morning — automatically. Built for businesses everywhere that take
             their brand seriously.
           </motion.p>
           <motion.div

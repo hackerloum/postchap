@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "ArtMaster — Your brand posts itself. Every day.",
   description:
-    "ArtMaster Platform automates daily social media poster generation for East African brands. AI-powered, brand-aware, one-click approve.",
+    "ArtMaster Platform automates daily social media poster generation for brands worldwide. AI-powered, brand-aware, one-click approve.",
   metadataBase: new URL("https://artmasterpro.com"),
   openGraph: {
     siteName: "ArtMaster Platform",

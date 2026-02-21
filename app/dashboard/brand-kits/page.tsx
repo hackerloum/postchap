@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useBrandKits } from "@/hooks/useBrandKits";
+import { getBrandLocation } from "@/lib/ai/locationContext";
+import { getFlagEmoji } from "@/lib/utils/location";
 import type { Platform } from "@/types";
 
 function PlatformIcon({ platform, size = 12 }: { platform: Platform; size?: number }) {
@@ -119,8 +121,24 @@ export default function BrandKitsPage() {
                         <h3 className="font-sans text-sm font-semibold text-text-primary">
                           {kit.brandName}
                         </h3>
-                        <p className="font-mono text-[11px] capitalize text-text-muted">
-                          {kit.industry}
+                        <p className="font-mono text-[11px] text-text-muted flex items-center gap-1.5">
+                          {(() => {
+                            const loc = getBrandLocation(kit);
+                            const locationLine =
+                              loc.city && loc.country !== "Unknown"
+                                ? `${loc.city}, ${loc.country}`
+                                : loc.country !== "Unknown"
+                                  ? loc.country
+                                  : kit.industry;
+                            const flag =
+                              loc.countryCode !== "XX" ? getFlagEmoji(loc.countryCode) : null;
+                            return (
+                              <>
+                                {flag && <span>{flag}</span>}
+                                <span className="capitalize">{locationLine}</span>
+                              </>
+                            );
+                          })()}
                         </p>
                       </div>
                     </div>
