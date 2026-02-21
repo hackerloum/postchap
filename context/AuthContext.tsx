@@ -4,6 +4,8 @@ import {
   createContext,
   useContext,
   useCallback,
+  useEffect,
+  useRef,
   type ReactNode,
 } from "react";
 import type { User } from "firebase/auth";
@@ -28,6 +30,27 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
+  const sessionSynced = useRef(false);
+
+  // Sync Firebase ID token to session cookie so /api/me works (avoids 401 on layout/page fetches)
+  useEffect(() => {
+    if (!user || sessionSynced.current) return;
+    sessionSynced.current = true;
+    user
+      .getIdToken()
+      .then((token) =>
+        fetch("/api/auth/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+          credentials: "include",
+        })
+      )
+      .catch(() => {})
+      .finally(() => {
+        sessionSynced.current = false;
+      });
+  }, [user]);
 
   const signIn = useCallback(firebaseSignIn, []);
   const signUp = useCallback(firebaseSignUp, []);

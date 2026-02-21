@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth, adminDb } from "@/lib/firebase/admin";
-import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  FieldValue,
-} from "firebase-admin/firestore";
+import adminApp from "@/lib/firebase/admin";
+import { adminAuth } from "@/lib/firebase/admin";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
+
+// getFirestore(adminApp) returns the real Firestore instance; .collection() works in Vercel bundle
+function getDb() {
+  return getFirestore(adminApp);
+}
 
 export async function POST(request: NextRequest) {
   console.log("[onboarding/complete] Request received");
 
   try {
-    // STEP 1: Verify auth token
     const authHeader = request.headers.get("Authorization");
     console.log("[onboarding/complete] Auth header present:", !!authHeader);
 
@@ -40,7 +39,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // STEP 2: Parse request body
     let body: Record<string, unknown>;
     try {
       body = await request.json();
@@ -53,7 +51,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // STEP 3: Validate required fields
     const {
       brandName,
       industry,
@@ -65,7 +62,7 @@ export async function POST(request: NextRequest) {
       logoUrl = "",
       targetAudience = "",
       ageRange = "",
-      location = "Tanzania",
+      brandLocation: bodyBrandLocation,
       platforms = [],
       language = "en",
       tone,
@@ -73,6 +70,32 @@ export async function POST(request: NextRequest) {
       sampleContent = "",
       competitors = "",
     } = body;
+
+    const defaultLocation = {
+      country: "Unknown",
+      countryCode: "XX",
+      city: "",
+      region: "Global",
+      continent: "Global",
+      timezone: "UTC",
+      currency: "USD",
+      languages: ["English"],
+    };
+    const brandLocation =
+      bodyBrandLocation &&
+      typeof bodyBrandLocation === "object" &&
+      (bodyBrandLocation as { country?: string }).country
+        ? (bodyBrandLocation as {
+            country: string;
+            countryCode: string;
+            city: string;
+            region: string;
+            continent: string;
+            timezone: string;
+            currency: string;
+            languages: string[];
+          })
+        : defaultLocation;
 
     if (!brandName || !industry || !primaryColor || !tone) {
       console.error("[onboarding/complete] Missing required fields:", {
@@ -89,7 +112,6 @@ export async function POST(request: NextRequest) {
 
     console.log("[onboarding/complete] All fields validated");
 
-    // STEP 4: Create brand kit in Firestore
     let brandKitId: string;
     try {
       const brandKitData = {
@@ -104,7 +126,7 @@ export async function POST(request: NextRequest) {
         logoUrl,
         targetAudience,
         ageRange,
-        location,
+        brandLocation,
         platforms,
         language,
         tone,
@@ -118,10 +140,11 @@ export async function POST(request: NextRequest) {
 
       console.log("[onboarding/complete] Writing brand kit to Firestore...");
 
-      const brandKitsRef = collection(adminDb, "users", uid, "brand_kits");
-      const brandKitRef = (await addDoc(brandKitsRef, brandKitData)) as {
-        id: string;
-      };
+      const brandKitRef = await getDb()
+        .collection("users")
+        .doc(uid)
+        .collection("brand_kits")
+        .add(brandKitData);
 
       brandKitId = brandKitRef.id;
       console.log("[onboarding/complete] Brand kit created:", brandKitId);
@@ -136,24 +159,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // STEP 5: Create default poster job
     try {
-      const posterJobsRef = collection(adminDb, "users", uid, "poster_jobs");
-      await addDoc(posterJobsRef, {
-        userId: uid,
-        brandKitId,
-        enabled: true,
-        posterSize: "1080x1080",
-        timezone: "Africa/Dar_es_Salaam",
-        preferredTime: "08:00",
-        createdAt: FieldValue.serverTimestamp(),
-      });
+      await db
+        .collection("users")
+        .doc(uid)
+        .collection("poster_jobs")
+        .add({
+          userId: uid,
+          brandKitId,
+          enabled: true,
+          posterSize: "1080x1080",
+          timezone: brandLocation.timezone,
+          preferredTime: "08:00",
+          createdAt: FieldValue.serverTimestamp(),
+        });
       console.log("[onboarding/complete] Poster job created");
     } catch (jobError) {
       console.warn("[onboarding/complete] Poster job creation failed (non-fatal):", jobError);
     }
 
-    // STEP 6: Set custom claim hasOnboarded = true
     try {
       await adminAuth.setCustomUserClaims(uid, { hasOnboarded: true });
       console.log("[onboarding/complete] Custom claim set: hasOnboarded=true");
@@ -161,13 +185,14 @@ export async function POST(request: NextRequest) {
       console.warn("[onboarding/complete] Custom claim failed (non-fatal):", claimError);
     }
 
-    // STEP 7: Update user profile doc
     try {
-      const userRef = doc(adminDb, "users", uid);
-      await updateDoc(userRef, {
-        hasOnboarded: true,
-        updatedAt: FieldValue.serverTimestamp(),
-      });
+      await getDb().collection("users").doc(uid).set(
+        {
+          hasOnboarded: true,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
       console.log("[onboarding/complete] User profile updated");
     } catch (profileError) {
       console.warn("[onboarding/complete] Profile update failed (non-fatal):", profileError);
