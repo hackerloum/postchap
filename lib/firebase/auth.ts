@@ -6,6 +6,8 @@ import {
   updatePassword,
   updateProfile,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   confirmPasswordReset,
   onAuthStateChanged,
@@ -19,8 +21,16 @@ export const signIn = (email: string, password: string) =>
 export const signUp = (email: string, password: string) =>
   createUserWithEmailAndPassword(auth, email, password);
 
+/** Prefer redirect flow so "Continue with Google" works when popups are blocked. */
 export const signInWithGoogle = () =>
   signInWithPopup(auth, new GoogleAuthProvider());
+
+/** Redirect to Google sign-in; handle result with getRedirectResult() when the page loads after redirect. */
+export const signInWithGoogleRedirect = () =>
+  signInWithRedirect(auth, new GoogleAuthProvider());
+
+/** Call on login (or app) load after redirect from Google. Returns the signed-in user if present. */
+export const getGoogleRedirectResult = () => getRedirectResult(auth);
 
 export const logOut = () => signOut(auth);
 

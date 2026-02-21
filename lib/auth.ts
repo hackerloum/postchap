@@ -4,6 +4,8 @@
 
 import {
   signInWithGoogle as firebaseSignInWithGoogle,
+  signInWithGoogleRedirect as firebaseSignInWithGoogleRedirect,
+  getGoogleRedirectResult,
   signIn,
   signUp,
   setDisplayName,
@@ -31,18 +33,52 @@ async function setSessionCookie(idToken: string): Promise<void> {
 
 export async function signInWithGoogle(): Promise<void> {
   const { user } = await firebaseSignInWithGoogle();
+  await finishGoogleSignIn(user);
+}
+
+/** Use redirect flow when popup is blocked; call this when the page loads after Google redirect. */
+export function signInWithGoogleRedirect(): void {
+  firebaseSignInWithGoogleRedirect();
+}
+
+/**
+ * Process the result of Google redirect sign-in. Call once on login page load.
+ * Returns true if we handled a redirect (user is signed in and we're redirecting to dashboard).
+ */
+export async function handleGoogleRedirectResult(): Promise<boolean> {
+  const result = await getGoogleRedirectResult();
+  if (!result?.user) return false;
+  const user = result.user;
   try {
     await ensureUserDoc(user.uid, {
       email: user.email ?? "",
       displayName: user.displayName ?? "",
     });
   } catch {
-    // Don't block sign-in if Firestore write fails (e.g. rules/network); user is still authenticated
+    // Don't block sign-in if Firestore write fails
   }
   const token = await user.getIdToken();
   await setSessionCookie(token);
   if (typeof window !== "undefined") {
-    await new Promise((r) => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 200));
+    window.location.replace("/dashboard");
+  }
+  return true;
+}
+
+async function finishGoogleSignIn(user: { uid: string; email: string | null; displayName: string | null }): Promise<void> {
+  try {
+    await ensureUserDoc(user.uid, {
+      email: user.email ?? "",
+      displayName: user.displayName ?? "",
+    });
+  } catch {
+    // Don't block sign-in if Firestore write fails
+  }
+  const token = await (user as { getIdToken: () => Promise<string> }).getIdToken();
+  await setSessionCookie(token);
+  if (typeof window !== "undefined") {
+    await new Promise((r) => setTimeout(r, 150));
     window.location.assign("/dashboard");
   }
 }

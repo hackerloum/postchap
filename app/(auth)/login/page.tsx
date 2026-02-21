@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { AuthInput } from "@/components/auth/AuthInput";
 import { GoogleButton } from "@/components/auth/GoogleButton";
 import {
-  signInWithGoogle,
+  signInWithGoogleRedirect,
+  handleGoogleRedirectResult,
   signInWithEmail,
   mapAuthError,
 } from "@/lib/auth";
@@ -42,16 +43,33 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [checkingRedirect, setCheckingRedirect] = useState(true);
   const [error, setError] = useState("");
 
-  async function handleGoogleSignIn() {
+  // Handle return from Google redirect sign-in
+  useEffect(() => {
+    let cancelled = false;
+    handleGoogleRedirectResult()
+      .then((handled) => {
+        if (cancelled) return;
+        if (handled) setGoogleLoading(true);
+        setCheckingRedirect(false);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(mapAuthError(err));
+        setCheckingRedirect(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  function handleGoogleSignIn() {
     setError("");
     setGoogleLoading(true);
     try {
-      await signInWithGoogle();
+      signInWithGoogleRedirect();
     } catch (err) {
       setError(mapAuthError(err));
-    } finally {
       setGoogleLoading(false);
     }
   }
@@ -93,6 +111,13 @@ export default function LoginPage() {
 
       <div className="flex flex-1 flex-col justify-center py-12">
         <div className="mx-auto w-full max-w-sm">
+          {checkingRedirect ? (
+            <div className="flex flex-col items-center gap-4 py-12">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-accent" aria-hidden />
+              <p className="font-mono text-sm text-text-muted">Checking sign-in…</p>
+            </div>
+          ) : (
+            <>
           <div className="mb-8">
             <h1 className="font-display text-3xl font-semibold tracking-tight text-text-primary">
               Welcome back
@@ -173,6 +198,8 @@ export default function LoginPage() {
               {loading ? "Signing in..." : "Sign in"}
             </button>
           </form>
+            </>
+          )}
         </div>
       </div>
 
