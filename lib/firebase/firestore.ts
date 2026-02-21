@@ -24,12 +24,23 @@ import type {
   ActivityAction,
 } from "@/types";
 
+/** Classic Firestore API for .collection().doc().get() - same shape as getFirestore() return. */
+interface ClassicFirestore {
+  collection(path: string): {
+    doc(path: string): {
+      get(): Promise<{ exists: boolean; data(): Record<string, unknown> | undefined }>;
+      set(data: object, opts?: { merge?: boolean }): Promise<void>;
+      collection(path: string): { get(): Promise<{ docs: Array<{ id: string; data(): Record<string, unknown> }> }> };
+    };
+  };
+}
+
 const USERS = "users";
 const BRAND_KITS = "brand_kits";
 
 /** Use classic API (same as onboarding/complete) so reads match writes. */
 export async function getHasOnboarded(userId: string): Promise<boolean> {
-  const db = getAdminDb() as import("firebase-admin/firestore").Firestore;
+  const db = getAdminDb() as unknown as ClassicFirestore;
   const snap = await db.collection(USERS).doc(userId).get();
   const data = snap.data() as { hasOnboarded?: boolean } | undefined;
   if (snap.exists) {
@@ -60,7 +71,7 @@ const POSTER_ACTIVITY = "poster_activity";
 // ——— BRAND KITS ———
 /** Use classic API for initial onboarding check so it matches onboarding/complete writes. */
 export async function getBrandKits(userId: string): Promise<BrandKit[]> {
-  const db = getAdminDb() as import("firebase-admin/firestore").Firestore;
+  const db = getAdminDb() as unknown as ClassicFirestore;
   const snap = await db.collection(USERS).doc(userId).collection(BRAND_KITS).get();
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as BrandKit));
 }
