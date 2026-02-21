@@ -2,7 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ["geist"],
-  serverExternalPackages: ["firebase-admin"],
+  experimental: {
+    serverComponentsExternalPackages: ["firebase-admin"],
+  },
 };
 
 module.exports = nextConfig;
