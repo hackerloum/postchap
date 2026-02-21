@@ -34,7 +34,12 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const hasOnboarded = await getHasOnboarded(uid);
+  let hasOnboarded = false;
+  try {
+    hasOnboarded = await getHasOnboarded(uid);
+  } catch (err) {
+    console.error("[Dashboard] getHasOnboarded error:", err);
+  }
   if (!hasOnboarded) {
     redirect("/onboarding");
   }

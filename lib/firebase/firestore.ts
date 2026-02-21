@@ -31,12 +31,22 @@ export async function getHasOnboarded(userId: string): Promise<boolean> {
   const ref = doc(adminDb, USERS, userId);
   const snap = await getDoc(ref);
   const data = snap.data() as { hasOnboarded?: boolean } | undefined;
-  return snap.exists() && data?.hasOnboarded === true;
+  if (snap.exists()) {
+    return data?.hasOnboarded === true;
+  }
+  // Ensure user doc exists so setUserHasOnboarded can update later
+  await setDoc(ref, { hasOnboarded: false, updatedAt: serverTimestamp() });
+  return false;
 }
 
 export async function setUserHasOnboarded(userId: string): Promise<void> {
   const ref = doc(adminDb, USERS, userId);
-  await updateDoc(ref, { hasOnboarded: true, updatedAt: serverTimestamp() });
+  const data = { hasOnboarded: true, updatedAt: serverTimestamp() };
+  try {
+    await updateDoc(ref, data);
+  } catch {
+    await setDoc(ref, data);
+  }
 }
 
 const POSTER_JOBS = "poster_jobs";
