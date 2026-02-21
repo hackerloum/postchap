@@ -106,7 +106,7 @@ export async function getEnabledPosterJobs(): Promise<
   const q = query(group, where("enabled", "==", true));
   const snap = await getDocs(q);
   return snap.docs.map((d) => {
-    const userId = d.ref.parent.parent?.id ?? "";
+    const userId = d.ref?.parent?.parent?.id ?? "";
     return { userId, id: d.id, ...d.data() } as PosterJob & { userId: string };
   });
 }

@@ -3,6 +3,8 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/context/AuthContext";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "ArtMaster — Your brand posts itself. Every day.",
   description:

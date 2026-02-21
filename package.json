@@ -10,6 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@firebase/database": "1.0.20",
     "@hookform/resolvers": "^3.9.1",
     "@radix-ui/react-collapsible": "^1.1.2",
     "@radix-ui/react-slot": "^1.1.0",
@@ -17,6 +18,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "firebase": "^11.10.0",
+    "firebase-admin": "^13.0.0",
     "framer-motion": "^11.11.17",
     "geist": "^1.7.0",
     "lucide-react": "^0.460.0",
