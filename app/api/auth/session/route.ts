@@ -7,6 +7,7 @@ const MAX_AGE = 5 * 24 * 60 * 60; // 5 days
 /**
  * POST: set session cookie from Firebase ID token.
  * Body: { token: string }
+ * Cookie is set so it works on both HTTP (localhost) and HTTPS (production).
  */
 export async function POST(request: NextRequest) {
   try {
@@ -19,11 +20,14 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const decoded = await adminAuth.verifyIdToken(token);
+    await adminAuth.verifyIdToken(token);
+    const isHttps =
+      request.nextUrl?.protocol === "https:" ||
+      request.headers.get("x-forwarded-proto") === "https";
     const response = NextResponse.json({ ok: true });
     response.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isHttps,
       sameSite: "lax",
       path: "/",
       maxAge: MAX_AGE,
@@ -40,11 +44,14 @@ export async function POST(request: NextRequest) {
 /**
  * DELETE: clear session cookie (logout).
  */
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
+  const isHttps =
+    request.nextUrl?.protocol === "https:" ||
+    request.headers.get("x-forwarded-proto") === "https";
   const response = NextResponse.json({ ok: true });
   response.cookies.set(SESSION_COOKIE, "", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: isHttps,
     sameSite: "lax",
     path: "/",
     maxAge: 0,

@@ -19,6 +19,7 @@ async function setSessionCookie(idToken: string): Promise<void> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token: idToken }),
+    credentials: "include",
   });
   if (!res.ok) {
     const msg = (await res.json().catch(() => ({})))?.error ?? "Session could not be set";
@@ -40,7 +41,10 @@ export async function signInWithGoogle(): Promise<void> {
   }
   const token = await user.getIdToken();
   await setSessionCookie(token);
-  if (typeof window !== "undefined") window.location.href = "/dashboard";
+  if (typeof window !== "undefined") {
+    await new Promise((r) => setTimeout(r, 100));
+    window.location.assign("/dashboard");
+  }
 }
 
 export async function signInWithEmail(
@@ -50,7 +54,10 @@ export async function signInWithEmail(
   const { user } = await signIn(email, password);
   const token = await user.getIdToken();
   await setSessionCookie(token);
-  if (typeof window !== "undefined") window.location.href = "/dashboard";
+  if (typeof window !== "undefined") {
+    await new Promise((r) => setTimeout(r, 100));
+    window.location.assign("/dashboard");
+  }
 }
 
 export async function signUpWithEmail(
@@ -70,7 +77,10 @@ export async function signUpWithEmail(
   }
   const token = await user.getIdToken();
   await setSessionCookie(token);
-  if (typeof window !== "undefined") window.location.href = "/dashboard";
+  if (typeof window !== "undefined") {
+    await new Promise((r) => setTimeout(r, 100));
+    window.location.assign("/dashboard");
+  }
 }
 
 export async function sendPasswordResetEmail(email: string): Promise<void> {
