@@ -1,19 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import adminApp from "@/lib/firebase/admin";
-import { adminAuth } from "@/lib/firebase/admin";
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
-
-/** Firestore instance via getFirestore (classic .collection() API works on Vercel) */
-function getDb(): {
-  collection(id: string): {
-    doc(id: string): {
-      collection(id: string): { add(data: object): Promise<{ id: string }> };
-      set(data: object, opts?: { merge?: boolean }): Promise<void>;
-    };
-  };
-} {
-  return getFirestore(adminApp) as ReturnType<typeof getDb>;
-}
+import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 export async function POST(request: NextRequest) {
   console.log("[onboarding/complete] Request received");
@@ -35,7 +22,7 @@ export async function POST(request: NextRequest) {
 
     let uid: string;
     try {
-      const decoded = await adminAuth.verifyIdToken(token);
+      const decoded = await getAdminAuth().verifyIdToken(token);
       uid = decoded.uid;
       console.log("[onboarding/complete] Token verified, uid:", uid);
     } catch (tokenError) {
@@ -147,7 +134,7 @@ export async function POST(request: NextRequest) {
 
       console.log("[onboarding/complete] Writing brand kit to Firestore...");
 
-      const brandKitRef = await getDb()
+      const brandKitRef = await getAdminDb()
         .collection("users")
         .doc(uid)
         .collection("brand_kits")
@@ -167,7 +154,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await getDb()
+      await getAdminDb()
         .collection("users")
         .doc(uid)
         .collection("poster_jobs")
@@ -186,14 +173,14 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await adminAuth.setCustomUserClaims(uid, { hasOnboarded: true });
+      await getAdminAuth().setCustomUserClaims(uid, { hasOnboarded: true });
       console.log("[onboarding/complete] Custom claim set: hasOnboarded=true");
     } catch (claimError) {
       console.warn("[onboarding/complete] Custom claim failed (non-fatal):", claimError);
     }
 
     try {
-      await getDb().collection("users").doc(uid).set(
+      await getAdminDb().collection("users").doc(uid).set(
         {
           hasOnboarded: true,
           updatedAt: FieldValue.serverTimestamp(),

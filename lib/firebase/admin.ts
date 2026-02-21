@@ -1,87 +1,98 @@
-import { initializeApp, getApps, cert, type App } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { cert, getApp, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
+import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { getDatabase } from "firebase-admin/database";
 
-function getAdminApp(): App {
-  if (getApps().length > 0) {
-    return getApps()[0] as App;
+// ─── App initialization ───────────────────────────────────────
+// Use lazy singleton with named app to avoid Vercel cold-start race conditions.
+// NEVER call getFirestore/getAuth at module level.
+// Always call them inside functions via getAdminApp().
+
+const APP_NAME = "artmaster-admin";
+
+function getAdminApp() {
+  try {
+    return getApp(APP_NAME);
+  } catch {
+    // App doesn't exist yet — create it
   }
 
+  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
 
-  if (!privateKey) {
-    throw new Error(
-      "FIREBASE_ADMIN_PRIVATE_KEY is not set in environment variables"
-    );
+  if (!projectId || !clientEmail || !privateKey) {
+    const missing = [
+      !projectId && "FIREBASE_ADMIN_PROJECT_ID",
+      !clientEmail && "FIREBASE_ADMIN_CLIENT_EMAIL",
+      !privateKey && "FIREBASE_ADMIN_PRIVATE_KEY",
+    ]
+      .filter(Boolean)
+      .join(", ");
+    throw new Error(`Firebase Admin: Missing environment variables: ${missing}`);
   }
 
-  if (!process.env.FIREBASE_ADMIN_PROJECT_ID) {
-    throw new Error(
-      "FIREBASE_ADMIN_PROJECT_ID is not set in environment variables"
-    );
-  }
+  const formattedKey = privateKey.replace(/\\n/g, "\n");
 
-  if (!process.env.FIREBASE_ADMIN_CLIENT_EMAIL) {
-    throw new Error(
-      "FIREBASE_ADMIN_CLIENT_EMAIL is not set in environment variables"
-    );
-  }
-
-  // Replace escaped newlines with real newlines (fixes common private key bug)
-  const formattedKey = privateKey.includes("\\n")
-    ? privateKey.replace(/\\n/g, "\n")
-    : privateKey;
-
-  if (process.env.NODE_ENV === "development") {
-    console.log("[Firebase Admin] Initializing with project:", process.env.FIREBASE_ADMIN_PROJECT_ID);
-  }
-
-  return initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-      privateKey: formattedKey,
-    }),
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    ...(process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL && {
-      databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
-    }),
-  });
+  return initializeApp(
+    {
+      credential: cert({
+        projectId,
+        clientEmail,
+        privateKey: formattedKey,
+      }),
+      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      ...(process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL
+        ? { databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL }
+        : {}),
+    },
+    APP_NAME
+  );
 }
 
-let _app: App | null = null;
-function getApp(): App {
-  if (!_app) _app = getAdminApp();
-  return _app;
+// ─── Lazy service getters ─────────────────────────────────────
+// Services are resolved lazily so the app exists before getFirestore() is called.
+
+export function getAdminAuth() {
+  return getAuth(getAdminApp());
 }
 
-// Lazy init so build can complete without env vars; init runs on first API use.
+export function getAdminDb() {
+  return getFirestore(getAdminApp());
+}
+
+export function getAdminStorage() {
+  return getStorage(getAdminApp());
+}
+
+export function getAdminRtdb() {
+  return getDatabase(getAdminApp());
+}
+
+// ─── Legacy named exports ─────────────────────────────────────
+// For files that import { adminAuth, adminDb }; they delegate lazily.
+
 const empty = {};
-export const adminDb = new Proxy(empty, {
-  get(_, prop) {
-    return (getFirestore(getApp()) as unknown as Record<string, unknown>)[prop as string];
-  },
-}) as ReturnType<typeof getFirestore>;
 export const adminAuth = new Proxy(empty, {
   get(_, prop) {
-    return (getAuth(getApp()) as unknown as Record<string, unknown>)[prop as string];
+    return (getAdminAuth() as unknown as Record<string, unknown>)[prop as string];
   },
 }) as ReturnType<typeof getAuth>;
+export const adminDb = new Proxy(empty, {
+  get(_, prop) {
+    return (getAdminDb() as unknown as Record<string, unknown>)[prop as string];
+  },
+}) as ReturnType<typeof getFirestore>;
 export const adminStorage = new Proxy(empty, {
   get(_, prop) {
-    return (getStorage(getApp()) as unknown as Record<string, unknown>)[prop as string];
+    return (getAdminStorage() as unknown as Record<string, unknown>)[prop as string];
   },
 }) as ReturnType<typeof getStorage>;
 export const adminRtdb = new Proxy(empty, {
   get(_, prop) {
-    return (getDatabase(getApp()) as unknown as Record<string, unknown>)[prop as string];
+    return (getAdminRtdb() as unknown as Record<string, unknown>)[prop as string];
   },
 }) as ReturnType<typeof getDatabase>;
-const adminAppProxy = new Proxy(empty, {
-  get(_, prop) {
-    return (getApp() as unknown as Record<string, unknown>)[prop as string];
-  },
-}) as App;
-export default adminAppProxy;
+
+export default getAdminApp;

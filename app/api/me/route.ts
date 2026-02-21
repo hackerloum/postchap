@@ -1,32 +1,41 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { adminAuth } from "@/lib/firebase/admin";
+import { getAdminAuth } from "@/lib/firebase/admin";
 import { getHasOnboarded } from "@/lib/firebase/firestore";
-
-const SESSION_COOKIE = "__session";
 
 /**
  * GET /api/me — returns current user uid, email, and hasOnboarded.
- * Used by dashboard and onboarding pages to decide redirects.
+ * Accepts token via Authorization: Bearer <token> or __session cookie.
  */
-export async function GET() {
-  const cookieStore = await cookies();
-  const session = cookieStore.get(SESSION_COOKIE)?.value;
-  if (!session) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
+export async function GET(request: NextRequest) {
   try {
-    const decoded = await adminAuth.verifyIdToken(session) as { uid: string; email?: string };
-    const uid = decoded.uid;
-    const email = decoded.email ?? "";
-    const hasOnboarded = await getHasOnboarded(uid);
+    let token: string | null = null;
+
+    const authHeader = request.headers.get("Authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      token = authHeader.split("Bearer ")[1];
+    }
+    if (!token) {
+      const cookieStore = await cookies();
+      token = cookieStore.get("__session")?.value ?? null;
+    }
+    if (!token) {
+      return NextResponse.json({ error: "No token" }, { status: 401 });
+    }
+
+    const decoded = (await getAdminAuth().verifyIdToken(token)) as {
+      uid: string;
+      email?: string;
+      hasOnboarded?: boolean;
+    };
+    const hasOnboarded = await getHasOnboarded(decoded.uid);
 
     return NextResponse.json({
-      uid,
-      email,
+      uid: decoded.uid,
+      email: decoded.email ?? null,
       hasOnboarded,
     });
   } catch {
-    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 }
