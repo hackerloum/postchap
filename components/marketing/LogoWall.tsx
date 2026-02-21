@@ -2,62 +2,63 @@
 
 import { useState, useEffect, useRef } from 'react';
 
-const brands = [
-  { name: 'Safaricom', symbol: '◆' },
-  { name: 'CRDB', symbol: '▲' },
-  { name: 'Vodacom', symbol: '●' },
-  { name: 'Azam', symbol: '◈' },
-  { name: 'NMB Bank', symbol: '◇' },
-  { name: 'Jubilee', symbol: '▸' },
-  { name: 'DStv', symbol: '◉' },
-  { name: 'Precision Air', symbol: '△' },
-  { name: 'Maxcom', symbol: '◆' },
-  { name: 'Tanzania Breweries', symbol: '▪' },
-  { name: 'KCB', symbol: '◈' },
-  { name: 'Multichoice', symbol: '●' },
-  { name: 'Airtel', symbol: '▲' },
-  { name: 'Equity Bank', symbol: '◇' },
-  { name: 'Standard Chartered', symbol: '◉' },
-  { name: 'Absa', symbol: '▸' },
-];
+type Brand = {
+  id: string;
+  name: string;
+  lightSrc: string;
+  darkSrc: string;
+};
 
 type CellState = {
-  current: number;
-  next: number | null;
-  isSwapping: boolean;
+  currentBrand: Brand;
+  nextBrand: Brand | null;
+  isAnimating: boolean;
   isPaused: boolean;
 };
 
+const brands: Brand[] = [
+  { id: 'safaricom', name: 'Safaricom', lightSrc: '/logos/safaricom_light.svg', darkSrc: '/logos/safaricom_dark.svg' },
+  { id: 'vodacom', name: 'Vodacom', lightSrc: '/logos/vodacom_light.svg', darkSrc: '/logos/vodacom_dark.svg' },
+  { id: 'airtel', name: 'Airtel', lightSrc: '/logos/airtel_light.svg', darkSrc: '/logos/airtel_dark.svg' },
+  { id: 'crdb', name: 'CRDB Bank', lightSrc: '/logos/crdb_light.svg', darkSrc: '/logos/crdb_dark.svg' },
+  { id: 'nmb', name: 'NMB Bank', lightSrc: '/logos/nmb_light.svg', darkSrc: '/logos/nmb_dark.svg' },
+  { id: 'equity', name: 'Equity Bank', lightSrc: '/logos/equity_light.svg', darkSrc: '/logos/equity_dark.svg' },
+  { id: 'jubilee', name: 'Jubilee', lightSrc: '/logos/jubilee_light.svg', darkSrc: '/logos/jubilee_dark.svg' },
+  { id: 'azam', name: 'Azam Media', lightSrc: '/logos/azam_light.svg', darkSrc: '/logos/azam_dark.svg' },
+  { id: 'precision', name: 'Precision Air', lightSrc: '/logos/precision_light.svg', darkSrc: '/logos/precision_dark.svg' },
+  { id: 'kcb', name: 'KCB', lightSrc: '/logos/kcb_light.svg', darkSrc: '/logos/kcb_dark.svg' },
+  { id: 'absa', name: 'Absa', lightSrc: '/logos/absa_light.svg', darkSrc: '/logos/absa_dark.svg' },
+  { id: 'dstv', name: 'DStv', lightSrc: '/logos/dstv_light.svg', darkSrc: '/logos/dstv_dark.svg' },
+];
+
 const CELL_COUNT = 8;
-const TRANSITION_MS = 400;
+const TRANSITION_MS = 500;
 
 function getRandomInt(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function getUsedBrandIndices(cellStates: CellState[], excludeCellIndex: number): Set<number> {
-  const used = new Set<number>();
-  cellStates.forEach((cell, i) => {
-    used.add(cell.current);
-    if (cell.next !== null) used.add(cell.next);
+function getUsedBrandIds(cellStates: CellState[]): Set<string> {
+  const used = new Set<string>();
+  cellStates.forEach((cell) => {
+    used.add(cell.currentBrand.id);
+    if (cell.nextBrand) used.add(cell.nextBrand.id);
   });
   return used;
 }
 
-function pickNextBrandIndex(currentIndex: number, usedIndices: Set<number>): number {
-  const candidates = brands
-    .map((_, i) => i)
-    .filter((i) => i !== currentIndex && !usedIndices.has(i));
-  if (candidates.length === 0) return (currentIndex + 1) % brands.length;
+function pickNextBrand(usedIds: Set<string>): Brand {
+  const candidates = brands.filter((b) => !usedIds.has(b.id));
+  if (candidates.length === 0) return brands[getRandomInt(0, brands.length - 1)];
   return candidates[getRandomInt(0, candidates.length - 1)];
 }
 
 export function LogoWall() {
   const [cellStates, setCellStates] = useState<CellState[]>(() =>
     Array.from({ length: CELL_COUNT }, (_, i) => ({
-      current: i % brands.length,
-      next: null,
-      isSwapping: false,
+      currentBrand: brands[i % brands.length],
+      nextBrand: null,
+      isAnimating: false,
       isPaused: false,
     }))
   );
@@ -79,43 +80,43 @@ export function LogoWall() {
     };
 
     for (let i = 0; i < CELL_COUNT; i++) {
-      const initialDelay = getRandomInt(0, 3000);
-      const intervalMs = getRandomInt(2000, 5000);
+      const initialDelay = getRandomInt(0, 4000);
+      const intervalMs = getRandomInt(2500, 6000);
 
-      const timeoutId = window.setTimeout(() => {
+      const delayId = window.setTimeout(() => {
         const runSwap = () => {
           const states = stateRef.current;
           const cell = states[i];
-          if (cell.isPaused || cell.isSwapping) return;
+          if (cell.isPaused || cell.isAnimating) return;
 
-          const used = getUsedBrandIndices(states, i);
-          const nextIndex = pickNextBrandIndex(cell.current, used);
+          const used = getUsedBrandIds(states);
+          const next = pickNextBrand(used);
 
           setCellStates((prev) => {
-            const next = [...prev];
-            next[i] = {
-              ...next[i],
-              next: nextIndex,
-              isSwapping: true,
+            const nextState = [...prev];
+            nextState[i] = {
+              ...nextState[i],
+              nextBrand: next,
+              isAnimating: true,
             };
-            return next;
+            return nextState;
           });
 
-          const swapTimeoutId = window.setTimeout(() => {
+          const doneId = window.setTimeout(() => {
             setCellStates((prev) => {
-              const next = [...prev];
-              const cellNext = next[i].next;
-              next[i] = {
-                current: cellNext ?? next[i].current,
-                next: null,
-                isSwapping: false,
-                isPaused: next[i].isPaused,
+              const nextState = [...prev];
+              const cellNext = nextState[i].nextBrand;
+              nextState[i] = {
+                currentBrand: cellNext ?? nextState[i].currentBrand,
+                nextBrand: null,
+                isAnimating: false,
+                isPaused: nextState[i].isPaused,
               };
-              return next;
+              return nextState;
             });
           }, TRANSITION_MS);
 
-          timeoutsRef.current.push(swapTimeoutId);
+          timeoutsRef.current.push(doneId);
         };
 
         runSwap();
@@ -123,7 +124,7 @@ export function LogoWall() {
         intervalsRef.current.push(intervalId);
       }, initialDelay);
 
-      timeoutsRef.current.push(timeoutId);
+      timeoutsRef.current.push(delayId);
     }
 
     return clearAll;
@@ -135,11 +136,10 @@ export function LogoWall() {
         <p className="mb-8 text-center font-mono text-[11px] uppercase tracking-widest text-text-muted">
           Trusted by brand teams across East Africa
         </p>
-        <div className="grid grid-cols-[repeat(2,1fr)] justify-center gap-3 sm:grid-cols-[repeat(4,160px)]">
+        <div className="grid grid-cols-2 justify-items-center gap-3 md:grid-cols-4">
           {cellStates.map((cell, i) => (
             <LogoCell
               key={i}
-              cellIndex={i}
               state={cell}
               onPause={(paused) =>
                 setCellStates((prev) => {
@@ -157,57 +157,45 @@ export function LogoWall() {
 }
 
 function LogoCell({
-  cellIndex,
   state,
   onPause,
 }: {
-  cellIndex: number;
   state: CellState;
   onPause: (paused: boolean) => void;
 }) {
-  const { current, next, isSwapping } = state;
-  const brandCurrent = brands[current];
-  const brandNext = next !== null ? brands[next] : null;
+  const { currentBrand, nextBrand, isAnimating } = state;
 
   return (
     <div
-      className="group relative flex h-[72px] w-full cursor-default items-center justify-center overflow-hidden rounded-xl border border-border-default bg-bg-surface sm:w-[160px] hover:border-border-strong"
+      className="relative h-[72px] w-full cursor-default overflow-hidden rounded-xl border border-border-default bg-bg-surface transition-[border-color] duration-200 md:w-[160px] hover:border-border-strong"
       onMouseEnter={() => onPause(true)}
       onMouseLeave={() => onPause(false)}
     >
-      {/* Current logo */}
+      {/* Container A — current brand */}
       <div
         className="absolute inset-0 flex items-center justify-center"
         style={{
-          opacity: isSwapping ? 0 : 1,
-          transform: isSwapping ? 'translateY(-40%)' : 'translateY(0)',
-          transition: 'all 400ms ease',
+          opacity: isAnimating ? 0 : 1,
+          transform: isAnimating ? 'translateY(-50%)' : 'translateY(0)',
+          transition: 'opacity 500ms ease, transform 500ms ease',
         }}
       >
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-accent">{brandCurrent.symbol}</span>
-          <span className="font-display text-sm font-semibold text-text-primary opacity-60 transition-opacity group-hover:opacity-100">
-            {brandCurrent.name}
-          </span>
-        </div>
+        <img src={currentBrand.lightSrc} alt={currentBrand.name} className="logo-light h-auto max-h-8 w-auto max-w-[120px] object-contain" />
+        <img src={currentBrand.darkSrc} alt={currentBrand.name} className="logo-dark h-auto max-h-8 w-auto max-w-[120px] object-contain" />
       </div>
 
-      {/* Next logo (only when next is set) */}
-      {brandNext && (
+      {/* Container B — next brand (when queued) */}
+      {nextBrand && (
         <div
           className="absolute inset-0 flex items-center justify-center"
           style={{
-            opacity: isSwapping ? 1 : 0,
-            transform: isSwapping ? 'translateY(0)' : 'translateY(40%)',
-            transition: isSwapping ? 'all 400ms ease' : 'none',
+            opacity: isAnimating ? 1 : 0,
+            transform: isAnimating ? 'translateY(0)' : 'translateY(50%)',
+            transition: isAnimating ? 'opacity 500ms ease, transform 500ms ease' : 'none',
           }}
         >
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-accent">{brandNext.symbol}</span>
-            <span className="font-display text-sm font-semibold text-text-primary opacity-60 transition-opacity group-hover:opacity-100">
-              {brandNext.name}
-            </span>
-          </div>
+          <img src={nextBrand.lightSrc} alt={nextBrand.name} className="logo-light h-auto max-h-8 w-auto max-w-[120px] object-contain" />
+          <img src={nextBrand.darkSrc} alt={nextBrand.name} className="logo-dark h-auto max-h-8 w-auto max-w-[120px] object-contain" />
         </div>
       )}
     </div>

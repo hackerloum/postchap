@@ -142,3 +142,17 @@
     transparent 100%
   );
 }
+
+/* Logo wall — light/dark theme switching */
+.logo-light {
+  display: block;
+}
+.logo-dark {
+  display: none;
+}
+.dark .logo-light {
+  display: none;
+}
+.dark .logo-dark {
+  display: block;
+}
