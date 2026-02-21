@@ -1,0 +1,144 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Fonts — Apple SF Pro system stack */
+  --font-apple: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-apple);
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SF Mono", ui-monospace, "Cascadia Code",
+    "Fira Code", Menlo, Consolas, monospace;
+
+  /* Backgrounds */
+  --bg-base: #080808;
+  --bg-surface: #111111;
+  --bg-elevated: #1a1a1a;
+  --bg-overlay: #222222;
+
+  /* Borders */
+  --border-subtle: #1f1f1f;
+  --border-default: #2a2a2a;
+  --border-strong: #3a3a3a;
+
+  /* Text */
+  --text-primary: #f2f2f2;
+  --text-secondary: #888888;
+  --text-muted: #555555;
+
+  /* Accent */
+  --accent: #e8ff47;
+  --accent-dim: #b8cc38;
+
+  /* Status */
+  --status-success: #3ddc84;
+  --status-warning: #f5a623;
+  --status-error: #ff4d4d;
+  --status-info: #4d9eff;
+}
+
+@layer base {
+  html {
+    background: var(--bg-base);
+    color: var(--text-primary);
+  }
+  html,
+  body {
+    font-family: var(--font-apple);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    text-rendering: optimizeLegibility;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+  code,
+  kbd,
+  pre,
+  .mono,
+  .badge,
+  .timestamp {
+    font-family: var(--font-mono);
+  }
+}
+
+@layer utilities {
+  .skeleton-warm {
+    background: linear-gradient(
+      90deg,
+      var(--border-subtle) 0%,
+      var(--border-default) 50%,
+      var(--border-subtle) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  }
+}
+
+@keyframes skeleton-shimmer {
+  0%, 100% {
+    background-position: 200% 0;
+  }
+  50% {
+    background-position: -200% 0;
+  }
+}
+
+/* Logo marquee — infinite scroll */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  animation: marquee 30s linear infinite;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+.marquee-track-reverse {
+  animation: marquee 25s linear infinite reverse;
+}
+
+.marquee-track-reverse:hover {
+  animation-play-state: paused;
+}
+
+@media (max-width: 767px) {
+  .marquee-track {
+    animation-duration: 20s;
+  }
+  .marquee-track-reverse {
+    animation-duration: 20s;
+  }
+}
+
+.marquee-container {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 10%,
+    black 90%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 10%,
+    black 90%,
+    transparent 100%
+  );
+}
