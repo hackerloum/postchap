@@ -7,6 +7,7 @@ import {
   getPosters,
   getActivity,
   getPosterJobs,
+  setUserHasOnboarded,
 } from "@/lib/firebase/firestore";
 import { DashboardClient } from "./DashboardClient";
 import type { BrandKit } from "@/types";
@@ -24,14 +25,15 @@ function toDate(v: unknown): Date | null {
 export default async function DashboardPage() {
   const cookieStore = await cookies();
   const session = cookieStore.get(SESSION_COOKIE)?.value;
-  if (!session) redirect("/login");
+  if (!session) redirect("/api/auth/session?action=clear&next=/login");
 
   let uid: string;
   try {
     const decoded = await adminAuth.verifyIdToken(session);
     uid = decoded.uid;
   } catch {
-    redirect("/login");
+    // Clear invalid/expired cookie so middleware doesn't send user back here (redirect loop)
+    redirect("/api/auth/session?action=clear&next=/login");
   }
 
   let hasOnboarded = false;
@@ -40,11 +42,24 @@ export default async function DashboardPage() {
   } catch (err) {
     console.error("[Dashboard] getHasOnboarded error:", err);
   }
+
+  // If flag is false but user already has brand kits (e.g. just finished onboarding), treat as onboarded
+  let brandKits: BrandKit[] = [];
   if (!hasOnboarded) {
-    redirect("/onboarding");
+    try {
+      brandKits = await getBrandKits(uid);
+      if (brandKits.length > 0) {
+        hasOnboarded = true;
+        setUserHasOnboarded(uid).catch((e) =>
+          console.warn("[Dashboard] setUserHasOnboarded sync failed:", e)
+        );
+      }
+    } catch (err) {
+      console.error("[Dashboard] getBrandKits error:", err);
+    }
+    if (!hasOnboarded) redirect("/onboarding");
   }
 
-  let brandKits: BrandKit[] = [];
   let posters: Awaited<ReturnType<typeof getPosters>> = [];
   let activity: Awaited<ReturnType<typeof getActivity>> = [];
   let jobs: Awaited<ReturnType<typeof getPosterJobs>> = [];

@@ -4,6 +4,36 @@ import { adminAuth } from "@/lib/firebase/admin";
 const SESSION_COOKIE = "__session";
 const MAX_AGE = 5 * 24 * 60 * 60; // 5 days
 
+function clearSessionCookie(request: NextRequest): NextResponse {
+  const isHttps =
+    request.nextUrl?.protocol === "https:" ||
+    request.headers.get("x-forwarded-proto") === "https";
+  const next = request.nextUrl.searchParams.get("next") || "/login";
+  const nextUrl = next.startsWith("/") && !next.startsWith("//")
+    ? new URL(next, request.nextUrl.origin)
+    : new URL("/login", request.nextUrl.origin);
+  const res = NextResponse.redirect(nextUrl, 302);
+  res.cookies.set(SESSION_COOKIE, "", {
+    httpOnly: true,
+    secure: isHttps,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+  });
+  return res;
+}
+
+/**
+ * GET: clear session cookie and redirect (breaks redirect loop when token is invalid).
+ * Use ?action=clear&next=/login so protected pages can send users to login with cookie cleared.
+ */
+export async function GET(request: NextRequest) {
+  if (request.nextUrl.searchParams.get("action") === "clear") {
+    return clearSessionCookie(request);
+  }
+  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+}
+
 /**
  * POST: set session cookie from Firebase ID token.
  * Body: JSON { token: string } or form-urlencoded token=...

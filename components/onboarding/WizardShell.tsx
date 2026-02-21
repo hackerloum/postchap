@@ -138,12 +138,17 @@ export function WizardShell() {
       }
 
       const newToken = await user.getIdToken(true);
-      await fetch("/api/auth/session", {
+      const sessionRes = await fetch("/api/auth/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: newToken }),
         credentials: "include",
       });
+      if (!sessionRes.ok) {
+        throw new Error("Session could not be saved. Please try again.");
+      }
+      // Let the browser commit the session cookie before navigating so /welcome isn't sent without it
+      await new Promise((r) => setTimeout(r, 150));
       router.push(`/welcome?brandKitId=${data.brandKitId ?? ""}`);
     } catch (err) {
       console.error("[Wizard] Submit failed:", err);
