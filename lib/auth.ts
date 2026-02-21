@@ -13,6 +13,7 @@ import {
   changePassword,
   applyPasswordReset,
   auth,
+  type User as FirebaseUser,
 } from "@/lib/firebase/auth";
 import { ensureUserDoc } from "@/lib/firebase/userProfile";
 
@@ -66,7 +67,7 @@ export async function handleGoogleRedirectResult(): Promise<boolean> {
   return true;
 }
 
-async function finishGoogleSignIn(user: { uid: string; email: string | null; displayName: string | null }): Promise<void> {
+async function finishGoogleSignIn(user: FirebaseUser): Promise<void> {
   try {
     await ensureUserDoc(user.uid, {
       email: user.email ?? "",
@@ -75,7 +76,7 @@ async function finishGoogleSignIn(user: { uid: string; email: string | null; dis
   } catch {
     // Don't block sign-in if Firestore write fails
   }
-  const token = await (user as { getIdToken: () => Promise<string> }).getIdToken();
+  const token = await user.getIdToken();
   await setSessionCookie(token);
   if (typeof window !== "undefined") {
     await new Promise((r) => setTimeout(r, 150));

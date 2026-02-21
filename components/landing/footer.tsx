@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/ui/logo";
 
 const PRODUCT_LINKS = [
   { href: "#features", label: "Features" },
@@ -24,11 +25,7 @@ export function Footer() {
       <div className="mx-auto max-w-6xl px-6 py-12 md:px-8">
         <div className="grid gap-8 md:grid-cols-4">
           <div>
-            <Link href="/" className="flex items-center gap-2">
-              <span className="font-display text-lg text-text-primary">
-                ArtMaster Platform
-              </span>
-            </Link>
+            <Logo variant="footer" />
             <p className="mt-4 font-apple text-sm font-normal leading-relaxed text-text-secondary">
               ArtMaster Platform — Built for brands that mean business.
             </p>

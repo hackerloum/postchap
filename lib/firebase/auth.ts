@@ -32,6 +32,7 @@ export const signInWithGoogleRedirect = () =>
 /** Call on login (or app) load after redirect from Google. Returns the signed-in user if present. */
 export const getGoogleRedirectResult = () => getRedirectResult(auth);
 
+export type { User };
 export const logOut = () => signOut(auth);
 
 export const resetPassword = (email: string) => {

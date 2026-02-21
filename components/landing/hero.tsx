@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/ui/logo";
 import { HeroMockup } from "./hero-mockup";
 
 const STATS = [
@@ -17,6 +18,14 @@ export function Hero() {
     <section className="px-6 py-32 md:px-8">
       <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[1fr_0.8fr] lg:items-center lg:gap-16">
         <div className="min-w-0 lg:max-w-xl">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0 }}
+            className="mb-8"
+          >
+            <Logo variant="hero" link={true} />
+          </motion.div>
           <motion.h1
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}

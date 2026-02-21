@@ -5,6 +5,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/ui/logo";
 
 const NAV_LINKS = [
   { href: "#features", label: "Features" },
@@ -20,10 +21,7 @@ export function Nav() {
     <>
       <header className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-border-subtle bg-bg-base">
         <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-6 md:px-8">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="font-display text-lg text-text-primary">ArtMaster</span>
-            <span className="font-mono text-[10px] uppercase text-accent">Platform</span>
-          </Link>
+          <Logo variant="nav" />
 
           <nav className="hidden items-center gap-8 md:flex">
             {NAV_LINKS.map((link) => (
@@ -67,10 +65,7 @@ export function Nav() {
             className="fixed inset-0 z-50 bg-bg-base md:hidden"
           >
             <div className="flex h-16 items-center justify-between border-b border-border-subtle px-6">
-              <div className="flex items-center gap-2">
-                <span className="font-display text-lg text-text-primary">ArtMaster</span>
-                <span className="font-mono text-[10px] uppercase text-accent">Platform</span>
-              </div>
+              <Logo variant="nav" />
               <button
                 type="button"
                 className="flex h-10 w-10 items-center justify-center rounded-md border border-border-default"

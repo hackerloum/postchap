@@ -1,5 +1,7 @@
 "use client";
 
+import { Logo } from "@/components/ui/logo";
+
 export function AuthVisualPanel() {
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col overflow-hidden bg-bg-surface border-l border-border-default">
@@ -70,9 +72,9 @@ export function AuthVisualPanel() {
 
       {/* Layer 2 — Content */}
       <div className="relative z-10 flex flex-1 flex-col justify-center p-16">
-        <p className="mb-6 font-mono text-[11px] uppercase tracking-widest text-accent">
-          ArtMaster Platform
-        </p>
+        <div className="mb-6">
+          <Logo variant="footer" link={false} className="h-8 w-auto opacity-90" />
+        </div>
         <div>
           <p className="font-display text-5xl font-semibold leading-[1.1] tracking-tight text-text-primary xl:text-6xl">
             Your brand.

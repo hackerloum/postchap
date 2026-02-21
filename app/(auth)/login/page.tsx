@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { AuthInput } from "@/components/auth/AuthInput";
 import { GoogleButton } from "@/components/auth/GoogleButton";
+import { Logo } from "@/components/ui/logo";
 import {
   signInWithGoogleRedirect,
   handleGoogleRedirectResult,
@@ -90,14 +91,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col px-8 py-10 lg:px-16">
       <div className="flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="font-display text-base font-semibold text-text-primary">
-            ArtMaster
-          </span>
-          <span className="rounded border border-accent/30 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-widest text-accent">
-            Platform
-          </span>
-        </Link>
+        <Logo variant="auth" />
         <p className="font-apple text-sm text-text-secondary">
           New to ArtMaster?{" "}
           <Link
