@@ -8,13 +8,14 @@ export function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
   const isDashboard = pathname.startsWith("/dashboard");
+  const isOnboarding = pathname.startsWith("/onboarding");
   const isAuthPage =
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup") ||
     pathname.startsWith("/reset-password") ||
     pathname.startsWith("/update-password");
 
-  if (isDashboard && !session) {
+  if ((isDashboard || isOnboarding) && !session) {
     const url = new URL("/login", req.url);
     url.searchParams.set("from", pathname);
     return NextResponse.redirect(url);
@@ -30,6 +31,7 @@ export function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     "/dashboard/:path*",
+    "/onboarding/:path*",
     "/login",
     "/signup",
     "/reset-password",

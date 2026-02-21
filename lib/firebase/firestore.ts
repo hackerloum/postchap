@@ -26,6 +26,19 @@ import type {
 
 const USERS = "users";
 const BRAND_KITS = "brand_kits";
+
+export async function getHasOnboarded(userId: string): Promise<boolean> {
+  const ref = doc(adminDb, USERS, userId);
+  const snap = await getDoc(ref);
+  const data = snap.data() as { hasOnboarded?: boolean } | undefined;
+  return snap.exists() && data?.hasOnboarded === true;
+}
+
+export async function setUserHasOnboarded(userId: string): Promise<void> {
+  const ref = doc(adminDb, USERS, userId);
+  await updateDoc(ref, { hasOnboarded: true, updatedAt: serverTimestamp() });
+}
+
 const POSTER_JOBS = "poster_jobs";
 const POSTERS = "posters";
 const POSTER_ACTIVITY = "poster_activity";
@@ -256,4 +269,25 @@ export async function getPosterActivity(
   );
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as PosterActivity));
+}
+
+/** Server-only: all enabled brand kits across all users (e.g. for cron). */
+export async function adminGetAllEnabledBrandKits(): Promise<
+  (BrandKit & { userId: string })[]
+> {
+  const usersSnap = await getDocs(collection(adminDb, USERS));
+  const results: (BrandKit & { userId: string })[] = [];
+  for (const userDoc of usersSnap.docs) {
+    const kitsRef = collection(adminDb, USERS, userDoc.id, BRAND_KITS);
+    const q = query(kitsRef, where("enabled", "==", true));
+    const kitsSnap = await getDocs(q);
+    kitsSnap.docs.forEach((d) => {
+      results.push({
+        userId: userDoc.id,
+        id: d.id,
+        ...d.data(),
+      } as BrandKit & { userId: string });
+    });
+  }
+  return results;
 }

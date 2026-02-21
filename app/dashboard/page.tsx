@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { adminAuth } from "@/lib/firebase/admin";
 import {
+  getHasOnboarded,
   getBrandKits,
   getPosters,
   getActivity,
@@ -31,6 +32,11 @@ export default async function DashboardPage() {
     uid = decoded.uid;
   } catch {
     redirect("/login");
+  }
+
+  const hasOnboarded = await getHasOnboarded(uid);
+  if (!hasOnboarded) {
+    redirect("/onboarding");
   }
 
   let brandKits: BrandKit[] = [];
