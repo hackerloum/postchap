@@ -26,14 +26,11 @@ export function Footer() {
           <div>
             <Link href="/" className="flex items-center gap-2">
               <span className="font-display text-lg text-text-primary">
-                Kichwa
-              </span>
-              <span className="badge rounded px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-widest text-text-muted">
-                v1.0
+                ArtMaster Platform
               </span>
             </Link>
             <p className="mt-4 font-apple text-sm font-normal leading-relaxed text-text-secondary">
-              Your brand posts itself. Every single day.
+              ArtMaster Platform — Built for brands that mean business.
             </p>
           </div>
           <div>
@@ -90,10 +87,10 @@ export function Footer() {
         </div>
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border-default pt-8 md:flex-row">
           <p className="font-mono text-xs text-text-muted">
-            © {new Date().getFullYear()} Kichwa. All rights reserved.
+            © 2025 ArtMaster Platform. All rights reserved.
           </p>
           <p className="font-mono text-xs text-text-muted">
-            Made with intent.
+            <a href="https://artmasterpro.com" className="text-text-secondary hover:text-text-primary">artmasterpro.com</a>
           </p>
         </div>
       </div>

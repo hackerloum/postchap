@@ -31,9 +31,9 @@ export function Hero() {
             transition={{ duration: 0.3, delay: 0.2 }}
             className="mt-6 font-apple text-sm font-normal leading-relaxed text-text-secondary"
           >
-            One social poster per brand, generated every morning with your
-            colors, tone, and copy. Review, edit, approve—then ship. No design
-            bottleneck.
+            ArtMaster generates a fresh, on-brand social media poster every
+            morning — automatically. Built for East African businesses that take
+            their brand seriously.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 16 }}

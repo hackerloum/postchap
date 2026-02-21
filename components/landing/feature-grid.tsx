@@ -72,7 +72,7 @@ export function FeatureGrid() {
           viewport={{ once: true }}
           className="font-display text-3xl font-semibold tracking-tight text-text-primary md:text-4xl"
         >
-          Built for brand teams that ship
+          Everything your brand needs. Built into ArtMaster.
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 12 }}
@@ -80,8 +80,7 @@ export function FeatureGrid() {
           viewport={{ once: true }}
           className="mt-2 font-apple text-sm font-normal leading-relaxed text-text-secondary"
         >
-          Six ways Kichwa keeps your social presence consistent without the
-          busywork.
+          Six ways we keep your social presence consistent without the busywork.
         </motion.p>
         <motion.div
           variants={container}

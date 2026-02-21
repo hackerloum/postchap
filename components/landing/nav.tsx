@@ -21,8 +21,8 @@ export function Nav() {
       <header className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-border-subtle bg-bg-base">
         <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-6 md:px-8">
           <Link href="/" className="flex items-center gap-2">
-            <span className="font-display text-lg text-text-primary">Kichwa</span>
-            <span className="badge rounded px-1.5 py-0.5 text-text-muted">v1.0</span>
+            <span className="font-display text-lg text-text-primary">ArtMaster</span>
+            <span className="font-mono text-[10px] uppercase text-accent">Platform</span>
           </Link>
 
           <nav className="hidden items-center gap-8 md:flex">
@@ -67,7 +67,10 @@ export function Nav() {
             className="fixed inset-0 z-50 bg-bg-base md:hidden"
           >
             <div className="flex h-16 items-center justify-between border-b border-border-subtle px-6">
-              <span className="font-display text-lg text-text-primary">Kichwa</span>
+              <div className="flex items-center gap-2">
+                <span className="font-display text-lg text-text-primary">ArtMaster</span>
+                <span className="font-mono text-[10px] uppercase text-accent">Platform</span>
+              </div>
               <button
                 type="button"
                 className="flex h-10 w-10 items-center justify-center rounded-md border border-border-default"

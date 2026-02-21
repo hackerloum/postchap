@@ -134,7 +134,7 @@ export function LogoWall() {
     <section className="border-y border-border-subtle bg-bg-base py-20">
       <div className="mx-auto max-w-4xl px-6">
         <p className="mb-8 text-center font-mono text-[11px] uppercase tracking-widest text-text-muted">
-          Trusted by brand teams across East Africa
+          Trusted by brand teams across East Africa — powered by ArtMaster
         </p>
         <div className="grid grid-cols-2 justify-items-center gap-3 md:grid-cols-4">
           {cellStates.map((cell, i) => (

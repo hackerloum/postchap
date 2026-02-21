@@ -19,7 +19,7 @@ export function Integrations() {
           viewport={{ once: true }}
           className="font-display text-3xl font-semibold tracking-tight text-text-primary md:text-4xl"
         >
-          Powered by the infrastructure you trust.
+          ArtMaster runs on world-class infrastructure.
         </motion.h2>
         <motion.div
           initial={{ opacity: 0, y: 12 }}

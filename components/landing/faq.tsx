@@ -12,28 +12,28 @@ import { useState } from "react";
 
 const FAQ_ITEMS = [
   {
-    q: "How does the daily poster get generated?",
-    a: "Each morning, for every enabled brand kit, we call the OpenAI API to generate copy (headline, subheadline, body, CTA, hashtags) and a background image. Text and logo are composited server-side so your brand stays consistent. The draft is saved and waiting in your dashboard.",
+    q: "What exactly does ArtMaster do?",
+    a: "ArtMaster generates one professionally designed social media poster per day for each of your brand kits — automatically. Every morning, your brand shows up online without you lifting a finger.",
+  },
+  {
+    q: "How does ArtMaster know my brand style?",
+    a: "You set up a Brand Kit with your colors, logo, tone, and language. ArtMaster uses this to craft copy and visuals that match your brand every single time.",
   },
   {
     q: "Can I edit the poster before it goes out?",
-    a: "Yes. Every generated poster is a draft. You can edit headline, subheadline, body, CTA, and hashtags in the poster detail view. You can also regenerate to get a new version. Nothing is posted until you approve.",
+    a: "Yes. Every poster goes through an approval flow. You review, edit if needed, and approve — ArtMaster never posts without your sign-off.",
   },
   {
-    q: "What poster sizes are supported?",
-    a: "We support three aspect ratios: 1:1 (square), 4:5 (portrait), and 9:16 (story). You choose one per brand kit. The same ratio is used for every poster for that brand.",
+    q: "Does ArtMaster support Swahili content?",
+    a: "Absolutely. ArtMaster supports both English and Swahili content generation, making it the only poster automation tool built with East African brands in mind.",
   },
   {
-    q: "Is my brand data used to train AI?",
-    a: "No. Your brand kit, copy, and generated content are not used to train any model. We use OpenAI under their API terms; your data is not used for training.",
+    q: "How many brands can I manage?",
+    a: "Depending on your plan, you can manage multiple Brand Kits — each with its own daily schedule, style, and approval flow.",
   },
   {
-    q: "How do I connect my social accounts?",
-    a: "Kichwa generates and stores the poster and copy. Posting to Instagram, LinkedIn, or other platforms is done by you (download and post) or via a future integration. Right now we focus on generation and approval.",
-  },
-  {
-    q: "What if I miss a day?",
-    a: "If the cron runs and you already have a poster for that date, we skip (idempotent). You can also trigger \"Generate now\" manually from the brand kit or dashboard. Past posters stay in history.",
+    q: "Is my content and brand data safe?",
+    a: "Yes. ArtMaster uses row-level security, encrypted storage, and never uses your content to train AI models.",
   },
 ];
 
@@ -49,7 +49,7 @@ export function FAQ() {
           viewport={{ once: true }}
           className="font-display text-3xl font-semibold tracking-tight text-text-primary md:text-4xl"
         >
-          Frequently asked questions
+          Frequently asked questions about ArtMaster
         </motion.h2>
         <motion.div
           initial={{ opacity: 0, y: 12 }}

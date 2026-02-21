@@ -36,7 +36,7 @@ export function Security() {
           viewport={{ once: true }}
           className="font-display text-3xl font-semibold tracking-tight text-text-primary md:text-4xl"
         >
-          Built with security and privacy in mind.
+          ArtMaster is built on infrastructure you can trust.
         </motion.h2>
         <motion.div
           initial={{ opacity: 0, y: 12 }}

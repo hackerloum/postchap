@@ -85,7 +85,7 @@ export function HowItWorks() {
           viewport={{ once: true }}
           className="font-display text-3xl font-semibold tracking-tight text-text-primary md:text-4xl"
         >
-          How it works
+          How ArtMaster works
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 12 }}

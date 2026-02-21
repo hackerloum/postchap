@@ -10,7 +10,7 @@ const TIERS = [
     name: "Starter",
     price: "$0",
     period: "forever",
-    description: "Try Kichwa with one brand.",
+    description: "Try ArtMaster with one brand.",
     features: [
       "1 brand kit",
       "1 poster per day",
@@ -64,7 +64,7 @@ export function Pricing() {
           viewport={{ once: true }}
           className="font-display text-3xl font-semibold tracking-tight text-text-primary md:text-4xl"
         >
-          Simple pricing
+          Simple pricing. Serious results.
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 12 }}
@@ -72,7 +72,7 @@ export function Pricing() {
           viewport={{ once: true }}
           className="mt-2 font-apple text-sm font-normal leading-relaxed text-text-secondary"
         >
-          Start free. Upgrade when you need more.
+          Start free. Scale with ArtMaster as your brand grows.
         </motion.p>
         <motion.div
           initial={{ opacity: 0, y: 12 }}

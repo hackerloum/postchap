@@ -13,7 +13,7 @@ export function ProductSection() {
           viewport={{ once: true }}
           className="font-display text-3xl font-semibold tracking-tight text-text-primary md:text-4xl"
         >
-          Everything your brand needs. Nothing it doesn&apos;t.
+          Everything your brand needs. Built into ArtMaster.
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 12 }}
