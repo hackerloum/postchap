@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getEnabledPosterJobs, getPosterByDate, createPoster, updatePoster, logActivity } from "@/lib/firebase/firestore";
+import { getEnabledPosterJobs, getPosterByDate, createPoster, updatePoster, logActivity, getBrandKit } from "@/lib/firebase/firestore";
 import { uploadPosterImage } from "@/lib/firebase/storage";
+import { findOnePhotoId, downloadPhotoBuffer } from "@/lib/freepik";
 
 const CRON_SECRET = process.env.CRON_SECRET;
 
@@ -54,10 +55,30 @@ export async function GET(request: NextRequest) {
           "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
           "base64"
         );
+        let imageBuffer: Buffer = placeholderPng;
+        let imageContentType = "image/png";
+        if (process.env.FREEPIK_API_KEY) {
+          try {
+            const brandKit = await getBrandKit(job.userId, job.brandKitId);
+            const searchTerm =
+              brandKit?.styleNotes?.trim() ||
+              brandKit?.sampleContent?.trim() ||
+              "minimal social media background";
+            const photoId = await findOnePhotoId(searchTerm);
+            if (photoId) {
+              const downloaded = await downloadPhotoBuffer(photoId, "large");
+              imageBuffer = downloaded.buffer;
+              imageContentType = downloaded.contentType;
+            }
+          } catch {
+            // keep placeholder
+          }
+        }
         const imageUrl = await uploadPosterImage(
           job.userId,
           poster.id,
-          placeholderPng
+          imageBuffer,
+          imageContentType
         );
         await updatePoster(job.userId, poster.id, {
           headline: "Daily poster",

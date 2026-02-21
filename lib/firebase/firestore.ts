@@ -139,16 +139,14 @@ export async function getPosters(
   const ref = collection(adminDb, USERS, userId, POSTERS);
   const q = brandKitId
     ? query(ref, where("brandKitId", "==", brandKitId))
-    : query(ref, orderBy("createdAt", "desc"));
+    : ref;
   const snap = await getDocs(q);
   const posters = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Poster));
-  if (brandKitId) {
-    const toMs = (t: unknown) =>
-      t && typeof t === "object" && "toMillis" in t && typeof (t as { toMillis: () => number }).toMillis === "function"
-        ? (t as { toMillis: () => number }).toMillis()
-        : 0;
-    posters.sort((a, b) => toMs(b.createdAt) - toMs(a.createdAt));
-  }
+  const toMs = (t: unknown) =>
+    t && typeof t === "object" && "toMillis" in t && typeof (t as { toMillis: () => number }).toMillis === "function"
+      ? (t as { toMillis: () => number }).toMillis()
+      : 0;
+  posters.sort((a, b) => toMs(b.createdAt) - toMs(a.createdAt));
   return posters;
 }
 
@@ -236,9 +234,14 @@ export async function getActivity(
   limitCount: number = 50
 ): Promise<PosterActivity[]> {
   const ref = collection(adminDb, USERS, userId, POSTER_ACTIVITY);
-  const q = query(ref, orderBy("createdAt", "desc"), limit(limitCount));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as PosterActivity));
+  const snap = await getDocs(ref);
+  const activities = snap.docs.map((d) => ({ id: d.id, ...d.data() } as PosterActivity));
+  const toMs = (t: unknown) =>
+    t && typeof t === "object" && "toMillis" in t && typeof (t as { toMillis: () => number }).toMillis === "function"
+      ? (t as { toMillis: () => number }).toMillis()
+      : 0;
+  activities.sort((a, b) => toMs(b.createdAt) - toMs(a.createdAt));
+  return activities.slice(0, limitCount);
 }
 
 export async function getPosterActivity(

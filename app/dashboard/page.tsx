@@ -8,6 +8,7 @@ import {
   getPosterJobs,
 } from "@/lib/firebase/firestore";
 import { DashboardClient } from "./DashboardClient";
+import type { BrandKit } from "@/types";
 
 const SESSION_COOKIE = "__session";
 
@@ -32,12 +33,21 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const [brandKits, posters, activity, jobs] = await Promise.all([
-    getBrandKits(uid),
-    getPosters(uid),
-    getActivity(uid, 10),
-    getPosterJobs(uid),
-  ]);
+  let brandKits: BrandKit[] = [];
+  let posters: Awaited<ReturnType<typeof getPosters>> = [];
+  let activity: Awaited<ReturnType<typeof getActivity>> = [];
+  let jobs: Awaited<ReturnType<typeof getPosterJobs>> = [];
+
+  try {
+    [brandKits, posters, activity, jobs] = await Promise.all([
+      getBrandKits(uid),
+      getPosters(uid),
+      getActivity(uid, 10),
+      getPosterJobs(uid),
+    ]);
+  } catch (err) {
+    console.error("[Dashboard] Firestore fetch error:", err);
+  }
 
   const now = new Date();
   const startOfWeek = new Date(now);
@@ -73,9 +83,15 @@ export default async function DashboardPage() {
     createdAt: toDate(a.createdAt)?.toISOString() ?? null,
   }));
 
+  const serializedBrandKits: (Omit<BrandKit, "createdAt" | "updatedAt"> & { createdAt: string | null; updatedAt: string | null })[] = brandKits.map((k) => ({
+    ...k,
+    createdAt: toDate(k.createdAt)?.toISOString() ?? null,
+    updatedAt: toDate(k.updatedAt)?.toISOString() ?? null,
+  }));
+
   return (
     <DashboardClient
-      brandKits={brandKits}
+      brandKits={serializedBrandKits}
       posters={serializedPosters}
       activity={serializedActivity}
       postersThisWeek={postersThisWeek}

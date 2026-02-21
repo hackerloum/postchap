@@ -9,6 +9,10 @@ import {
 } from "@/lib/firebase/firestore";
 import { setGenerationStatus, clearGenerationStatus } from "@/lib/firebase/realtime";
 import { uploadPosterImage } from "@/lib/firebase/storage";
+import {
+  findOnePhotoId,
+  downloadPhotoBuffer,
+} from "@/lib/freepik";
 
 function getTodayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -78,14 +82,35 @@ export async function POST(request: NextRequest) {
       await setGenerationStatus(userId, posterId, {
         status: "generating_image",
         progress: 50,
-        message: "Generating artwork...",
+        message: "Finding artwork...",
         updatedAt: Date.now(),
       });
-      // TODO: generate image; for now use placeholder buffer (1x1 PNG)
-      const placeholderPng = Buffer.from(
+
+      const searchTerm =
+        brandKit.styleNotes?.trim() ||
+        brandKit.sampleContent?.trim() ||
+        "minimal social media background";
+      let imageBuffer: Buffer = Buffer.from(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
         "base64"
       );
+      let imageContentType = "image/png";
+
+      if (process.env.FREEPIK_API_KEY) {
+        try {
+          const photoId = await findOnePhotoId(searchTerm);
+          if (photoId) {
+            const { buffer, contentType } = await downloadPhotoBuffer(
+              photoId,
+              "large"
+            );
+            imageBuffer = buffer;
+            imageContentType = contentType;
+          }
+        } catch {
+          // keep placeholder on Freepik errors
+        }
+      }
 
       await setGenerationStatus(userId, posterId, {
         status: "compositing",
@@ -101,7 +126,12 @@ export async function POST(request: NextRequest) {
         updatedAt: Date.now(),
       });
 
-      const imageUrl = await uploadPosterImage(userId, posterId, placeholderPng);
+      const imageUrl = await uploadPosterImage(
+        userId,
+        posterId,
+        imageBuffer,
+        imageContentType
+      );
 
       await updatePoster(userId, posterId, {
         headline,

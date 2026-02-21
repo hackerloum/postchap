@@ -1,10 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import type { BrandKit, Poster, PosterActivity } from "@/types";
+import type { Poster, PosterActivity } from "@/types";
+
+type SerializedBrandKit = {
+  id: string;
+  userId: string;
+  name: string;
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  language: string;
+  styleNotes: string;
+  sampleContent: string;
+  logoUrl: string;
+  fontPreference?: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
 
 type Props = {
-  brandKits: BrandKit[];
+  brandKits: SerializedBrandKit[];
   posters: (Omit<Poster, "createdAt" | "updatedAt"> & { createdAt: string | null; updatedAt: string | null })[];
   activity: (Omit<PosterActivity, "createdAt"> & { createdAt: string | null })[];
   postersThisWeek: number;

@@ -8,12 +8,16 @@ function bucket() {
 export async function uploadPosterImage(
   userId: string,
   posterId: string,
-  buffer: Buffer
+  buffer: Buffer,
+  contentType: string = "image/png"
 ): Promise<string> {
-  const path = `posters/${userId}/${posterId}.png`;
+  const ext = contentType.startsWith("image/jpeg") || contentType.startsWith("image/jpg")
+    ? "jpg"
+    : "png";
+  const path = `posters/${userId}/${posterId}.${ext}`;
   const file = bucket().file(path);
   await file.save(buffer, {
-    contentType: "image/png",
+    contentType: contentType.startsWith("image/") ? contentType : "image/png",
     metadata: { cacheControl: "public, max-age=31536000" },
   });
   await file.makePublic();

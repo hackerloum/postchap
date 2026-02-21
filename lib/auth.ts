@@ -20,15 +20,24 @@ async function setSessionCookie(idToken: string): Promise<void> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token: idToken }),
   });
-  if (!res.ok) throw new Error("Failed to set session");
+  if (!res.ok) {
+    const msg = (await res.json().catch(() => ({})))?.error ?? "Session could not be set";
+    const err = new Error(msg) as Error & { code?: string };
+    err.code = "session-set-failed";
+    throw err;
+  }
 }
 
 export async function signInWithGoogle(): Promise<void> {
   const { user } = await firebaseSignInWithGoogle();
-  await ensureUserDoc(user.uid, {
-    email: user.email ?? "",
-    displayName: user.displayName ?? "",
-  });
+  try {
+    await ensureUserDoc(user.uid, {
+      email: user.email ?? "",
+      displayName: user.displayName ?? "",
+    });
+  } catch {
+    // Don't block sign-in if Firestore write fails (e.g. rules/network); user is still authenticated
+  }
   const token = await user.getIdToken();
   await setSessionCookie(token);
   if (typeof window !== "undefined") window.location.href = "/dashboard";
@@ -51,10 +60,14 @@ export async function signUpWithEmail(
 ): Promise<void> {
   const { user } = await signUp(email, password);
   await setDisplayName(user, displayName);
-  await ensureUserDoc(user.uid, {
-    email: user.email ?? email,
-    displayName,
-  });
+  try {
+    await ensureUserDoc(user.uid, {
+      email: user.email ?? email,
+      displayName,
+    });
+  } catch {
+    // Don't block sign-up if Firestore write fails
+  }
   const token = await user.getIdToken();
   await setSessionCookie(token);
   if (typeof window !== "undefined") window.location.href = "/dashboard";
@@ -109,5 +122,13 @@ export function mapAuthError(err: unknown): string {
     return "Too many attempts. Please try again later.";
   if (code.includes("popup-closed-by-user") || code.includes("cancelled-popup-request"))
     return "Sign-in was cancelled.";
+  if (code.includes("popup-blocked"))
+    return "Pop-up was blocked. Allow pop-ups for this site and try again.";
+  if (code.includes("unauthorized-domain"))
+    return "This domain is not allowed for sign-in. Add it in Firebase Console → Authentication → Authorized domains.";
+  if (code.includes("network-request-failed") || message.includes("network"))
+    return "Network error. Check your connection and try again.";
+  if (code.includes("session-set-failed") || message.includes("Session could not be set") || message.includes("Invalid token"))
+    return "Could not start your session. Please try again or use a different browser.";
   return "Something went wrong. Please try again.";
 }
