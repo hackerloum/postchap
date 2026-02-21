@@ -43,28 +43,29 @@ export default async function DashboardPage() {
     console.error("[Dashboard] getHasOnboarded error:", err);
   }
 
-  // If flag is false but user already has brand kits (DB has records; keep in sync), treat as onboarded
+  // Always fetch brand kits first so we have them for display even if other fetches fail
   let brandKits: BrandKit[] = [];
+  try {
+    brandKits = await getBrandKits(uid);
+  } catch (err) {
+    console.error("[Dashboard] getBrandKits error:", err);
+  }
+
+  // If flag is false but user already has brand kits (DB has records; keep in sync), treat as onboarded
   if (!hasOnboarded) {
-    try {
-      brandKits = await getBrandKits(uid);
-      if (brandKits.length > 0) {
-        hasOnboarded = true;
-        await setUserHasOnboarded(uid);
-      }
-    } catch (err) {
-      console.error("[Dashboard] getBrandKits error:", err);
+    if (brandKits.length > 0) {
+      hasOnboarded = true;
+      await setUserHasOnboarded(uid);
+    } else {
+      redirect("/onboarding");
     }
-    if (!hasOnboarded) redirect("/onboarding");
   }
 
   let posters: Awaited<ReturnType<typeof getPosters>> = [];
   let activity: Awaited<ReturnType<typeof getActivity>> = [];
   let jobs: Awaited<ReturnType<typeof getPosterJobs>> = [];
-
   try {
-    [brandKits, posters, activity, jobs] = await Promise.all([
-      getBrandKits(uid),
+    [posters, activity, jobs] = await Promise.all([
       getPosters(uid),
       getActivity(uid, 10),
       getPosterJobs(uid),
