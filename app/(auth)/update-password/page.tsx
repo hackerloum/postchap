@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Eye, EyeOff } from "lucide-react";
 import { AuthInput } from "@/components/auth/AuthInput";
@@ -44,7 +45,11 @@ function getPasswordScore(password: string): number {
   return score;
 }
 
-export default function UpdatePasswordPage() {
+function UpdatePasswordForm() {
+  const searchParams = useSearchParams();
+  const oobCode = searchParams.get("oobCode");
+  const fromResetLink = Boolean(oobCode);
+
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -62,9 +67,13 @@ export default function UpdatePasswordPage() {
       setError("Please choose a stronger password (at least 6 characters and a number).");
       return;
     }
+    if (fromResetLink && !oobCode) {
+      setError("Invalid reset link. Request a new one from the login page.");
+      return;
+    }
     setLoading(true);
     try {
-      await updatePassword(password);
+      await updatePassword(password, fromResetLink, oobCode ?? undefined);
     } catch (err) {
       setError(mapAuthError(err));
     } finally {
@@ -103,7 +112,9 @@ export default function UpdatePasswordPage() {
               Set new password
             </h1>
             <p className="mt-2 font-apple text-sm text-text-secondary">
-              Enter your new password below.
+              {fromResetLink
+                ? "Enter your new password below. This link was sent to your email."
+                : "Enter your new password below."}
             </p>
           </div>
 
@@ -168,5 +179,13 @@ export default function UpdatePasswordPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function UpdatePasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <UpdatePasswordForm />
+    </Suspense>
   );
 }
