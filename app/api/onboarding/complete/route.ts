@@ -3,9 +3,16 @@ import adminApp from "@/lib/firebase/admin";
 import { adminAuth } from "@/lib/firebase/admin";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
-// getFirestore(adminApp) returns the real Firestore instance; .collection() works in Vercel bundle
-function getDb() {
-  return getFirestore(adminApp);
+/** Firestore instance via getFirestore (classic .collection() API works on Vercel) */
+function getDb(): {
+  collection(id: string): {
+    doc(id: string): {
+      collection(id: string): { add(data: object): Promise<{ id: string }> };
+      set(data: object, opts?: { merge?: boolean }): Promise<void>;
+    };
+  };
+} {
+  return getFirestore(adminApp) as ReturnType<typeof getDb>;
 }
 
 export async function POST(request: NextRequest) {
@@ -160,7 +167,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await db
+      await getDb()
         .collection("users")
         .doc(uid)
         .collection("poster_jobs")
