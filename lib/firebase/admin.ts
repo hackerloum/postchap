@@ -51,10 +51,37 @@ function getAdminApp(): App {
   });
 }
 
-const adminApp = getAdminApp();
+let _app: App | null = null;
+function getApp(): App {
+  if (!_app) _app = getAdminApp();
+  return _app;
+}
 
-export const adminDb = getFirestore(adminApp);
-export const adminAuth = getAuth(adminApp);
-export const adminStorage = getStorage(adminApp);
-export const adminRtdb = getDatabase(adminApp);
-export default adminApp;
+// Lazy init so build can complete without env vars; init runs on first API use.
+const empty = {};
+export const adminDb = new Proxy(empty, {
+  get(_, prop) {
+    return (getFirestore(getApp()) as unknown as Record<string, unknown>)[prop as string];
+  },
+}) as ReturnType<typeof getFirestore>;
+export const adminAuth = new Proxy(empty, {
+  get(_, prop) {
+    return (getAuth(getApp()) as unknown as Record<string, unknown>)[prop as string];
+  },
+}) as ReturnType<typeof getAuth>;
+export const adminStorage = new Proxy(empty, {
+  get(_, prop) {
+    return (getStorage(getApp()) as unknown as Record<string, unknown>)[prop as string];
+  },
+}) as ReturnType<typeof getStorage>;
+export const adminRtdb = new Proxy(empty, {
+  get(_, prop) {
+    return (getDatabase(getApp()) as unknown as Record<string, unknown>)[prop as string];
+  },
+}) as ReturnType<typeof getDatabase>;
+const adminAppProxy = new Proxy(empty, {
+  get(_, prop) {
+    return (getApp() as unknown as Record<string, unknown>)[prop as string];
+  },
+}) as App;
+export default adminAppProxy;

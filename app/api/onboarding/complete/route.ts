@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
-import { FieldValue } from "firebase-admin/firestore";
+import {
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  serverTimestamp,
+} from "firebase-admin/firestore";
 
 export async function POST(request: NextRequest) {
   console.log("[onboarding/complete] Request received");
@@ -106,17 +112,16 @@ export async function POST(request: NextRequest) {
         sampleContent,
         competitors,
         enabled: true,
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       };
 
       console.log("[onboarding/complete] Writing brand kit to Firestore...");
 
-      const brandKitRef = await adminDb
-        .collection("users")
-        .doc(uid)
-        .collection("brand_kits")
-        .add(brandKitData);
+      const brandKitsRef = collection(adminDb, "users", uid, "brand_kits");
+      const brandKitRef = (await addDoc(brandKitsRef, brandKitData)) as {
+        id: string;
+      };
 
       brandKitId = brandKitRef.id;
       console.log("[onboarding/complete] Brand kit created:", brandKitId);
@@ -133,19 +138,16 @@ export async function POST(request: NextRequest) {
 
     // STEP 5: Create default poster job
     try {
-      await adminDb
-        .collection("users")
-        .doc(uid)
-        .collection("poster_jobs")
-        .add({
-          userId: uid,
-          brandKitId,
-          enabled: true,
-          posterSize: "1080x1080",
-          timezone: "Africa/Dar_es_Salaam",
-          preferredTime: "08:00",
-          createdAt: FieldValue.serverTimestamp(),
-        });
+      const posterJobsRef = collection(adminDb, "users", uid, "poster_jobs");
+      await addDoc(posterJobsRef, {
+        userId: uid,
+        brandKitId,
+        enabled: true,
+        posterSize: "1080x1080",
+        timezone: "Africa/Dar_es_Salaam",
+        preferredTime: "08:00",
+        createdAt: serverTimestamp(),
+      });
       console.log("[onboarding/complete] Poster job created");
     } catch (jobError) {
       console.warn("[onboarding/complete] Poster job creation failed (non-fatal):", jobError);
@@ -161,16 +163,11 @@ export async function POST(request: NextRequest) {
 
     // STEP 7: Update user profile doc
     try {
-      await adminDb
-        .collection("users")
-        .doc(uid)
-        .set(
-          {
-            hasOnboarded: true,
-            updatedAt: FieldValue.serverTimestamp(),
-          },
-          { merge: true }
-        );
+      const userRef = doc(adminDb, "users", uid);
+      await updateDoc(userRef, {
+        hasOnboarded: true,
+        updatedAt: serverTimestamp(),
+      });
       console.log("[onboarding/complete] User profile updated");
     } catch (profileError) {
       console.warn("[onboarding/complete] Profile update failed (non-fatal):", profileError);

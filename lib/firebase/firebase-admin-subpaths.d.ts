@@ -39,6 +39,7 @@ declare module "firebase-admin/firestore" {
 declare module "firebase-admin/auth" {
   export interface Auth {
     verifyIdToken(idToken: string): Promise<{ uid: string }>;
+    setCustomUserClaims(uid: string, claims: object): Promise<void>;
   }
   export function getAuth(app?: unknown): Auth;
 }
