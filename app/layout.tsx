@@ -17,10 +17,14 @@ export const metadata: Metadata = {
     site: "@artmasterpro",
   },
   icons: {
-    icon: "/artmaster-wordmark.png",
-    shortcut: "/artmaster-wordmark.png",
-    apple: "/artmaster-wordmark.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
   },
+  manifest: "/site.webmanifest",
 };
 
 export default function RootLayout({

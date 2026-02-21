@@ -102,6 +102,7 @@ export function WizardShell() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: newToken }),
+        credentials: "include",
       });
       router.push("/dashboard");
     } catch (err) {

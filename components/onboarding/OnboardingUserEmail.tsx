@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 export function OnboardingUserEmail() {
   const [email, setEmail] = useState("");
   useEffect(() => {
-    fetch("/api/me")
+    fetch("/api/me", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => d?.email && setEmail(d.email))
       .catch(() => {});

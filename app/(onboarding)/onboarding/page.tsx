@@ -8,7 +8,7 @@ export default function OnboardingPage() {
   const router = useRouter();
 
   useEffect(() => {
-    fetch("/api/me")
+    fetch("/api/me", { credentials: "include" })
       .then((r) => r.ok ? r.json() : null)
       .then((d) => {
         if (d?.hasOnboarded) router.replace("/dashboard");

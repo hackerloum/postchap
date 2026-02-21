@@ -74,7 +74,11 @@ export async function POST(request: NextRequest) {
       preferredTime: "08:00",
     });
 
-    await (adminAuth as unknown as { setCustomUserClaims: (u: string, c: object) => Promise<void> }).setCustomUserClaims(uid, { hasOnboarded: true });
+    try {
+      await (adminAuth as unknown as { setCustomUserClaims: (u: string, c: object) => Promise<void> }).setCustomUserClaims(uid, { hasOnboarded: true });
+    } catch {
+      // Custom claims require IAM role; Firestore hasOnboarded is the source of truth
+    }
     await setUserHasOnboarded(uid);
 
     return NextResponse.json({ success: true, brandKitId });
