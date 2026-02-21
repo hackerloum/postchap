@@ -142,12 +142,13 @@ export async function getPosters(
     : query(ref, orderBy("createdAt", "desc"));
   const snap = await getDocs(q);
   const posters = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Poster));
-  if (brandKitId)
-    posters.sort(
-      (a, b) =>
-        (b.createdAt as { toMillis?: () => number })?.toMillis?.() ?? 0 -
-        ((a.createdAt as { toMillis?: () => number })?.toMillis?.() ?? 0)
-    );
+  if (brandKitId) {
+    const toMs = (t: unknown) =>
+      t && typeof t === "object" && "toMillis" in t && typeof (t as { toMillis: () => number }).toMillis === "function"
+        ? (t as { toMillis: () => number }).toMillis()
+        : 0;
+    posters.sort((a, b) => toMs(b.createdAt) - toMs(a.createdAt));
+  }
   return posters;
 }
 
