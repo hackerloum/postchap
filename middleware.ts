@@ -1,0 +1,38 @@
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+
+const SESSION_COOKIE = "__session";
+
+export function middleware(req: NextRequest) {
+  const session = req.cookies.get(SESSION_COOKIE)?.value;
+  const pathname = req.nextUrl.pathname;
+
+  const isDashboard = pathname.startsWith("/dashboard");
+  const isAuthPage =
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup") ||
+    pathname.startsWith("/reset-password") ||
+    pathname.startsWith("/update-password");
+
+  if (isDashboard && !session) {
+    const url = new URL("/login", req.url);
+    url.searchParams.set("from", pathname);
+    return NextResponse.redirect(url);
+  }
+
+  if (isAuthPage && session) {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: [
+    "/dashboard/:path*",
+    "/login",
+    "/signup",
+    "/reset-password",
+    "/update-password",
+  ],
+};

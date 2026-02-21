@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 
 const PARTNERS = [
-  { name: "Supabase", line: "Database, auth, and storage" },
+  { name: "Firebase", line: "Database, auth, and storage" },
   { name: "Vercel", line: "Hosting and cron" },
   { name: "OpenAI", line: "Text and image generation" },
   { name: "Your Brand", line: "Custom brand kits" },

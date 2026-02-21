@@ -1,0 +1,10 @@
+{
+  "rules": {
+    "generation_status": {
+      "$userId": {
+        ".read": "auth != null && auth.uid === $userId",
+        ".write": "false"
+      }
+    }
+  }
+}
