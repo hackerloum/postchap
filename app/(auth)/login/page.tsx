@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { Eye, EyeOff } from "lucide-react";
 import { AuthInput } from "@/components/auth/AuthInput";
 import { GoogleButton } from "@/components/auth/GoogleButton";
@@ -93,12 +92,7 @@ export default function LoginPage() {
       </div>
 
       <div className="flex flex-1 flex-col justify-center py-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="mx-auto w-full max-w-sm"
-        >
+        <div className="mx-auto w-full max-w-sm">
           <div className="mb-8">
             <h1 className="font-display text-3xl font-semibold tracking-tight text-text-primary">
               Welcome back
@@ -165,14 +159,9 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <motion.div
-                initial={{ x: 0 }}
-                animate={{ x: [-4, 4, -4, 4, 0] }}
-                transition={{ duration: 0.4 }}
-                className="rounded-lg border border-status-error/30 bg-status-error/10 px-3 py-2.5"
-              >
+              <div className="rounded-lg border border-status-error/30 bg-status-error/10 px-3 py-2.5">
                 <p className="font-mono text-[11px] text-status-error">{error}</p>
-              </motion.div>
+              </div>
             )}
 
             <button
@@ -184,7 +173,7 @@ export default function LoginPage() {
               {loading ? "Signing in..." : "Sign in"}
             </button>
           </form>
-        </motion.div>
+        </div>
       </div>
 
       <div className="text-center">

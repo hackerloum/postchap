@@ -1,7 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
-
 export function AuthVisualPanel() {
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col overflow-hidden bg-bg-surface border-l border-border-default">
@@ -31,95 +29,15 @@ export function AuthVisualPanel() {
         </defs>
         <rect width="100%" height="100%" fill="url(#dot-grid)" />
         {/* Concentric rings — animated via class */}
-        <circle
-          className="ring-pulse"
-          cx="75%"
-          cy="30%"
-          r="280"
-          fill="none"
-          stroke="var(--accent)"
-          strokeWidth="0.5"
-          opacity="0.15"
-          style={{
-            transformOrigin: "center",
-            animation: "ring-pulse 8s ease-in-out infinite",
-          }}
-        />
-        <circle
-          className="ring-pulse"
-          cx="75%"
-          cy="30%"
-          r="180"
-          fill="none"
-          stroke="var(--accent)"
-          strokeWidth="0.5"
-          opacity="0.20"
-          style={{
-            transformOrigin: "center",
-            animation: "ring-pulse 12s ease-in-out infinite",
-          }}
-        />
-        <circle
-          className="ring-pulse"
-          cx="75%"
-          cy="30%"
-          r="80"
-          fill="none"
-          stroke="var(--accent)"
-          strokeWidth="1"
-          opacity="0.25"
-          style={{
-            transformOrigin: "center",
-            animation: "ring-pulse 16s ease-in-out infinite",
-          }}
-        />
+        <circle cx="75%" cy="30%" r="280" fill="none" stroke="var(--accent)" strokeWidth="0.5" opacity="0.15" />
+        <circle cx="75%" cy="30%" r="180" fill="none" stroke="var(--accent)" strokeWidth="0.5" opacity="0.20" />
+        <circle cx="75%" cy="30%" r="80" fill="none" stroke="var(--accent)" strokeWidth="1" opacity="0.25" />
         {/* Floating diagonal lines */}
-        <line
-          x1="0"
-          y1="20%"
-          x2="100%"
-          y2="25%"
-          stroke="var(--border-strong)"
-          strokeWidth="0.5"
-          opacity="0.3"
-          className="line-drift"
-          style={{ animation: "line-drift 15s linear infinite alternate" }}
-        />
-        <line
-          x1="0"
-          y1="50%"
-          x2="100%"
-          y2="45%"
-          stroke="var(--border-strong)"
-          strokeWidth="0.5"
-          opacity="0.3"
-          style={{ animation: "line-drift 18s linear infinite alternate" }}
-        />
-        <line
-          x1="0"
-          y1="70%"
-          x2="100%"
-          y2="75%"
-          stroke="var(--border-strong)"
-          strokeWidth="0.5"
-          opacity="0.3"
-          style={{ animation: "line-drift 22s linear infinite alternate" }}
-        />
-        <line
-          x1="10%"
-          y1="0"
-          x2="90%"
-          y2="100%"
-          stroke="var(--border-strong)"
-          strokeWidth="0.5"
-          opacity="0.3"
-          style={{ animation: "line-drift 25s linear infinite alternate" }}
-        />
-        {/* Accent cross — group at 85% 60%, then rotate */}
-        <g
-          transform="translate(85%, 60%)"
-          style={{ animation: "cross-rotate 30s linear infinite" }}
-        >
+        <line x1="0" y1="20%" x2="100%" y2="25%" stroke="var(--border-strong)" strokeWidth="0.5" opacity="0.3" />
+        <line x1="0" y1="50%" x2="100%" y2="45%" stroke="var(--border-strong)" strokeWidth="0.5" opacity="0.3" />
+        <line x1="0" y1="70%" x2="100%" y2="75%" stroke="var(--border-strong)" strokeWidth="0.5" opacity="0.3" />
+        <line x1="10%" y1="0" x2="90%" y2="100%" stroke="var(--border-strong)" strokeWidth="0.5" opacity="0.3" />
+        <g transform="translate(85%, 60%)">
           <line
             x1="-20"
             y1="0"
@@ -139,44 +57,15 @@ export function AuthVisualPanel() {
         </g>
         {/* Scattered accent dots */}
         {[
-          { cx: "25%", cy: "25%", d: 0 },
-          { cx: "80%", cy: "70%", d: 1 },
-          { cx: "15%", cy: "60%", d: 2 },
-          { cx: "60%", cy: "15%", d: 3 },
-          { cx: "45%", cy: "85%", d: 4 },
-          { cx: "90%", cy: "40%", d: 5 },
-        ].map(({ cx, cy, d }) => (
-          <circle
-            key={d}
-            cx={cx}
-            cy={cy}
-            r="2"
-            fill="var(--accent)"
-            opacity="0.4"
-            style={{
-              animation: `dot-pulse 2s ease-in-out infinite`,
-              animationDelay: `${d}s`,
-            }}
-          />
+          { cx: "25%", cy: "25%" },
+          { cx: "80%", cy: "70%" },
+          { cx: "15%", cy: "60%" },
+          { cx: "60%", cy: "15%" },
+          { cx: "45%", cy: "85%" },
+          { cx: "90%", cy: "40%" },
+        ].map(({ cx, cy }, d) => (
+          <circle key={d} cx={cx} cy={cy} r="2" fill="var(--accent)" opacity="0.4" />
         ))}
-        <style>{`
-          @keyframes ring-pulse {
-            0%, 100% { opacity: 0.10; transform: scale(1); }
-            50% { opacity: 0.25; transform: scale(1.03); }
-          }
-          @keyframes line-drift {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(-20px); }
-          }
-          @keyframes cross-rotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-          @keyframes dot-pulse {
-            0%, 100% { opacity: 0.2; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(1.5); }
-          }
-        `}</style>
       </svg>
 
       {/* Layer 2 — Content */}
@@ -185,37 +74,17 @@ export function AuthVisualPanel() {
           ArtMaster Platform
         </p>
         <div>
-          <motion.p
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="font-display text-5xl font-semibold leading-[1.1] tracking-tight text-text-primary xl:text-6xl"
-          >
+          <p className="font-display text-5xl font-semibold leading-[1.1] tracking-tight text-text-primary xl:text-6xl">
             Your brand.
-          </motion.p>
-          <motion.p
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut", delay: 0.15 }}
-            className="font-display text-5xl font-semibold leading-[1.1] tracking-tight text-text-primary xl:text-6xl"
-          >
+          </p>
+          <p className="font-display text-5xl font-semibold leading-[1.1] tracking-tight text-text-primary xl:text-6xl">
             Every morning.
-          </motion.p>
-          <motion.p
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut", delay: 0.3 }}
-            className="font-display text-5xl font-semibold leading-[1.1] tracking-tight text-accent xl:text-6xl"
-          >
+          </p>
+          <p className="font-display text-5xl font-semibold leading-[1.1] tracking-tight text-accent xl:text-6xl">
             Automated.
-          </motion.p>
+          </p>
         </div>
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.45 }}
-          className="mt-10 flex flex-wrap gap-2"
-        >
+        <div className="mt-10 flex flex-wrap gap-2">
           {[
             "Daily automation",
             "Brand-aware AI",
@@ -229,7 +98,7 @@ export function AuthVisualPanel() {
               {label}
             </span>
           ))}
-        </motion.div>
+        </div>
       </div>
 
       {/* Bottom testimonial */}
