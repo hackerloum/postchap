@@ -16,10 +16,10 @@ type LogoProps = {
 };
 
 const variantSizes = {
-  nav: { height: 36, width: 160, className: "h-9 w-auto max-w-[180px]" },
-  hero: { height: 96, width: 400, className: "h-24 w-auto max-w-lg sm:h-28 sm:max-w-xl md:h-32 md:max-w-2xl" },
-  footer: { height: 32, width: 140, className: "h-8 w-auto max-w-[160px]" },
-  auth: { height: 40, width: 160, className: "h-10 w-auto max-w-[180px]" },
+  nav: { height: 48, width: 220, className: "h-12 w-auto max-w-[240px] md:h-14 md:max-w-[280px]" },
+  hero: { height: 120, width: 480, className: "h-28 w-auto max-w-xl sm:h-36 sm:max-w-2xl md:h-44 md:max-w-3xl lg:h-52 lg:max-w-4xl" },
+  footer: { height: 44, width: 200, className: "h-11 w-auto max-w-[220px]" },
+  auth: { height: 52, width: 220, className: "h-12 w-auto max-w-[240px] md:h-14 md:max-w-[280px]" },
 };
 
 export function Logo({ variant = "nav", className, link = true, alt = "ArtMaster" }: LogoProps) {

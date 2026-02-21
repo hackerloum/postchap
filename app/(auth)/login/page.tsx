@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { AuthInput } from "@/components/auth/AuthInput";
@@ -11,6 +11,7 @@ import {
   handleGoogleRedirectResult,
   signInWithEmail,
   mapAuthError,
+  clearSession,
 } from "@/lib/auth";
 
 function Spinner() {
@@ -46,10 +47,16 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [checkingRedirect, setCheckingRedirect] = useState(true);
   const [error, setError] = useState("");
+  const redirectProcessed = useRef(false);
 
-  // Handle return from Google redirect sign-in
+  // Handle return from Google redirect sign-in (only once; getRedirectResult() consumes the result)
   useEffect(() => {
+    if (redirectProcessed.current) {
+      setCheckingRedirect(false);
+      return;
+    }
     let cancelled = false;
+    redirectProcessed.current = true;
     handleGoogleRedirectResult()
       .then((handled) => {
         if (cancelled) return;
@@ -201,6 +208,16 @@ export default function LoginPage() {
         <p className="font-mono text-[11px] text-text-muted">
           © 2025 ArtMaster Platform. All rights reserved.
         </p>
+        <button
+          type="button"
+          onClick={async () => {
+            await clearSession();
+            window.location.reload();
+          }}
+          className="mt-3 font-mono text-[11px] text-text-muted underline hover:text-text-secondary"
+        >
+          Clear session and reload
+        </button>
       </div>
     </div>
   );

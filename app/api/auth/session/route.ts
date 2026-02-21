@@ -6,14 +6,22 @@ const MAX_AGE = 5 * 24 * 60 * 60; // 5 days
 
 /**
  * POST: set session cookie from Firebase ID token.
- * Body: { token: string }
- * Cookie is set so it works on both HTTP (localhost) and HTTPS (production).
+ * Body: JSON { token: string } or form-urlencoded token=...
+ * Query: ?redirect=/dashboard — if present and token valid, respond with 302 so the browser
+ * follows with the cookie set (fixes Google redirect flow).
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const token =
-      typeof body?.token === "string" ? body.token.trim() : null;
+    const contentType = request.headers.get("content-type") ?? "";
+    let token: string | null = null;
+    if (contentType.includes("application/x-www-form-urlencoded")) {
+      const form = await request.formData();
+      const t = form.get("token");
+      token = typeof t === "string" ? t.trim() : null;
+    } else {
+      const body = await request.json().catch(() => null);
+      token = typeof body?.token === "string" ? body.token.trim() : null;
+    }
     if (!token) {
       return NextResponse.json(
         { error: "Missing token" },
@@ -24,6 +32,25 @@ export async function POST(request: NextRequest) {
     const isHttps =
       request.nextUrl?.protocol === "https:" ||
       request.headers.get("x-forwarded-proto") === "https";
+    const redirectTo = request.nextUrl.searchParams.get("redirect");
+    const baseUrl = request.nextUrl.origin;
+    const redirectUrl =
+      redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")
+        ? new URL(redirectTo, baseUrl)
+        : null;
+
+    if (redirectUrl) {
+      const res = NextResponse.redirect(redirectUrl, 302);
+      res.cookies.set(SESSION_COOKIE, token, {
+        httpOnly: true,
+        secure: isHttps,
+        sameSite: "lax",
+        path: "/",
+        maxAge: MAX_AGE,
+      });
+      return res;
+    }
+
     const response = NextResponse.json({ ok: true });
     response.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,

@@ -17,9 +17,9 @@ export const metadata: Metadata = {
     site: "@artmasterpro",
   },
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-    apple: "/favicon.svg",
+    icon: "/artmaster-wordmark.png",
+    shortcut: "/artmaster-wordmark.png",
+    apple: "/artmaster-wordmark.png",
   },
 };
 

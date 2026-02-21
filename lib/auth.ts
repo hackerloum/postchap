@@ -44,7 +44,9 @@ export function signInWithGoogleRedirect(): void {
 
 /**
  * Process the result of Google redirect sign-in. Call once on login page load.
- * Returns true if we handled a redirect (user is signed in and we're redirecting to dashboard).
+ * Uses a form POST to /api/auth/session?redirect=/dashboard so the server sets
+ * the cookie and returns 302; the browser then follows to /dashboard with the cookie.
+ * Returns true if we handled a redirect (form submitted, page will navigate).
  */
 export async function handleGoogleRedirectResult(): Promise<boolean> {
   const result = await getGoogleRedirectResult();
@@ -59,11 +61,19 @@ export async function handleGoogleRedirectResult(): Promise<boolean> {
     // Don't block sign-in if Firestore write fails
   }
   const token = await user.getIdToken();
-  await setSessionCookie(token);
-  if (typeof window !== "undefined") {
-    await new Promise((r) => setTimeout(r, 200));
-    window.location.replace("/dashboard");
-  }
+  if (typeof window === "undefined") return true;
+  // Form POST + server redirect so the session cookie is set and the next request includes it
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = "/api/auth/session?redirect=/dashboard";
+  form.style.display = "none";
+  const input = document.createElement("input");
+  input.name = "token";
+  input.value = token;
+  input.type = "hidden";
+  form.appendChild(input);
+  document.body.appendChild(form);
+  form.submit();
   return true;
 }
 
@@ -122,6 +132,14 @@ export async function signUpWithEmail(
 
 export async function sendPasswordResetEmail(email: string): Promise<void> {
   await resetPassword(email);
+}
+
+/** Clear the session cookie (e.g. "Clear session" on login page). */
+export async function clearSession(): Promise<void> {
+  await fetch("/api/auth/session", {
+    method: "DELETE",
+    credentials: "include",
+  });
 }
 
 /**
