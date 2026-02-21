@@ -1,107 +1,193 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyRequest } from "@/lib/auth-verify";
-import { adminAuth } from "@/lib/firebase/admin";
-import { setUserHasOnboarded } from "@/lib/firebase/firestore";
-import {
-  createBrandKit,
-  createPosterJob,
-} from "@/lib/firebase/firestore";
-import type { Industry, Platform, Language, Tone } from "@/types";
-
-type Body = {
-  brandName: string;
-  industry: Industry;
-  tagline?: string;
-  website?: string;
-  primaryColor: string;
-  secondaryColor: string;
-  accentColor: string;
-  logoUrl?: string;
-  targetAudience: string;
-  ageRange: string;
-  location: string;
-  platforms: Platform[];
-  language: Language;
-  tone: Tone;
-  styleNotes?: string;
-  sampleContent?: string;
-  competitors?: string;
-};
+import { adminAuth, adminDb } from "@/lib/firebase/admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 export async function POST(request: NextRequest) {
-  try {
-    const uid = await verifyRequest(request);
-    const body = (await request.json()) as Body;
+  console.log("[onboarding/complete] Request received");
 
-    if (!body.brandName || !body.industry || !body.tone) {
+  try {
+    // STEP 1: Verify auth token
+    const authHeader = request.headers.get("Authorization");
+    console.log("[onboarding/complete] Auth header present:", !!authHeader);
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.error("[onboarding/complete] No Bearer token found");
       return NextResponse.json(
-        { error: "Missing required fields: brandName, industry, tone" },
+        { error: "Unauthorized — no token" },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.split("Bearer ")[1];
+    console.log("[onboarding/complete] Token extracted, length:", token?.length);
+
+    let uid: string;
+    try {
+      const decoded = await adminAuth.verifyIdToken(token);
+      uid = decoded.uid;
+      console.log("[onboarding/complete] Token verified, uid:", uid);
+    } catch (tokenError) {
+      console.error("[onboarding/complete] Token verification failed:", tokenError);
+      return NextResponse.json(
+        { error: "Unauthorized — invalid token", details: String(tokenError) },
+        { status: 401 }
+      );
+    }
+
+    // STEP 2: Parse request body
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json();
+      console.log("[onboarding/complete] Body parsed, keys:", Object.keys(body));
+    } catch (parseError) {
+      console.error("[onboarding/complete] Body parse failed:", parseError);
+      return NextResponse.json(
+        { error: "Invalid request body" },
         { status: 400 }
       );
     }
 
-    const brandKitData: Record<string, unknown> = {
-      userId: uid,
-      brandName: String(body.brandName).trim(),
-      industry: body.industry,
-      tagline: (body.tagline ?? "").trim(),
-      primaryColor: body.primaryColor ?? "#000000",
-      secondaryColor: body.secondaryColor ?? "#ffffff",
-      accentColor: body.accentColor ?? "#E8FF47",
-      targetAudience: (body.targetAudience ?? "").trim(),
-      ageRange: (body.ageRange ?? "").trim(),
-      location: (body.location ?? "Tanzania").trim(),
-      platforms: Array.isArray(body.platforms) ? body.platforms : [],
-      language: body.language ?? "en",
-      tone: body.tone,
-      styleNotes: (body.styleNotes ?? "").trim(),
-      sampleContent: (body.sampleContent ?? "").trim(),
-      competitors: (body.competitors ?? "").trim(),
-      enabled: true,
-    };
-    if (body.website != null && String(body.website).trim() !== "") {
-      brandKitData.website = String(body.website).trim();
+    // STEP 3: Validate required fields
+    const {
+      brandName,
+      industry,
+      tagline = "",
+      website = "",
+      primaryColor,
+      secondaryColor,
+      accentColor,
+      logoUrl = "",
+      targetAudience = "",
+      ageRange = "",
+      location = "Tanzania",
+      platforms = [],
+      language = "en",
+      tone,
+      styleNotes = "",
+      sampleContent = "",
+      competitors = "",
+    } = body;
+
+    if (!brandName || !industry || !primaryColor || !tone) {
+      console.error("[onboarding/complete] Missing required fields:", {
+        brandName: !!brandName,
+        industry: !!industry,
+        primaryColor: !!primaryColor,
+        tone: !!tone,
+      });
+      return NextResponse.json(
+        { error: "Missing required fields: brandName, industry, primaryColor, tone" },
+        { status: 400 }
+      );
     }
-    if (body.logoUrl != null && String(body.logoUrl) !== "") {
-      brandKitData.logoUrl = String(body.logoUrl);
-    }
 
-    const created = await createBrandKit(uid, brandKitData as Parameters<typeof createBrandKit>[1]);
-    const brandKitId = created.id;
+    console.log("[onboarding/complete] All fields validated");
 
-    await createPosterJob(uid, {
-      userId: uid,
-      brandKitId,
-      enabled: true,
-      posterSize: "1080x1080",
-      timezone: "Africa/Dar_es_Salaam",
-      preferredTime: "08:00",
-    });
-
+    // STEP 4: Create brand kit in Firestore
+    let brandKitId: string;
     try {
-      await (adminAuth as unknown as { setCustomUserClaims: (u: string, c: object) => Promise<void> }).setCustomUserClaims(uid, { hasOnboarded: true });
-    } catch {
-      // Custom claims require IAM role; Firestore hasOnboarded is the source of truth
-    }
-    await setUserHasOnboarded(uid);
+      const brandKitData = {
+        userId: uid,
+        brandName,
+        industry,
+        tagline,
+        website,
+        primaryColor,
+        secondaryColor: secondaryColor || "#ffffff",
+        accentColor: accentColor || "#E8FF47",
+        logoUrl,
+        targetAudience,
+        ageRange,
+        location,
+        platforms,
+        language,
+        tone,
+        styleNotes,
+        sampleContent,
+        competitors,
+        enabled: true,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      };
 
-    return NextResponse.json({ success: true, brandKitId });
-  } catch (e) {
-    if (e instanceof Response) return e;
-    const message = e instanceof Error ? e.message : "Failed to complete onboarding";
-    console.error("[onboarding/complete]", e);
-    const safeDetail =
-      process.env.NODE_ENV === "development"
-        ? message
-        : message.includes("Firebase Admin")
-          ? "Server: Firebase Admin is not configured. Set FIREBASE_ADMIN_* env vars."
-          : message.includes("PERMISSION_DENIED") || message.includes("permission")
-            ? "Server: Database permission denied. Check Firestore rules."
-            : undefined;
+      console.log("[onboarding/complete] Writing brand kit to Firestore...");
+
+      const brandKitRef = await adminDb
+        .collection("users")
+        .doc(uid)
+        .collection("brand_kits")
+        .add(brandKitData);
+
+      brandKitId = brandKitRef.id;
+      console.log("[onboarding/complete] Brand kit created:", brandKitId);
+    } catch (firestoreError) {
+      console.error("[onboarding/complete] Firestore write failed:", firestoreError);
+      return NextResponse.json(
+        {
+          error: "Failed to create brand kit in database",
+          details: String(firestoreError),
+        },
+        { status: 500 }
+      );
+    }
+
+    // STEP 5: Create default poster job
+    try {
+      await adminDb
+        .collection("users")
+        .doc(uid)
+        .collection("poster_jobs")
+        .add({
+          userId: uid,
+          brandKitId,
+          enabled: true,
+          posterSize: "1080x1080",
+          timezone: "Africa/Dar_es_Salaam",
+          preferredTime: "08:00",
+          createdAt: FieldValue.serverTimestamp(),
+        });
+      console.log("[onboarding/complete] Poster job created");
+    } catch (jobError) {
+      console.warn("[onboarding/complete] Poster job creation failed (non-fatal):", jobError);
+    }
+
+    // STEP 6: Set custom claim hasOnboarded = true
+    try {
+      await adminAuth.setCustomUserClaims(uid, { hasOnboarded: true });
+      console.log("[onboarding/complete] Custom claim set: hasOnboarded=true");
+    } catch (claimError) {
+      console.warn("[onboarding/complete] Custom claim failed (non-fatal):", claimError);
+    }
+
+    // STEP 7: Update user profile doc
+    try {
+      await adminDb
+        .collection("users")
+        .doc(uid)
+        .set(
+          {
+            hasOnboarded: true,
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+      console.log("[onboarding/complete] User profile updated");
+    } catch (profileError) {
+      console.warn("[onboarding/complete] Profile update failed (non-fatal):", profileError);
+    }
+
+    console.log("[onboarding/complete] SUCCESS — brandKitId:", brandKitId);
+
+    return NextResponse.json({
+      success: true,
+      brandKitId,
+    });
+  } catch (unexpectedError) {
+    console.error("[onboarding/complete] UNEXPECTED ERROR:", unexpectedError);
     return NextResponse.json(
       {
-        error: "Failed to complete onboarding",
-        detail: safeDetail,
+        error: "Internal server error",
+        details: String(unexpectedError),
       },
       { status: 500 }
     );

@@ -11,6 +11,7 @@ import { Step1Brand } from "@/components/onboarding/steps/Step1Brand";
 import { Step2Visual } from "@/components/onboarding/steps/Step2Visual";
 import { Step3Audience } from "@/components/onboarding/steps/Step3Audience";
 import { Step4Content } from "@/components/onboarding/steps/Step4Content";
+import { toast } from "sonner";
 import type { WizardFormData } from "@/types";
 
 const INITIAL_FORM: WizardFormData = {
@@ -65,7 +66,8 @@ export function WizardShell() {
         logoUrl = await getDownloadURL(storageRef);
       }
 
-      const token = await user.getIdToken();
+      const token = await user.getIdToken(true);
+      console.log("[Wizard] Got ID token, length:", token.length);
       const res = await fetch("/api/onboarding/complete", {
         method: "POST",
         headers: {
@@ -93,16 +95,20 @@ export function WizardShell() {
           competitors: formData.competitors || undefined,
         }),
       });
+      console.log("[Wizard] API response status:", res.status);
       const data = (await res.json()) as {
         success?: boolean;
         brandKitId?: string;
         error?: string;
         detail?: string;
+        details?: string;
       };
       if (!res.ok) {
-        const msg = data.detail || data.error || "Failed to complete onboarding";
+        const msg = data.details ?? data.detail ?? data.error ?? "Failed to complete onboarding";
+        console.error("[Wizard] API error:", data);
         throw new Error(msg);
       }
+      console.log("[Wizard] Success:", data);
 
       if (typeof window !== "undefined" && data.brandKitId) {
         sessionStorage.setItem("welcome_brandName", formData.brandName);
@@ -117,9 +123,10 @@ export function WizardShell() {
       });
       router.push(`/welcome?brandKitId=${data.brandKitId ?? ""}`);
     } catch (err) {
-      console.error(err);
+      console.error("[Wizard] Submit failed:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to create brand kit. Please try again.");
+    } finally {
       setIsSubmitting(false);
-      alert(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     }
   }
 

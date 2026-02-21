@@ -5,53 +5,56 @@ import { getStorage } from "firebase-admin/storage";
 import { getDatabase } from "firebase-admin/database";
 
 function getAdminApp(): App {
-  if (getApps().length > 0) return getApps()[0] as App;
-  if (!process.env.FIREBASE_ADMIN_PROJECT_ID) {
+  if (getApps().length > 0) {
+    return getApps()[0] as App;
+  }
+
+  const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+
+  if (!privateKey) {
     throw new Error(
-      "Firebase Admin is not configured. Set FIREBASE_ADMIN_PROJECT_ID and related env vars."
+      "FIREBASE_ADMIN_PRIVATE_KEY is not set in environment variables"
     );
   }
+
+  if (!process.env.FIREBASE_ADMIN_PROJECT_ID) {
+    throw new Error(
+      "FIREBASE_ADMIN_PROJECT_ID is not set in environment variables"
+    );
+  }
+
+  if (!process.env.FIREBASE_ADMIN_CLIENT_EMAIL) {
+    throw new Error(
+      "FIREBASE_ADMIN_CLIENT_EMAIL is not set in environment variables"
+    );
+  }
+
+  // Replace escaped newlines with real newlines (fixes common private key bug)
+  const formattedKey = privateKey.includes("\\n")
+    ? privateKey.replace(/\\n/g, "\n")
+    : privateKey;
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("[Firebase Admin] Initializing with project:", process.env.FIREBASE_ADMIN_PROJECT_ID);
+  }
+
   return initializeApp({
     credential: cert({
       projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
       clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(
-        /\\n/g,
-        "\n"
-      ),
+      privateKey: formattedKey,
     }),
     storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
+    ...(process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL && {
+      databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
+    }),
   });
 }
 
-function lazy<T>(fn: () => T): T {
-  let value: T | undefined;
-  return new Proxy({} as Record<string, unknown>, {
-    get(_, prop) {
-      if (value === undefined) value = fn();
-      return (value as Record<string | symbol, unknown>)[prop];
-    },
-    apply(_, thisArg, args) {
-      if (value === undefined) value = fn();
-      return (value as unknown as (...a: unknown[]) => unknown).apply(
-        thisArg,
-        args
-      );
-    },
-  }) as T;
-}
+const adminApp = getAdminApp();
 
-export const adminDb = lazy(() => getFirestore(getAdminApp()));
-export const adminAuth = lazy(() => getAuth(getAdminApp()));
-export const adminStorage = lazy(() => getStorage(getAdminApp()));
-export const adminRtdb = lazy(() => getDatabase(getAdminApp()));
-
-let _defaultApp: App | null = null;
-const defaultAppProxy = new Proxy({} as object, {
-  get(_, prop) {
-    if (_defaultApp === null) _defaultApp = getAdminApp();
-    return (_defaultApp as Record<string | symbol, unknown>)[prop];
-  },
-});
-export default defaultAppProxy as App;
+export const adminDb = getFirestore(adminApp);
+export const adminAuth = getAuth(adminApp);
+export const adminStorage = getStorage(adminApp);
+export const adminRtdb = getDatabase(adminApp);
+export default adminApp;
