@@ -2,21 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { getBrandKitsAction, type BrandKitItem } from "./brand-kits/actions";
 
-type BrandKit = {
-  id: string;
-  brandName?: string;
-  industry?: string;
-  primaryColor?: string;
-  secondaryColor?: string;
-  accentColor?: string;
-  brandLocation?: { country?: string };
-};
-
-type Props = { initialKits: BrandKit[] };
+type Props = { initialKits: BrandKitItem[] };
 
 export function DashboardContent({ initialKits }: Props) {
-  const [kits, setKits] = useState<BrandKit[]>(initialKits);
+  const [kits, setKits] = useState<BrandKitItem[]>(initialKits);
   const [loading, setLoading] = useState(initialKits.length === 0);
 
   useEffect(() => {
@@ -26,9 +17,8 @@ export function DashboardContent({ initialKits }: Props) {
       return;
     }
     setLoading(true);
-    fetch("/api/brand-kits", { credentials: "include" })
-      .then((res) => (res.ok ? res.json() : { kits: [] }))
-      .then((data) => setKits(data.kits ?? []))
+    getBrandKitsAction()
+      .then(setKits)
       .catch(() => setKits([]))
       .finally(() => setLoading(false));
   }, [initialKits.length]);

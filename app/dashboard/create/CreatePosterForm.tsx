@@ -1,18 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getBrandKitsAction, type BrandKitItem } from "../brand-kits/actions";
 
-type BrandKit = {
-  id: string;
-  brandName?: string;
-  industry?: string;
-  primaryColor?: string;
-  secondaryColor?: string;
-  accentColor?: string;
-};
-
-export function CreatePosterForm({ brandKits: initialKits }: { brandKits: BrandKit[] }) {
-  const [kits, setKits] = useState<BrandKit[]>(initialKits);
+export function CreatePosterForm({ brandKits: initialKits }: { brandKits: BrandKitItem[] }) {
+  const [kits, setKits] = useState<BrandKitItem[]>(initialKits);
   const [kitsLoading, setKitsLoading] = useState(initialKits.length === 0);
   const [brandKitId, setBrandKitId] = useState(initialKits[0]?.id ?? "");
   const [theme, setTheme] = useState("");
@@ -28,10 +20,8 @@ export function CreatePosterForm({ brandKits: initialKits }: { brandKits: BrandK
       return;
     }
     setKitsLoading(true);
-    fetch("/api/brand-kits", { credentials: "include" })
-      .then((res) => (res.ok ? res.json() : { kits: [] }))
-      .then((data) => {
-        const list = data.kits ?? [];
+    getBrandKitsAction()
+      .then((list) => {
         setKits(list);
         if (list.length > 0 && !brandKitId) setBrandKitId(list[0].id);
       })
