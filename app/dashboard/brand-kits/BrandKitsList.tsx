@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { getClientIdToken } from "@/lib/auth-client";
 import { getBrandKitsAction, type BrandKitItem } from "./actions";
 
 type Props = { initialKits: BrandKitItem[] };
@@ -17,10 +18,17 @@ export function BrandKitsList({ initialKits }: Props) {
       return;
     }
     setLoading(true);
-    getBrandKitsAction()
-      .then(setBrandKits)
-      .catch(() => setBrandKits([]))
-      .finally(() => setLoading(false));
+    (async () => {
+      try {
+        const token = await getClientIdToken();
+        const data = await getBrandKitsAction(token ?? undefined);
+        setBrandKits(data);
+      } catch {
+        setBrandKits([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [initialKits.length]);
 
   if (loading) {

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { getClientIdToken } from "@/lib/auth-client";
 import { getBrandKitsAction, type BrandKitItem } from "./brand-kits/actions";
 
 type Props = { initialKits: BrandKitItem[] };
@@ -20,34 +21,38 @@ export function DashboardContent({ initialKits }: Props) {
     }
   }, [initialKits]);
 
-  const fetchKits = useCallback(() => {
+  const fetchKits = useCallback(async () => {
     setLoading(true);
-    getBrandKitsAction()
-      .then(setKits)
-      .catch(() => setKits([]))
-      .finally(() => setLoading(false));
+    try {
+      const token = await getClientIdToken();
+      const data = await getBrandKitsAction(token ?? undefined);
+      setKits(data);
+    } catch {
+      setKits([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
     if (pathname !== "/dashboard") return;
     let cancelled = false;
     let retryTimeout: ReturnType<typeof setTimeout> | null = null;
-    const run = (isRetry = false) => {
+    const run = async (isRetry = false) => {
       if (isRetry) setLoading(true);
-      getBrandKitsAction()
-        .then((data) => {
-          if (cancelled) return;
-          setKits(data);
-          if (data.length === 0 && !isRetry) {
-            retryTimeout = setTimeout(() => run(true), 600);
-          }
-        })
-        .catch(() => {
-          if (!cancelled) setKits([]);
-        })
-        .finally(() => {
-          if (!cancelled) setLoading(false);
-        });
+      try {
+        const token = await getClientIdToken();
+        const data = await getBrandKitsAction(token ?? undefined);
+        if (cancelled) return;
+        setKits(data);
+        if (data.length === 0 && !isRetry) {
+          retryTimeout = setTimeout(() => run(true), 600);
+        }
+      } catch {
+        if (!cancelled) setKits([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
     setLoading(true);
     if (initialKits.length === 0) router.refresh();

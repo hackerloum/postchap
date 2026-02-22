@@ -15,10 +15,12 @@ export type BrandKitItem = {
   brandLocation?: { country?: string };
 };
 
-export async function getBrandKitsAction(): Promise<BrandKitItem[]> {
+export async function getBrandKitsAction(clientToken?: string | null): Promise<BrandKitItem[]> {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("__session")?.value;
+    const token =
+      clientToken && clientToken.trim()
+        ? clientToken.trim()
+        : (await cookies()).get("__session")?.value;
     if (!token) return [];
 
     const decoded = await getAdminAuth().verifyIdToken(token);

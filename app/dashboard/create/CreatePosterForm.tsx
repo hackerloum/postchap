@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getClientIdToken } from "@/lib/auth-client";
 import { getBrandKitsAction, type BrandKitItem } from "../brand-kits/actions";
 
 export function CreatePosterForm({ brandKits: initialKits }: { brandKits: BrandKitItem[] }) {
@@ -20,13 +21,18 @@ export function CreatePosterForm({ brandKits: initialKits }: { brandKits: BrandK
       return;
     }
     setKitsLoading(true);
-    getBrandKitsAction()
-      .then((list) => {
+    (async () => {
+      try {
+        const token = await getClientIdToken();
+        const list = await getBrandKitsAction(token ?? undefined);
         setKits(list);
         if (list.length > 0 && !brandKitId) setBrandKitId(list[0].id);
-      })
-      .catch(() => setKits([]))
-      .finally(() => setKitsLoading(false));
+      } catch {
+        setKits([]);
+      } finally {
+        setKitsLoading(false);
+      }
+    })();
   }, [initialKits.length]);
 
   const selectedKit = kits.find((k) => k.id === brandKitId);
