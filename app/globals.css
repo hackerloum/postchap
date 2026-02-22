@@ -38,3 +38,13 @@
   --error:          #ef4444;
   --info:           #4D9EFF;
 }
+
+/* Force dark background on entire app so no white shows through */
+html,
+body {
+  background-color: #080808;
+  min-height: 100%;
+}
+body {
+  min-height: 100vh;
+}

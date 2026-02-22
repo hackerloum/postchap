@@ -1,9 +1,51 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { getAdminDb } from "@/lib/firebase/admin";
 import { BrandKitsList } from "./BrandKitsList";
 
 export const dynamic = "force-dynamic";
 
-export default function BrandKitsPage() {
+async function getBrandKits(uid: string) {
+  try {
+    const snap = await getAdminDb()
+      .collection("users")
+      .doc(uid)
+      .collection("brand_kits")
+      .orderBy("createdAt", "desc")
+      .get();
+    return snap.docs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        brandName: data.brandName,
+        industry: data.industry,
+        tagline: data.tagline,
+        primaryColor: data.primaryColor,
+        secondaryColor: data.secondaryColor,
+        accentColor: data.accentColor,
+        logoUrl: data.logoUrl,
+        brandLocation: data.brandLocation,
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+export default async function BrandKitsPage() {
+  let brandKits: Awaited<ReturnType<typeof getBrandKits>> = [];
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("__session")?.value;
+    if (token) {
+      const { getAdminAuth } = await import("@/lib/firebase/admin");
+      const decoded = await getAdminAuth().verifyIdToken(token);
+      brandKits = await getBrandKits(decoded.uid);
+    }
+  } catch {
+    brandKits = [];
+  }
+
   return (
     <div className="px-4 py-8 sm:px-6 max-w-5xl mx-auto">
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -22,7 +64,7 @@ export default function BrandKitsPage() {
         </Link>
       </div>
 
-      <BrandKitsList />
+      <BrandKitsList initialKits={brandKits} />
     </div>
   );
 }
