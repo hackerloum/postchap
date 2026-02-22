@@ -1,5 +1,4 @@
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
 
@@ -44,9 +43,7 @@ async function getBrandKits(uid: string) {
 
 export default async function DashboardPage() {
   const user = await getUser();
-  if (!user) redirect("/login");
-
-  const brandKits = await getBrandKits(user.uid);
+  const brandKits = user ? await getBrandKits(user.uid) : [];
   const hasBrandKits = brandKits.length > 0;
 
   return (
