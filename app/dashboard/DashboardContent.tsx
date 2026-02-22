@@ -8,20 +8,33 @@ type Props = { initialKits: BrandKitItem[] };
 
 export function DashboardContent({ initialKits }: Props) {
   const [kits, setKits] = useState<BrandKitItem[]>(initialKits);
-  const [loading, setLoading] = useState(initialKits.length === 0);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (initialKits.length > 0) {
-      setKits(initialKits);
-      setLoading(false);
-      return;
-    }
+  const fetchKits = () => {
     setLoading(true);
     getBrandKitsAction()
       .then(setKits)
       .catch(() => setKits([]))
       .finally(() => setLoading(false));
-  }, [initialKits.length]);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    getBrandKitsAction()
+      .then((data) => {
+        if (!cancelled) setKits(data);
+      })
+      .catch(() => {
+        if (!cancelled) setKits([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const hasBrandKits = kits.length > 0;
 
@@ -63,12 +76,21 @@ export function DashboardContent({ initialKits }: Props) {
           <p className="mt-2 font-mono text-xs text-text-muted max-w-xs">
             Something went wrong during setup. Let&apos;s create your brand kit to get started.
           </p>
-          <Link
-            href="/onboarding"
-            className="mt-6 inline-flex items-center gap-2 bg-accent text-black font-semibold text-sm px-6 py-3 rounded-lg hover:bg-accent-dim transition-colors min-h-[48px]"
-          >
-            Set up brand kit →
-          </Link>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={fetchKits}
+              className="inline-flex items-center gap-2 bg-bg-elevated border border-border-default text-text-primary font-medium text-sm px-5 py-2.5 rounded-lg hover:border-border-strong transition-colors min-h-[44px]"
+            >
+              Retry
+            </button>
+            <Link
+              href="/onboarding"
+              className="inline-flex items-center gap-2 bg-accent text-black font-semibold text-sm px-6 py-3 rounded-lg hover:bg-accent-dim transition-colors min-h-[48px]"
+            >
+              Set up brand kit →
+            </Link>
+          </div>
         </div>
       ) : (
         <>
