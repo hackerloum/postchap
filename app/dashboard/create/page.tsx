@@ -3,22 +3,30 @@ import Link from "next/link";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { CreatePosterForm } from "./CreatePosterForm";
 
+export const dynamic = "force-dynamic";
+
 async function getBrandKits(uid: string) {
   try {
     const snap = await getAdminDb()
       .collection("users")
       .doc(uid)
       .collection("brand_kits")
-      .orderBy("createdAt", "desc")
       .get();
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Array<{
-      id: string;
-      brandName?: string;
-      industry?: string;
-      primaryColor?: string;
-      secondaryColor?: string;
-      accentColor?: string;
-    }>;
+    const withTime = snap.docs.map((d) => {
+      const data = d.data();
+      const createdAt = data.createdAt?.toMillis?.() ?? 0;
+      return {
+        id: d.id,
+        brandName: data.brandName,
+        industry: data.industry,
+        primaryColor: data.primaryColor,
+        secondaryColor: data.secondaryColor,
+        accentColor: data.accentColor,
+        _createdAt: createdAt,
+      };
+    });
+    withTime.sort((a, b) => b._createdAt - a._createdAt);
+    return withTime.map(({ _createdAt, ...k }) => k);
   } catch {
     return [];
   }
