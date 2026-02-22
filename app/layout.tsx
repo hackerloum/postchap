@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Under development",
-  description: "This site is under development.",
+  title: "PosterChap",
+  description: "AI-powered daily poster generation for your brand.",
 };
 
 export default function RootLayout({
