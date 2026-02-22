@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 type BrandKit = {
@@ -17,7 +18,32 @@ type BrandKit = {
 type Props = { initialKits: BrandKit[] };
 
 export function BrandKitsList({ initialKits }: Props) {
-  const brandKits = initialKits;
+  const [brandKits, setBrandKits] = useState<BrandKit[]>(initialKits);
+  const [loading, setLoading] = useState(initialKits.length === 0);
+
+  useEffect(() => {
+    if (initialKits.length > 0) {
+      setBrandKits(initialKits);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    fetch("/api/brand-kits", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : { kits: [] }))
+      .then((data) => {
+        setBrandKits(data.kits ?? []);
+      })
+      .catch(() => setBrandKits([]))
+      .finally(() => setLoading(false));
+  }, [initialKits.length]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <span className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (brandKits.length === 0) {
     return (

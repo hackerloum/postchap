@@ -11,10 +11,10 @@ async function getBrandKits(uid: string) {
       .collection("users")
       .doc(uid)
       .collection("brand_kits")
-      .orderBy("createdAt", "desc")
       .get();
-    return snap.docs.map((d) => {
+    const kits = snap.docs.map((d) => {
       const data = d.data();
+      const createdAt = data.createdAt?.toMillis?.() ?? data.createdAt ?? 0;
       return {
         id: d.id,
         brandName: data.brandName,
@@ -25,8 +25,11 @@ async function getBrandKits(uid: string) {
         accentColor: data.accentColor,
         logoUrl: data.logoUrl,
         brandLocation: data.brandLocation,
+        _createdAt: createdAt,
       };
     });
+    kits.sort((a, b) => (b._createdAt as number) - (a._createdAt as number));
+    return kits.map(({ _createdAt, ...k }) => k);
   } catch {
     return [];
   }

@@ -110,10 +110,26 @@ export async function GET(request: NextRequest) {
       .collection("users")
       .doc(uid)
       .collection("brand_kits")
-      .orderBy("createdAt", "desc")
       .get();
 
-    const kits = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const withTime = snap.docs.map((d) => {
+      const data = d.data();
+      const createdAt = data.createdAt?.toMillis?.() ?? 0;
+      return {
+        id: d.id,
+        brandName: data.brandName,
+        industry: data.industry,
+        tagline: data.tagline,
+        primaryColor: data.primaryColor,
+        secondaryColor: data.secondaryColor,
+        accentColor: data.accentColor,
+        logoUrl: data.logoUrl,
+        brandLocation: data.brandLocation,
+        _createdAt: createdAt,
+      };
+    });
+    withTime.sort((a, b) => b._createdAt - a._createdAt);
+    const kits = withTime.map(({ _createdAt, ...k }) => k);
     return NextResponse.json({ kits });
   } catch {
     return NextResponse.json({ error: "Failed to fetch" }, { status: 500 });
