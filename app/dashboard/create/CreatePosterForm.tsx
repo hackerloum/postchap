@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type BrandKit = {
   id: string;
@@ -11,20 +11,45 @@ type BrandKit = {
   accentColor?: string;
 };
 
-export function CreatePosterForm({ brandKits }: { brandKits: BrandKit[] }) {
-  const [brandKitId, setBrandKitId] = useState(brandKits[0]?.id ?? "");
+export function CreatePosterForm({ brandKits: initialKits }: { brandKits: BrandKit[] }) {
+  const [kits, setKits] = useState<BrandKit[]>(initialKits);
+  const [kitsLoading, setKitsLoading] = useState(initialKits.length === 0);
+  const [brandKitId, setBrandKitId] = useState(initialKits[0]?.id ?? "");
   const [theme, setTheme] = useState("");
   const [occasion, setOccasion] = useState("");
   const [customPrompt, setCustomPrompt] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const selectedKit = brandKits.find((k) => k.id === brandKitId);
+  useEffect(() => {
+    if (initialKits.length > 0) {
+      setKits(initialKits);
+      if (!brandKitId) setBrandKitId(initialKits[0].id);
+      setKitsLoading(false);
+      return;
+    }
+    setKitsLoading(true);
+    fetch("/api/brand-kits", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : { kits: [] }))
+      .then((data) => {
+        const list = data.kits ?? [];
+        setKits(list);
+        if (list.length > 0 && !brandKitId) setBrandKitId(list[0].id);
+      })
+      .catch(() => setKits([]))
+      .finally(() => setKitsLoading(false));
+  }, [initialKits.length]);
+
+  const selectedKit = kits.find((k) => k.id === brandKitId);
 
   return (
     <div className="space-y-6">
       <div className="bg-bg-surface border border-border-default rounded-2xl p-6">
         <h2 className="font-semibold text-sm text-text-primary mb-4">Brand kit</h2>
-        {brandKits.length === 0 ? (
+        {kitsLoading ? (
+          <div className="py-8 flex items-center justify-center">
+            <span className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : kits.length === 0 ? (
           <div className="py-8 text-center">
             <p className="font-mono text-xs text-text-muted mb-4">No brand kits yet</p>
             <a href="/onboarding" className="text-accent font-mono text-xs hover:underline">
@@ -33,7 +58,7 @@ export function CreatePosterForm({ brandKits }: { brandKits: BrandKit[] }) {
           </div>
         ) : (
           <div className="flex flex-wrap gap-2">
-            {brandKits.map((kit) => (
+            {kits.map((kit) => (
               <button
                 key={kit.id}
                 type="button"
@@ -112,7 +137,7 @@ export function CreatePosterForm({ brandKits }: { brandKits: BrandKit[] }) {
       <button
         type="button"
         onClick={() => setLoading(true)}
-        disabled={loading || brandKits.length === 0}
+        disabled={loading || kits.length === 0}
         className="w-full flex items-center justify-center gap-2 bg-accent text-black font-semibold text-sm py-4 rounded-xl hover:bg-accent-dim transition-colors disabled:opacity-50 min-h-[52px]"
       >
         {loading ? (
