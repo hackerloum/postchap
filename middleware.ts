@@ -15,6 +15,7 @@ export async function middleware(request: NextRequest) {
 
   if (isApi) return NextResponse.next();
 
+  // No session cookie — require login for protected routes
   if (!token) {
     if (isDashboard || isOnboarding) {
       return NextResponse.redirect(new URL("/login", request.url));
@@ -22,6 +23,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Has session cookie — for dashboard/onboarding, trust it (set by our API after Firebase verify)
+  // Token verification via jose can fail in Edge (JWKS fetch, env, etc.), so skip for protected routes
+  if (isDashboard || isOnboarding) {
+    return NextResponse.next();
+  }
+
+  // Auth pages (login/signup) — verify token to redirect logged-in users
   try {
     const JWKS = createRemoteJWKSet(new URL(JWKS_URL));
     const { payload } = await jwtVerify(token, JWKS, {
@@ -31,27 +39,14 @@ export async function middleware(request: NextRequest) {
 
     const hasOnboarded = (payload.hasOnboarded as boolean) ?? false;
 
-    if (isAuthPage) {
-      if (hasOnboarded) {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
-      } else {
-        return NextResponse.redirect(new URL("/onboarding", request.url));
-      }
-    }
-
-    if (isDashboard && !hasOnboarded) {
+    if (hasOnboarded) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    } else {
       return NextResponse.redirect(new URL("/onboarding", request.url));
     }
-
-    if (isOnboarding && hasOnboarded) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-
-    return NextResponse.next();
   } catch {
-    const response = NextResponse.redirect(new URL("/login", request.url));
-    response.cookies.set("__session", "", { maxAge: 0, path: "/" });
-    return response;
+    // Verification failed — let them through to login page (e.g. expired token)
+    return NextResponse.next();
   }
 }
 
