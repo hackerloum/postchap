@@ -1,40 +1,62 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { getBrandKitsAction, type BrandKitItem } from "./brand-kits/actions";
 
 type Props = { initialKits: BrandKitItem[] };
 
 export function DashboardContent({ initialKits }: Props) {
+  const pathname = usePathname();
+  const router = useRouter();
   const [kits, setKits] = useState<BrandKitItem[]>(initialKits);
   const [loading, setLoading] = useState(true);
 
-  const fetchKits = () => {
+  useEffect(() => {
+    if (initialKits.length > 0) {
+      setKits(initialKits);
+      setLoading(false);
+    }
+  }, [initialKits]);
+
+  const fetchKits = useCallback(() => {
     setLoading(true);
     getBrandKitsAction()
       .then(setKits)
       .catch(() => setKits([]))
       .finally(() => setLoading(false));
-  };
+  }, []);
 
   useEffect(() => {
+    if (pathname !== "/dashboard") return;
     let cancelled = false;
+    let retryTimeout: ReturnType<typeof setTimeout> | null = null;
+    const run = (isRetry = false) => {
+      if (isRetry) setLoading(true);
+      getBrandKitsAction()
+        .then((data) => {
+          if (cancelled) return;
+          setKits(data);
+          if (data.length === 0 && !isRetry) {
+            retryTimeout = setTimeout(() => run(true), 600);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setKits([]);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    };
     setLoading(true);
-    getBrandKitsAction()
-      .then((data) => {
-        if (!cancelled) setKits(data);
-      })
-      .catch(() => {
-        if (!cancelled) setKits([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    if (initialKits.length === 0) router.refresh();
+    run();
     return () => {
       cancelled = true;
+      if (retryTimeout) clearTimeout(retryTimeout);
     };
-  }, []);
+  }, [pathname]);
 
   const hasBrandKits = kits.length > 0;
 
