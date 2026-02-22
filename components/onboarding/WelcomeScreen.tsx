@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
 import { Sparkles, Check } from "lucide-react";
 import { auth } from "@/lib/firebase/auth";
 import { ConfettiEffect } from "./ConfettiEffect";
@@ -26,7 +25,7 @@ export function WelcomeScreen() {
     }
 
     let mounted = true;
-    const user = auth.currentUser;
+    const user = auth?.currentUser ?? null;
     if (!user) {
       router.replace("/login");
       return;
@@ -91,39 +90,29 @@ export function WelcomeScreen() {
     <div className="relative flex min-h-screen flex-col items-center justify-center bg-bg-base px-6 py-12">
       <ConfettiEffect />
       <div className="relative z-10 flex flex-col items-center text-center">
-        <motion.div
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 200, damping: 15 }}
-        >
+        <div className="animate-scale-in">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-accent">
             <Sparkles size={36} className="text-black" />
           </div>
-        </motion.div>
+        </div>
 
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-          className="mt-8 font-display text-4xl font-semibold tracking-tight text-text-primary md:text-5xl"
+        <h1
+          className="mt-8 font-display text-4xl font-semibold tracking-tight text-text-primary md:text-5xl animate-fade-up"
+          style={{ animationDelay: "200ms", opacity: 0, animationFillMode: "forwards" }}
         >
           Your brand kit is live.
-        </motion.h1>
+        </h1>
 
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.5 }}
-          className="mx-auto mt-4 max-w-md font-sans text-base leading-relaxed text-text-secondary"
+        <p
+          className="mx-auto mt-4 max-w-md font-sans text-base leading-relaxed text-text-secondary animate-fade-up"
+          style={{ animationDelay: "400ms", opacity: 0, animationFillMode: "forwards" }}
         >
           ArtMaster is generating your first poster right now. This usually takes about 30 seconds.
-        </motion.p>
+        </p>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.5 }}
-          className="mt-8 flex flex-wrap justify-center gap-3"
+        <div
+          className="mt-8 flex flex-wrap justify-center gap-3 animate-fade-up"
+          style={{ animationDelay: "600ms", opacity: 0, animationFillMode: "forwards" }}
         >
           {[
             { icon: Check, label: "Brand Kit saved" },
@@ -140,14 +129,9 @@ export function WelcomeScreen() {
               <span className="font-mono text-[11px] text-text-secondary">{label}</span>
             </div>
           ))}
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          className="mt-12 text-center"
-        >
+        <div className="mt-12 text-center animate-fade-in" style={{ animationDelay: "800ms", opacity: 0, animationFillMode: "forwards" }}>
           <p className="mb-3 font-mono text-[11px] text-text-muted">
             Taking you to your first poster...
           </p>
@@ -162,7 +146,7 @@ export function WelcomeScreen() {
               />
             ))}
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

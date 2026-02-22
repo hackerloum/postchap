@@ -8,7 +8,6 @@ import {
   History,
   Layers,
 } from "lucide-react";
-import { motion } from "framer-motion";
 
 const FEATURES = [
   {
@@ -49,51 +48,26 @@ const FEATURES = [
   },
 ];
 
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08 },
-  },
-};
-
-const item = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0 },
-};
-
 export function FeatureGrid() {
   return (
     <section id="features" className="px-6 py-20 md:px-8">
       <div className="mx-auto max-w-6xl">
-        <motion.h2
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="font-display text-3xl font-semibold tracking-tight text-text-primary md:text-4xl"
-        >
+        <h2 className="font-display text-3xl font-semibold tracking-tight text-text-primary md:text-4xl animate-fade-up">
           Everything your brand needs. Built into ArtMaster.
-        </motion.h2>
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-2 font-apple text-sm font-normal leading-relaxed text-text-secondary"
-        >
+        </h2>
+        <p className="mt-2 font-apple text-sm font-normal leading-relaxed text-text-secondary animate-fade-up">
           Six ways we keep your social presence consistent without the busywork.
-        </motion.p>
-        <motion.div
-          variants={container}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-          className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
-        >
-          {FEATURES.map((f) => (
-            <motion.div
+        </p>
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {FEATURES.map((f, i) => (
+            <div
               key={f.title}
-              variants={item}
-              className="rounded-xl border border-border-default bg-bg-surface p-6 transition-colors duration-200 hover:border-border-strong"
+              className="rounded-xl border border-border-default bg-bg-surface p-6 transition-colors duration-200 hover:border-border-strong animate-fade-up"
+              style={{
+                opacity: 0,
+                animationDelay: `${i * 80}ms`,
+                animationFillMode: "forwards",
+              }}
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-md border border-border-default text-text-muted">
                 <f.icon className="h-5 w-5" />
@@ -104,9 +78,9 @@ export function FeatureGrid() {
               <p className="mt-2 font-apple text-sm font-normal leading-relaxed text-text-secondary">
                 {f.description}
               </p>
-            </motion.div>
+            </div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );

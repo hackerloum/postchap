@@ -1,7 +1,6 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { motion } from "framer-motion";
 
 const STEP_LABELS = [
   "Brand Identity",
@@ -29,13 +28,8 @@ export function StepIndicator({
               {step > 1 && (
                 <div className="flex flex-1 flex-col justify-center">
                   <div className="h-px w-full bg-border-default">
-                    <motion.div
-                      className="h-full bg-accent"
-                      initial={false}
-                      animate={{
-                        width: currentStep >= step ? "100%" : "0%",
-                      }}
-                      transition={{ duration: 0.4 }}
+                    <div
+                      className="h-full bg-accent transition-[width] duration-300 ease-out"
                       style={{
                         width: currentStep >= step ? "100%" : "0%",
                         maxWidth: "100%",
@@ -44,33 +38,26 @@ export function StepIndicator({
                   </div>
                 </div>
               )}
-              <motion.div
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${
+              <div
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-300 ${
                   completed
                     ? "border-accent bg-accent"
                     : active
                       ? "border-accent bg-bg-base"
                       : "border-border-default bg-bg-elevated"
                 }`}
-                animate={active ? { scale: [1, 1.2, 1] } : {}}
-                transition={{ duration: 0.4 }}
               >
                 {completed ? (
                   <Check size={14} className="text-black" />
                 ) : active ? (
                   <div className="h-2 w-2 rounded-full bg-accent" />
                 ) : null}
-              </motion.div>
+              </div>
               {step < totalSteps && (
                 <div className="flex flex-1 flex-col justify-center">
                   <div className="h-px w-full bg-border-default">
-                    <motion.div
-                      className="h-full bg-accent"
-                      initial={false}
-                      animate={{
-                        width: completed ? "100%" : "0%",
-                      }}
-                      transition={{ duration: 0.4 }}
+                    <div
+                      className="h-full bg-accent transition-[width] duration-300 ease-out"
                       style={{
                         width: completed ? "100%" : "0%",
                         maxWidth: "100%",

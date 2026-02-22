@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { auth } from "@/lib/firebase/auth";
-import { storage } from "@/lib/firebase/client";
+import { getClientStorage } from "@/lib/firebase/storage.client";
 import { StepIndicator } from "@/components/onboarding/StepIndicator";
 import { Step1Brand } from "@/components/onboarding/steps/Step1Brand";
 import { Step2Visual } from "@/components/onboarding/steps/Step2Visual";
@@ -50,7 +49,7 @@ export function WizardShell() {
   const prevStep = () => setCurrentStep((s) => Math.max(s - 1, 1));
 
   async function handleSubmit() {
-    const user = auth.currentUser;
+    const user = auth?.currentUser ?? null;
     if (!user) {
       router.push("/login");
       return;
@@ -60,6 +59,7 @@ export function WizardShell() {
     try {
       if (formData.logoFile) {
         const path = `logos/${user.uid}/${Date.now()}-${formData.logoFile.name}`;
+        const storage = getClientStorage();
         const storageRef = ref(storage, path);
         await uploadBytes(storageRef, formData.logoFile, {
           contentType: formData.logoFile.type,
@@ -162,58 +162,32 @@ export function WizardShell() {
     <div className="w-full">
       <StepIndicator currentStep={currentStep} totalSteps={4} />
       <div className="mt-10">
-        <AnimatePresence mode="wait">
-          {currentStep === 1 && (
-            <motion.div
-              key="step1"
-              initial={{ opacity: 0, x: 24 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -24 }}
-              transition={{ duration: 0.25 }}
-            >
-              <Step1Brand formData={formData} updateForm={updateForm} onNext={nextStep} />
-            </motion.div>
-          )}
-          {currentStep === 2 && (
-            <motion.div
-              key="step2"
-              initial={{ opacity: 0, x: 24 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -24 }}
-              transition={{ duration: 0.25 }}
-            >
-              <Step2Visual formData={formData} updateForm={updateForm} onBack={prevStep} onNext={nextStep} />
-            </motion.div>
-          )}
-          {currentStep === 3 && (
-            <motion.div
-              key="step3"
-              initial={{ opacity: 0, x: 24 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -24 }}
-              transition={{ duration: 0.25 }}
-            >
-              <Step3Audience formData={formData} updateForm={updateForm} onBack={prevStep} onNext={nextStep} />
-            </motion.div>
-          )}
-          {currentStep === 4 && (
-            <motion.div
-              key="step4"
-              initial={{ opacity: 0, x: 24 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -24 }}
-              transition={{ duration: 0.25 }}
-            >
-              <Step4Content
-                formData={formData}
-                updateForm={updateForm}
-                onBack={prevStep}
-                onSubmit={handleSubmit}
-                isSubmitting={isSubmitting}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {currentStep === 1 && (
+          <div key="step1" className="animate-fade-up" style={{ animationDuration: "0.25s" }}>
+            <Step1Brand formData={formData} updateForm={updateForm} onNext={nextStep} />
+          </div>
+        )}
+        {currentStep === 2 && (
+          <div key="step2" className="animate-fade-up" style={{ animationDuration: "0.25s" }}>
+            <Step2Visual formData={formData} updateForm={updateForm} onBack={prevStep} onNext={nextStep} />
+          </div>
+        )}
+        {currentStep === 3 && (
+          <div key="step3" className="animate-fade-up" style={{ animationDuration: "0.25s" }}>
+            <Step3Audience formData={formData} updateForm={updateForm} onBack={prevStep} onNext={nextStep} />
+          </div>
+        )}
+        {currentStep === 4 && (
+          <div key="step4" className="animate-fade-up" style={{ animationDuration: "0.25s" }}>
+            <Step4Content
+              formData={formData}
+              updateForm={updateForm}
+              onBack={prevStep}
+              onSubmit={handleSubmit}
+              isSubmitting={isSubmitting}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

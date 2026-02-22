@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
@@ -55,60 +54,60 @@ export function Nav() {
         </div>
       </header>
 
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-bg-base md:hidden"
-          >
-            <div className="flex h-16 items-center justify-between border-b border-border-subtle px-6">
-              <Logo variant="nav" />
-              <button
-                type="button"
-                className="flex h-10 w-10 items-center justify-center rounded-md border border-border-default"
-                onClick={() => setMobileOpen(false)}
-                aria-label="Close menu"
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-bg-base md:hidden animate-fade-in"
+          style={{ animationDuration: "0.2s" }}
+        >
+          <div className="flex h-16 items-center justify-between border-b border-border-subtle px-6">
+            <Logo variant="nav" />
+            <button
+              type="button"
+              className="flex h-10 w-10 items-center justify-center rounded-md border border-border-default"
+              onClick={() => setMobileOpen(false)}
+              aria-label="Close menu"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <nav className="flex flex-col gap-1 px-6 py-6">
+            {NAV_LINKS.map((link, i) => (
+              <div
+                key={link.href}
+                className="animate-fade-up-sm"
+                style={{
+                  opacity: 0,
+                  animationDelay: `${i * 80}ms`,
+                  animationFillMode: "forwards",
+                }}
               >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <nav className="flex flex-col gap-1 px-6 py-6">
-              {NAV_LINKS.map((link, i) => (
-                <motion.div
-                  key={link.href}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.08 * i, duration: 0.2 }}
+                <Link
+                  href={link.href}
+                  className="block py-3 font-apple text-sm text-text-primary"
+                  onClick={() => setMobileOpen(false)}
                 >
-                  <Link
-                    href={link.href}
-                    className="block py-3 font-apple text-sm text-text-primary"
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    {link.label}
-                  </Link>
-                </motion.div>
-              ))}
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.08 * NAV_LINKS.length, duration: 0.2 }}
-                className="mt-4 flex flex-col gap-4 border-t border-border-default pt-6"
-              >
-                <Button variant="ghost" asChild className="w-full justify-center">
-                  <Link href="/login">Sign in</Link>
-                </Button>
-                <Button variant="primary" asChild className="w-full justify-center">
-                  <Link href="/signup">Start free</Link>
-                </Button>
-              </motion.div>
-            </nav>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  {link.label}
+                </Link>
+              </div>
+            ))}
+            <div
+              className="mt-4 flex flex-col gap-4 border-t border-border-default pt-6 animate-fade-up-sm"
+              style={{
+                opacity: 0,
+                animationDelay: `${NAV_LINKS.length * 80}ms`,
+                animationFillMode: "forwards",
+              }}
+            >
+              <Button variant="ghost" asChild className="w-full justify-center">
+                <Link href="/login">Sign in</Link>
+              </Button>
+              <Button variant="primary" asChild className="w-full justify-center">
+                <Link href="/signup">Start free</Link>
+              </Button>
+            </div>
+          </nav>
+        </div>
+      )}
     </>
   );
 }

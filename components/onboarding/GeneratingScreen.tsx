@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   Clock,
   FileText,
@@ -102,7 +101,7 @@ export function GeneratingScreen({ brandKitName }: { brandKitName: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const posterId = searchParams.get("posterId");
-  const user = auth.currentUser;
+  const user = auth?.currentUser ?? null;
   const userId = user?.uid ?? "";
   const generationStatus = useGenerationStatus(userId, posterId);
   const [timedOut, setTimedOut] = useState(false);
@@ -194,42 +193,29 @@ export function GeneratingScreen({ brandKitName }: { brandKitName: string }) {
             style={{ animation: "spin 1.5s linear infinite" }}
           />
           <div className="absolute inset-3 flex items-center justify-center rounded-full border border-border-default bg-bg-surface">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentStatus}
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.5, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                {getStatusIcon(currentStatus)}
-              </motion.div>
-            </AnimatePresence>
+            <div key={currentStatus}>
+              {getStatusIcon(currentStatus)}
+            </div>
           </div>
         </div>
 
-        <AnimatePresence mode="wait">
-          <motion.h2
-            key={generationStatus?.message ?? currentStatus}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-            className="text-center font-display text-2xl font-semibold text-text-primary"
-          >
-            {getStatusMessage(currentStatus)}
-          </motion.h2>
-        </AnimatePresence>
+        <h2
+          key={generationStatus?.message ?? currentStatus}
+          className="text-center font-display text-2xl font-semibold text-text-primary"
+        >
+          {getStatusMessage(currentStatus)}
+        </h2>
         <p className="mt-2 text-center font-mono text-xs text-text-muted">
           {getStatusSub(currentStatus, errorMessage)}
         </p>
 
         <div className="mt-10 w-full overflow-hidden rounded-full border border-border-default bg-bg-surface">
-          <motion.div
+          <div
             className="h-1.5 rounded-full bg-accent"
-            initial={{ width: "0%" }}
-            animate={{ width: `${generationStatus?.progress ?? 0}%` }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
+            style={{
+              width: `${generationStatus?.progress ?? 0}%`,
+              transition: "width 0.5s ease-out",
+            }}
           />
         </div>
         <p className="mt-2 text-center font-mono text-[11px] text-text-muted">

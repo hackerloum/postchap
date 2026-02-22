@@ -3,17 +3,16 @@
 import React from "react";
 
 type Props = { children: React.ReactNode };
-
-type State = { hasError: boolean; error?: Error };
+type State = { hasError: boolean; error: Error | null };
 
 /**
- * Catches unhandled errors so the tab does not crash (e.g. on mobile Chrome).
- * Shows a friendly fallback instead of "Restart Chrome" / blank screen.
+ * Catches unhandled errors so the tab does not crash (e.g. mobile "Can't open page").
+ * Shows a friendly fallback instead of blank screen.
  */
 export class RootErrorBoundary extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, error: null };
   }
 
   static getDerivedStateFromError(error: Error): State {
@@ -22,7 +21,7 @@ export class RootErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     if (typeof console !== "undefined") {
-      console.error("[RootErrorBoundary]", error, errorInfo.componentStack);
+      console.error("[ErrorBoundary]", error, errorInfo.componentStack);
     }
   }
 
@@ -30,22 +29,84 @@ export class RootErrorBoundary extends React.Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div
-          className="min-h-screen flex flex-col items-center justify-center p-6 bg-bg-base text-text-primary font-apple"
+          style={{
+            minHeight: "100vh",
+            background: "#080808",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+            fontFamily: "-apple-system, sans-serif",
+          }}
           role="alert"
         >
-          <p className="text-center text-text-secondary mb-4">
-            Something went wrong loading the app.
-          </p>
-          <p className="text-center text-sm text-text-muted mb-6 max-w-sm">
-            Try refreshing the page. If it keeps happening, try opening in a private tab or another browser.
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              background: "#1A1A1A",
+              borderRadius: 12,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 16,
+              fontSize: 24,
+            }}
+          >
+            ⚠️
+          </div>
+          <h2
+            style={{
+              color: "#F2F2F2",
+              fontSize: 18,
+              fontWeight: 600,
+              margin: "0 0 8px",
+            }}
+          >
+            Something went wrong
+          </h2>
+          <p
+            style={{
+              color: "#888",
+              fontSize: 13,
+              textAlign: "center",
+              margin: "0 0 24px",
+            }}
+          >
+            Please refresh the page to try again.
           </p>
           <button
             type="button"
-            onClick={() => this.setState({ hasError: false })}
-            className="px-4 py-2 rounded-lg bg-[var(--accent)] text-bg-base text-sm font-medium"
+            onClick={() => window.location.reload()}
+            style={{
+              background: "#E8FF47",
+              color: "#080808",
+              border: "none",
+              padding: "10px 24px",
+              borderRadius: 8,
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
           >
-            Try again
+            Refresh page
           </button>
+          {typeof process !== "undefined" &&
+            process.env.NODE_ENV === "development" &&
+            this.state.error?.message && (
+              <pre
+                style={{
+                  marginTop: 24,
+                  color: "#FF4D4D",
+                  fontSize: 11,
+                  maxWidth: 320,
+                  overflow: "auto",
+                }}
+              >
+                {this.state.error.message}
+              </pre>
+            )}
         </div>
       );
     }

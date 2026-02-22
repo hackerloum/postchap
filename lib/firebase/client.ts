@@ -1,7 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
+import type { FirebaseApp } from "firebase/app";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -13,17 +11,16 @@ const firebaseConfig = {
   databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
 };
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
-
-/** Realtime Database loaded on demand to avoid bundling @firebase/database in main bundle. */
-export function getRtdb() {
-  return import("firebase/database").then(({ getDatabase }) =>
-    getDatabase(app)
-  );
+/** Only initialize in browser to avoid mobile/SSR issues. */
+function getAppSafe(): FirebaseApp {
+  if (typeof window === "undefined") {
+    throw new Error("Firebase client must only be used in the browser.");
+  }
+  return getApps().length ? getApp() : initializeApp(firebaseConfig);
 }
 
-export default app;
+/** Single app instance. Do NOT export auth/db/storage here — use thin getter files so SDK is code-split per route. */
+export const firebaseApp: FirebaseApp | null =
+  typeof window !== "undefined" ? getAppSafe() : null;
+
+export default firebaseApp;

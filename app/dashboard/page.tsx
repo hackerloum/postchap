@@ -1,3 +1,4 @@
+import dynamic from "next/dynamic";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { adminAuth } from "@/lib/firebase/admin";
@@ -9,7 +10,10 @@ import {
   getPosterJobs,
   setUserHasOnboarded,
 } from "@/lib/firebase/firestore";
-import { DashboardClient } from "./DashboardClient";
+
+const DashboardClient = dynamic(() => import("./DashboardClient").then((m) => ({ default: m.DashboardClient })), {
+  ssr: false,
+});
 import type { BrandKit } from "@/types";
 
 const SESSION_COOKIE = "__session";

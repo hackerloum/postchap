@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const DEMO_BRAND = {
@@ -36,11 +35,9 @@ function StatusBadge({ status }: { status: string }) {
 
 export function HeroMockup() {
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 24 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.4, delay: 0.3 }}
-      className="relative"
+    <div
+      className="relative animate-fade-up"
+      style={{ animationDelay: "300ms" }}
     >
       <div className="rounded-xl border border-border-default bg-bg-surface p-6 transition-colors duration-200 hover:border-border-strong">
         <div className="mb-4 flex items-center justify-between">
@@ -74,6 +71,6 @@ export function HeroMockup() {
           <div className="h-2 w-8 rounded bg-accent" />
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

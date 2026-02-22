@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Settings2, Clock, CheckSquare } from "lucide-react";
 
 const STEPS = [
@@ -79,32 +78,23 @@ export function HowItWorks() {
   return (
     <section id="how-it-works" className="px-6 py-20 md:px-8">
       <div className="mx-auto max-w-6xl">
-        <motion.h2
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="font-display text-3xl font-semibold tracking-tight text-text-primary md:text-4xl"
-        >
+        <h2 className="font-display text-3xl font-semibold tracking-tight text-text-primary md:text-4xl animate-fade-up">
           How ArtMaster works
-        </motion.h2>
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-2 font-apple text-sm font-normal leading-relaxed text-text-secondary"
-        >
+        </h2>
+        <p className="mt-2 font-apple text-sm font-normal leading-relaxed text-text-secondary animate-fade-up">
           Three steps from setup to daily posts.
-        </motion.p>
+        </p>
         <div className="mt-16 space-y-24">
           {STEPS.map((step, i) => (
-            <motion.div
+            <div
               key={step.title}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.3 }}
-              className="grid gap-12 md:grid-cols-2 md:items-center"
-              style={i % 2 === 1 ? { direction: "rtl" } : undefined}
+              className="grid gap-12 md:grid-cols-2 md:items-center animate-fade-up"
+              style={{
+                ...(i % 2 === 1 ? { direction: "rtl" } : {}),
+                animationDelay: `${i * 80}ms`,
+                opacity: 0,
+                animationFillMode: "forwards",
+              }}
             >
               <div style={i % 2 === 1 ? { direction: "ltr" } : undefined}>
                 <div className="flex items-center gap-2">
@@ -123,7 +113,7 @@ export function HowItWorks() {
               <div style={i % 2 === 1 ? { direction: "ltr" } : undefined}>
                 <StepVisual type={step.visual} />
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>

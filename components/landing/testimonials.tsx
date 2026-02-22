@@ -1,7 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
-
 const QUOTES = [
   {
     quote:
@@ -41,20 +39,10 @@ export function Testimonials() {
   return (
     <section className="px-6 py-20 md:px-8">
       <div className="mx-auto max-w-6xl">
-        <motion.h2
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="font-display text-3xl font-semibold tracking-tight text-text-primary md:text-4xl"
-        >
+        <h2 className="font-display text-3xl font-semibold tracking-tight text-text-primary md:text-4xl animate-fade-up">
           What teams are saying
-        </motion.h2>
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-12 grid gap-6 md:grid-cols-3"
-        >
+        </h2>
+        <div className="mt-12 grid gap-6 md:grid-cols-3 animate-fade-up">
           {QUOTES.map((q) => (
             <div
               key={q.name}
@@ -74,7 +62,7 @@ export function Testimonials() {
               </div>
             </div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );

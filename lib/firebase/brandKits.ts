@@ -12,12 +12,13 @@ import {
   orderBy,
   serverTimestamp,
 } from "firebase/firestore";
-import { db } from "./client";
+import { getDb } from "./firestore.client";
 import type { BrandKit } from "@/types";
 
 const BRAND_KITS = "brand_kits";
 
 export async function getUserBrandKits(userId: string): Promise<BrandKit[]> {
+  const db = getDb();
   const ref = collection(db, "users", userId, BRAND_KITS);
   const q = query(ref, orderBy("createdAt", "desc"));
   const snap = await getDocs(q);
@@ -28,6 +29,7 @@ export async function getBrandKit(
   userId: string,
   brandKitId: string
 ): Promise<BrandKit | null> {
+  const db = getDb();
   const ref = doc(db, "users", userId, BRAND_KITS, brandKitId);
   const snap = await getDoc(ref);
   if (!snap.exists()) return null;
@@ -38,6 +40,7 @@ export async function createBrandKit(
   userId: string,
   data: Omit<BrandKit, "id" | "createdAt" | "updatedAt">
 ): Promise<string> {
+  const db = getDb();
   const ref = collection(db, "users", userId, BRAND_KITS);
   const docRef = await addDoc(ref, {
     ...data,
@@ -52,6 +55,7 @@ export async function updateBrandKit(
   brandKitId: string,
   data: Partial<BrandKit>
 ): Promise<void> {
+  const db = getDb();
   const ref = doc(db, "users", userId, BRAND_KITS, brandKitId);
   await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
 }
@@ -60,6 +64,7 @@ export async function deleteBrandKit(
   userId: string,
   brandKitId: string
 ): Promise<void> {
+  const db = getDb();
   const ref = doc(db, "users", userId, BRAND_KITS, brandKitId);
   await deleteDoc(ref);
 }

@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X } from "lucide-react";
 import type { Poster, PosterActivity } from "@/types";
 
@@ -72,40 +71,32 @@ export function DashboardClient({
   return (
     <div className="min-h-screen bg-bg-base px-6 py-12 md:px-8">
       <div className="mx-auto max-w-4xl">
-        <AnimatePresence>
-          {showWelcomeBanner && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="mb-6 flex items-center justify-between rounded-xl border border-accent/30 bg-accent/10 px-5 py-4"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/20">
-                  <Sparkles size={16} className="text-accent" />
-                </div>
-                <div>
-                  <p className="font-sans text-sm font-semibold text-text-primary">
-                    Welcome to ArtMaster. Your brand is live.
-                  </p>
-                  <p className="mt-0.5 font-mono text-[11px] text-text-muted">
-                    Your first poster has been generated. A new one will be ready every morning at
-                    8:00 AM automatically.
-                  </p>
-                </div>
+        {showWelcomeBanner && (
+          <div className="mb-6 flex items-center justify-between rounded-xl border border-accent/30 bg-accent/10 px-5 py-4 animate-fade-in">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/20">
+                <Sparkles size={16} className="text-accent" />
               </div>
-              <button
-                type="button"
-                onClick={dismissBanner}
-                className="ml-4 shrink-0 text-text-muted hover:text-text-primary"
-                aria-label="Dismiss"
-              >
-                <X size={16} />
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              <div>
+                <p className="font-sans text-sm font-semibold text-text-primary">
+                  Welcome to ArtMaster. Your brand is live.
+                </p>
+                <p className="mt-0.5 font-mono text-[11px] text-text-muted">
+                  Your first poster has been generated. A new one will be ready every morning at
+                  8:00 AM automatically.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={dismissBanner}
+              className="ml-4 shrink-0 text-text-muted hover:text-text-primary"
+              aria-label="Dismiss"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
 
         <h1 className="font-display text-3xl font-semibold text-text-primary">
           {getGreeting()}.

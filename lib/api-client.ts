@@ -7,7 +7,7 @@ import { auth } from "@/lib/firebase/auth";
  * Use with fetch: fetch(url, { headers: await getAuthHeaders() })
  */
 export async function getAuthHeaders(): Promise<HeadersInit> {
-  const user = auth.currentUser;
+  const user = auth?.currentUser ?? null;
   if (!user) return {};
   const token = await user.getIdToken();
   return { Authorization: `Bearer ${token}` };

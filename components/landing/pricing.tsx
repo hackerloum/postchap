@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -58,28 +57,13 @@ export function Pricing() {
   return (
     <section id="pricing" className="px-6 py-20 md:px-8">
       <div className="mx-auto max-w-6xl">
-        <motion.h2
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="font-display text-3xl font-semibold tracking-tight text-text-primary md:text-4xl"
-        >
+        <h2 className="font-display text-3xl font-semibold tracking-tight text-text-primary md:text-4xl animate-fade-up">
           Simple pricing. Serious results.
-        </motion.h2>
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-2 font-apple text-sm font-normal leading-relaxed text-text-secondary"
-        >
+        </h2>
+        <p className="mt-2 font-apple text-sm font-normal leading-relaxed text-text-secondary animate-fade-up">
           Start free. Scale with ArtMaster as your brand grows.
-        </motion.p>
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-12 grid gap-6 md:grid-cols-3"
-        >
+        </p>
+        <div className="mt-12 grid gap-6 md:grid-cols-3 animate-fade-up">
           {TIERS.map((tier) => (
             <div
               key={tier.name}
@@ -129,7 +113,7 @@ export function Pricing() {
               </Button>
             </div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );

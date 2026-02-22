@@ -28,9 +28,12 @@ import type {
 interface ClassicFirestore {
   collection(path: string): {
     doc(path: string): {
-      get(): Promise<{ exists: boolean; data(): Record<string, unknown> | undefined }>;
+      get(): Promise<{ exists: boolean; data(): Record<string, unknown> | undefined; id: string }>;
       set(data: object, opts?: { merge?: boolean }): Promise<void>;
-      collection(path: string): { get(): Promise<{ docs: Array<{ id: string; data(): Record<string, unknown> }> }> };
+      collection(path: string): {
+        get(): Promise<{ docs: Array<{ id: string; data(): Record<string, unknown> }> }>;
+        doc(path: string): { get(): Promise<{ exists: boolean; data(): Record<string, unknown> | undefined; id: string }> };
+      };
     };
   };
 }
@@ -76,13 +79,14 @@ export async function getBrandKits(userId: string): Promise<BrandKit[]> {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as BrandKit));
 }
 
+/** Use classic API so server read matches onboarding/complete writes. */
 export async function getBrandKit(
   userId: string,
   brandKitId: string
 ): Promise<BrandKit | null> {
-  const ref = doc(adminDb, USERS, userId, BRAND_KITS, brandKitId);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return null;
+  const db = getAdminDb() as unknown as ClassicFirestore;
+  const snap = await db.collection(USERS).doc(userId).collection(BRAND_KITS).doc(brandKitId).get();
+  if (!snap.exists) return null;
   return { id: snap.id, ...snap.data() } as BrandKit;
 }
 

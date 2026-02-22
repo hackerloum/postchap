@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import {
   Collapsible,
@@ -43,20 +42,10 @@ export function FAQ() {
   return (
     <section className="px-6 py-20 md:px-8">
       <div className="mx-auto max-w-6xl">
-        <motion.h2
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="font-display text-3xl font-semibold tracking-tight text-text-primary md:text-4xl"
-        >
+        <h2 className="font-display text-3xl font-semibold tracking-tight text-text-primary md:text-4xl animate-fade-up">
           Frequently asked questions about ArtMaster
-        </motion.h2>
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-12 space-y-0 border-t border-border-default"
-        >
+        </h2>
+        <div className="mt-12 space-y-0 border-t border-border-default animate-fade-up">
           {FAQ_ITEMS.map((item) => (
             <Collapsible
               key={item.q}
@@ -81,7 +70,7 @@ export function FAQ() {
               </div>
             </Collapsible>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );

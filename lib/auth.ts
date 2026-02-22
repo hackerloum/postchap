@@ -155,7 +155,7 @@ export async function updatePassword(
     if (typeof window !== "undefined") window.location.href = "/login";
     return;
   }
-  const user = auth.currentUser;
+  const user = auth?.currentUser ?? null;
   if (!user) throw new Error("Not signed in");
   await changePassword(user, newPassword);
   if (typeof window !== "undefined") {

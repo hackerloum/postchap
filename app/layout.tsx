@@ -11,6 +11,11 @@ export const metadata: Metadata = {
   description:
     "ArtMaster Platform automates daily social media poster generation for brands worldwide. AI-powered, brand-aware, one-click approve.",
   metadataBase: new URL("https://artmasterpro.com"),
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+  },
   openGraph: {
     siteName: "ArtMaster Platform",
   },

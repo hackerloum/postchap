@@ -1,7 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
-
 const BRAND = { name: "Acme", color: "#E8FF47" };
 const POSTERS = [
   { date: "Today", status: "generated" },
@@ -11,13 +9,7 @@ const POSTERS = [
 
 export function ProductMockup() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.4 }}
-      className="rounded-xl border border-border-default bg-bg-surface p-6 transition-colors duration-200 hover:border-border-strong"
-    >
+    <div className="rounded-xl border border-border-default bg-bg-surface p-6 transition-colors duration-200 hover:border-border-strong animate-fade-up">
       <div className="grid gap-6 md:grid-cols-[200px_1fr_280px]">
         <div className="rounded-xl border border-border-default p-6">
           <p className="badge font-mono text-[11px] uppercase tracking-widest text-text-muted">
@@ -79,6 +71,6 @@ export function ProductMockup() {
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

@@ -1,7 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
-
 const PARTNERS = [
   { name: "Firebase", line: "Database, auth, and storage" },
   { name: "Vercel", line: "Hosting and cron" },
@@ -13,20 +11,10 @@ export function Integrations() {
   return (
     <section className="px-6 py-20 md:px-8">
       <div className="mx-auto max-w-6xl">
-        <motion.h2
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="font-display text-3xl font-semibold tracking-tight text-text-primary md:text-4xl"
-        >
+        <h2 className="font-display text-3xl font-semibold tracking-tight text-text-primary md:text-4xl animate-fade-up">
           ArtMaster runs on world-class infrastructure.
-        </motion.h2>
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
-        >
+        </h2>
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4 animate-fade-up">
           {PARTNERS.map((p) => (
             <div
               key={p.name}
@@ -43,7 +31,7 @@ export function Integrations() {
               </p>
             </div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );

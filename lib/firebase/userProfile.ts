@@ -1,5 +1,5 @@
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "./client";
+import { getDb } from "./firestore.client";
 
 const USERS = "users";
 
@@ -13,6 +13,7 @@ export async function ensureUserDoc(
   uid: string,
   data: { email: string; displayName: string }
 ): Promise<void> {
+  const db = getDb();
   const ref = doc(db, USERS, uid);
   await setDoc(
     ref,

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { AuthInput } from "@/components/auth/AuthInput";
 import { Logo } from "@/components/ui/logo";
@@ -66,12 +65,7 @@ export default function ResetPasswordPage() {
       </div>
 
       <div className="flex flex-1 flex-col justify-center py-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="mx-auto w-full max-w-sm"
-        >
+        <div className="mx-auto w-full max-w-sm animate-fade-up">
           {!sent ? (
             <>
               <div className="mb-8">
@@ -93,16 +87,11 @@ export default function ResetPasswordPage() {
                   autoComplete="email"
                 />
                 {error && (
-                  <motion.div
-                    initial={{ x: 0 }}
-                    animate={{ x: [-4, 4, -4, 4, 0] }}
-                    transition={{ duration: 0.4 }}
-                    className="rounded-lg border border-status-error/30 bg-status-error/10 px-3 py-2.5"
-                  >
+                  <div className="rounded-lg border border-status-error/30 bg-status-error/10 px-3 py-2.5">
                     <p className="font-mono text-[11px] text-status-error">
                       {error}
                     </p>
-                  </motion.div>
+                  </div>
                 )}
                 <button
                   type="submit"
@@ -133,7 +122,7 @@ export default function ResetPasswordPage() {
               </Link>
             </div>
           )}
-        </motion.div>
+        </div>
       </div>
 
       <div className="text-center">

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   Download,
   Maximize2,
@@ -67,7 +66,7 @@ export function PosterReveal({ brandKitName }: { brandKitName: string }) {
   const [zoomed, setZoomed] = useState(false);
   const [approving, setApproving] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
-  const user = auth.currentUser;
+  const user = auth?.currentUser ?? null;
 
   const fetchPoster = useCallback(async () => {
     if (!posterId || !user) return;
@@ -183,12 +182,7 @@ export function PosterReveal({ brandKitName }: { brandKitName: string }) {
         <div className="grid gap-12 lg:grid-cols-[55%_45%]">
           {/* Left — Poster */}
           <div>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 24 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              className="relative"
-            >
+            <div className="relative animate-reveal">
               <div className="relative overflow-hidden rounded-2xl border border-border-default shadow-2xl">
                 <img
                   src={poster.imageUrl}
@@ -197,28 +191,15 @@ export function PosterReveal({ brandKitName }: { brandKitName: string }) {
                   style={{ aspectRatio: getAspectRatio(poster.posterSize ?? "1080x1080") }}
                   onClick={() => setZoomed(true)}
                 />
-                <motion.div
-                  initial={{ x: "-100%", opacity: 0.3 }}
-                  animate={{ x: "200%", opacity: 0 }}
-                  transition={{ duration: 0.8, delay: 0.3 }}
-                  className="pointer-events-none absolute inset-0 skew-x-12 bg-gradient-to-r from-transparent via-white/10 to-transparent"
-                />
               </div>
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
-                className="absolute -right-3 -top-3 rounded-full bg-accent px-3 py-1.5 font-mono text-[11px] font-semibold text-black shadow-lg"
+              <div
+                className="absolute -right-3 -top-3 rounded-full bg-accent px-3 py-1.5 font-mono text-[11px] font-semibold text-black shadow-lg animate-fade-up"
+                style={{ animationDelay: "0.3s", opacity: 0, animationFillMode: "forwards" }}
               >
                 ✦ First poster
-              </motion.div>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="mt-4 flex gap-2"
-            >
+              </div>
+            </div>
+            <div className="mt-4 flex gap-2 animate-fade-in" style={{ animationDelay: "0.2s", opacity: 0, animationFillMode: "forwards" }}>
               <button
                 type="button"
                 onClick={handleDownload}
@@ -235,16 +216,12 @@ export function PosterReveal({ brandKitName }: { brandKitName: string }) {
                 <Maximize2 size={14} />
                 Full size
               </button>
-            </motion.div>
+            </div>
           </div>
 
           {/* Right — Content + Actions */}
           <div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-            >
+            <div className="animate-fade-up" style={{ animationDelay: "0.15s", opacity: 0, animationFillMode: "forwards" }}>
               <p className="mb-2 font-mono text-[11px] uppercase tracking-widest text-accent">
                 Your first ArtMaster poster
               </p>
@@ -255,14 +232,9 @@ export function PosterReveal({ brandKitName }: { brandKitName: string }) {
                 Review the content below. You can edit anything before approving. A new poster like
                 this will be generated every day automatically.
               </p>
-            </motion.div>
+            </div>
 
-            <motion.div
-              className="mt-6 space-y-3"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-            >
+            <div className="mt-6 space-y-3 animate-fade-in" style={{ animationDelay: "0.25s", opacity: 0, animationFillMode: "forwards" }}>
               <div className="rounded-xl border border-border-default bg-bg-surface p-4">
                 <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-text-muted">
                   Headline
@@ -304,14 +276,9 @@ export function PosterReveal({ brandKitName }: { brandKitName: string }) {
                   ))}
                 </div>
               </div>
-            </motion.div>
+            </div>
 
-            <motion.div
-              className="mt-6 flex flex-col gap-3"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-            >
+            <div className="mt-6 flex flex-col gap-3 animate-fade-up" style={{ animationDelay: "0.35s", opacity: 0, animationFillMode: "forwards" }}>
               <button
                 type="button"
                 onClick={handleApprove}
@@ -338,14 +305,9 @@ export function PosterReveal({ brandKitName }: { brandKitName: string }) {
                 {regenerating ? <Spinner size={12} /> : <RefreshCw size={12} />}
                 {regenerating ? "Regenerating..." : "Generate a different version"}
               </button>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-              className="mt-6 rounded-xl border border-border-default bg-bg-surface p-4"
-            >
+            <div className="mt-6 rounded-xl border border-border-default bg-bg-surface p-4 animate-fade-in" style={{ animationDelay: "0.4s", opacity: 0, animationFillMode: "forwards" }}>
               <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-text-muted">
                 What happens next
               </p>
@@ -370,41 +332,33 @@ export function PosterReveal({ brandKitName }: { brandKitName: string }) {
                   </div>
                 ))}
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Zoom lightbox */}
-      <AnimatePresence>
-        {zoomed && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+      {zoomed && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm animate-fade-in"
+          onClick={() => setZoomed(false)}
+        >
+          <button
+            type="button"
             onClick={() => setZoomed(false)}
+            className="absolute right-4 top-4 rounded-full p-2 text-white hover:bg-white/10"
+            aria-label="Close"
           >
-            <button
-              type="button"
-              onClick={() => setZoomed(false)}
-              className="absolute right-4 top-4 rounded-full p-2 text-white hover:bg-white/10"
-              aria-label="Close"
-            >
-              <X size={24} />
-            </button>
-            <motion.img
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              src={poster.imageUrl}
-              alt="Poster full size"
-              className="max-h-screen max-w-screen object-contain"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <X size={24} />
+          </button>
+          <img
+            src={poster.imageUrl}
+            alt="Poster full size"
+            className="max-h-screen max-w-screen object-contain animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
