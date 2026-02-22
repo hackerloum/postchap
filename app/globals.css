@@ -1,14 +1,33 @@
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+@import "tailwindcss";
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-html,
-body {
-  max-width: 100vw;
-  min-height: 100vh;
-  font-family: system-ui, -apple-system, sans-serif;
-  background: #0a0a0a;
-  color: #fafafa;
+.animate-fade-up {
+  animation: fade-up 0.4s ease-out forwards;
+}
+
+:root {
+  --bg-base: #0a0a0a;
+  --bg-surface: #141414;
+  --bg-elevated: #1a1a1a;
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --border-default: #3f3f46;
+  --border-strong: #52525b;
+  --border-subtle: #27272a;
+  --accent: #e8ff47;
+  --accent-dim: #d4f03a;
+  --error: #ef4444;
+  --warning: #f59e0b;
+  --success: #3ddc84;
 }
