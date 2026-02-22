@@ -1,28 +1,10 @@
-import { cookies } from "next/headers";
 import Link from "next/link";
-import { getAdminAuth } from "@/lib/firebase/admin";
 
-async function getUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("__session")?.value;
-  if (!token) return null;
-  try {
-    const decoded = await getAdminAuth().verifyIdToken(token);
-    return { uid: decoded.uid, email: decoded.email ?? "" };
-  } catch {
-    return null;
-  }
-}
-
-export default async function DashboardLayout({
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Middleware already validates the session; don't redirect here (Firebase Admin
-  // verify can fail in some RSC contexts while middleware's jose verify passes).
-  const user = await getUser();
-
   const navItems = [
     { label: "Overview", href: "/dashboard", icon: "◉" },
     { label: "Generate Poster", href: "/dashboard/create", icon: "✦" },
@@ -54,7 +36,6 @@ export default async function DashboardLayout({
           </nav>
         </div>
         <div className="flex items-center gap-4">
-          <span className="font-mono text-xs text-text-muted hidden sm:block truncate max-w-[180px]">{user?.email ?? "Account"}</span>
           <Link href="/api/auth/logout" className="font-mono text-[11px] text-text-muted hover:text-text-primary transition-colors">Sign out</Link>
         </div>
       </header>

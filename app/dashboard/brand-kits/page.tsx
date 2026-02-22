@@ -1,18 +1,6 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
-import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
-
-async function getUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("__session")?.value;
-  if (!token) return null;
-  try {
-    const decoded = await getAdminAuth().verifyIdToken(token);
-    return decoded.uid;
-  } catch {
-    return null;
-  }
-}
+import { getAdminDb } from "@/lib/firebase/admin";
 
 async function getBrandKits(uid: string) {
   try {
@@ -39,8 +27,18 @@ async function getBrandKits(uid: string) {
 }
 
 export default async function BrandKitsPage() {
-  const uid = await getUser();
-  const brandKits = uid ? await getBrandKits(uid) : [];
+  let brandKits: Awaited<ReturnType<typeof getBrandKits>> = [];
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("__session")?.value;
+    if (token) {
+      const { getAdminAuth } = await import("@/lib/firebase/admin");
+      const decoded = await getAdminAuth().verifyIdToken(token);
+      brandKits = await getBrandKits(decoded.uid);
+    }
+  } catch {
+    brandKits = [];
+  }
 
   return (
     <div className="px-4 py-8 sm:px-6 max-w-5xl mx-auto">

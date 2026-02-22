@@ -1,22 +1,6 @@
-import { cookies } from "next/headers";
 import Link from "next/link";
-import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
-
-async function getUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("__session")?.value;
-  if (!token) return null;
-  try {
-    const decoded = await getAdminAuth().verifyIdToken(token);
-    const snap = await getAdminDb()
-      .collection("users")
-      .doc(decoded.uid)
-      .get();
-    return { uid: decoded.uid, ...snap.data() };
-  } catch {
-    return null;
-  }
-}
+import { getAdminDb } from "@/lib/firebase/admin";
+import { cookies } from "next/headers";
 
 async function getBrandKits(uid: string) {
   try {
@@ -42,8 +26,18 @@ async function getBrandKits(uid: string) {
 }
 
 export default async function DashboardPage() {
-  const user = await getUser();
-  const brandKits = user ? await getBrandKits(user.uid) : [];
+  let brandKits: Awaited<ReturnType<typeof getBrandKits>> = [];
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("__session")?.value;
+    if (token) {
+      const { getAdminAuth } = await import("@/lib/firebase/admin");
+      const decoded = await getAdminAuth().verifyIdToken(token);
+      brandKits = await getBrandKits(decoded.uid);
+    }
+  } catch {
+    brandKits = [];
+  }
   const hasBrandKits = brandKits.length > 0;
 
   return (

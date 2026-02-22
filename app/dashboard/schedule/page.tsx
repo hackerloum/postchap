@@ -1,23 +1,7 @@
-import { cookies } from "next/headers";
 import Link from "next/link";
-import { getAdminAuth } from "@/lib/firebase/admin";
 import { ScheduleForm } from "./ScheduleForm";
 
-async function getUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("__session")?.value;
-  if (!token) return null;
-  try {
-    const decoded = await getAdminAuth().verifyIdToken(token);
-    return decoded.uid;
-  } catch {
-    return null;
-  }
-}
-
 export default async function SchedulePage() {
-  await getUser();
-
   return (
     <div className="px-4 py-8 sm:px-6 max-w-5xl mx-auto">
       <div className="mb-8">

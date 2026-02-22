@@ -1,20 +1,5 @@
-import { cookies } from "next/headers";
 import Link from "next/link";
-import { getAdminAuth } from "@/lib/firebase/admin";
 
-async function getUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("__session")?.value;
-  if (!token) return null;
-  try {
-    const decoded = await getAdminAuth().verifyIdToken(token);
-    return decoded.uid;
-  } catch {
-    return null;
-  }
-}
-
-// Placeholder data - replace with Firestore query when posters API exists
 const MOCK_POSTERS = [
   { id: "1", title: "Monday Motivation", status: "approved", date: "2025-02-22", platform: "instagram" },
   { id: "2", title: "Flash Sale Alert", status: "pending", date: "2025-02-21", platform: "facebook" },
@@ -22,8 +7,6 @@ const MOCK_POSTERS = [
 ];
 
 export default async function PostersPage() {
-  await getUser();
-
   const posters = MOCK_POSTERS;
 
   return (
