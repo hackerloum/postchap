@@ -1,5 +1,25 @@
 @import "tailwindcss";
 
+/* Tailwind v4: define theme colors so bg-accent, text-accent, etc. work */
+@theme {
+  --color-bg-base: #080808;
+  --color-bg-surface: #111111;
+  --color-bg-elevated: #181818;
+  --color-bg-overlay: #222222;
+  --color-border-subtle: #27272a;
+  --color-border-default: #3f3f46;
+  --color-border-strong: #52525b;
+  --color-text-primary: #fafafa;
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted: #71717a;
+  --color-accent: #e8ff47;
+  --color-accent-dim: #b8cc38;
+  --color-success: #3ddc84;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #4d9eff;
+}
+
 * {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
 }
@@ -39,10 +59,11 @@
   --info:           #4D9EFF;
 }
 
-/* Force dark background on entire app so no white shows through */
+/* Force dark background and light text on entire app */
 html,
 body {
   background-color: #080808;
+  color: #fafafa;
   min-height: 100%;
 }
 body {
