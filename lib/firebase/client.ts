@@ -1,5 +1,6 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
+import { getStorage } from "firebase/storage";
 
 let _auth: Auth | null = null;
 
@@ -14,16 +15,25 @@ function getConfig() {
   };
 }
 
+function getAppInstance() {
+  if (typeof window === "undefined") return null;
+  const apps = getApps();
+  return apps.length === 0 ? initializeApp(getConfig()) : apps[0];
+}
+
 export function getAuthClient(): Auth {
   if (typeof window === "undefined") {
     throw new Error("Firebase Auth can only be used in the browser");
   }
   if (!_auth) {
-    const app =
-      getApps().length === 0
-        ? initializeApp(getConfig())
-        : (getApps()[0] as ReturnType<typeof initializeApp>);
+    const app = getAppInstance() as ReturnType<typeof initializeApp>;
     _auth = getAuth(app);
   }
   return _auth;
+}
+
+export function getStorageClient() {
+  if (typeof window === "undefined") return null;
+  const app = getAppInstance();
+  return app ? getStorage(app) : null;
 }
