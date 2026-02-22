@@ -16,7 +16,20 @@ export default function RootLayout({
     <html lang="en">
       <body>
         {children}
-        <Toaster position="top-center" richColors />
+        <Toaster
+          position="top-center"
+          richColors
+          toastOptions={{
+            style: {
+              background: "#141414",
+              border: "1px solid #3f3f46",
+              color: "#fafafa",
+              fontFamily: "ui-monospace, monospace",
+              fontSize: "12px",
+              borderRadius: "12px",
+            },
+          }}
+        />
       </body>
     </html>
   );

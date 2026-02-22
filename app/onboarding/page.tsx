@@ -66,7 +66,7 @@ const defaultData: WizardData = {
   tagline: "",
   website: "",
   primaryColor: "#E8FF47",
-  secondaryColor: "#111111",
+  secondaryColor: "#080808",
   accentColor: "#FFFFFF",
   logoFile: null,
   logoPreview: "",

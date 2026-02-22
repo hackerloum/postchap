@@ -28,11 +28,12 @@ All auth pages share layout: `app/(auth)/layout.tsx` (ArtMaster header + centere
 
 | Route | File | Description |
 |-------|------|-------------|
-| `/dashboard` | `app/dashboard/page.tsx` | **Dashboard** — Welcome, date, 4 quick actions (Generate, Posters, Brand Kits, Schedule), brand kits list, generate CTA. Sign out link. |
-| `/dashboard/create` | `app/dashboard/create/page.tsx` | Placeholder — Coming soon |
-| `/dashboard/posters` | `app/dashboard/posters/page.tsx` | Placeholder — Coming soon |
-| `/dashboard/brand-kits` | `app/dashboard/brand-kits/page.tsx` | Placeholder — Coming soon |
-| `/dashboard/schedule` | `app/dashboard/schedule/page.tsx` | Placeholder — Coming soon |
+| `/dashboard` | `app/dashboard/page.tsx` | **Dashboard** — Welcome, date, 4 quick actions (Generate, Posters, Brand Kits, Schedule), brand kits list, generate CTA. |
+| | `app/dashboard/layout.tsx` | Shared header: ArtMaster logo, nav (Overview, Generate Poster, My Posters, Brand Kits, Schedule), user email, Sign out. |
+| `/dashboard/create` | `app/dashboard/create/page.tsx` | **Generate Poster** — Brand kit selector, theme/occasion fields, preview area, platform export sizes, tips sidebar |
+| `/dashboard/posters` | `app/dashboard/posters/page.tsx` | **My Posters** — Filter (All/Approved/Pending), date range, poster grid with status badges, Download/Share actions |
+| `/dashboard/brand-kits` | `app/dashboard/brand-kits/page.tsx` | **Brand Kits** — Card grid from Firestore, logo/colors, Edit/Duplicate/Delete actions, empty state |
+| `/dashboard/schedule` | `app/dashboard/schedule/page.tsx` | **Schedule** — Daily generation toggle, time/timezone picker, email/SMS notifications, upcoming runs |
 | `/onboarding` | `app/onboarding/page.tsx` | **4-step wizard** — (1) Brand: name, industry, tagline, website. (2) Visual: colors, presets, logo upload. (3) Audience: country, city, target, platforms. (4) Content: tone, style notes, sample. Submits to `/api/brand-kits`. |
 
 Onboarding layout: `app/onboarding/layout.tsx` (header + max-w-2xl content).

@@ -50,30 +50,7 @@ export default async function DashboardPage() {
   const hasBrandKits = brandKits.length > 0;
 
   return (
-    <div className="min-h-screen bg-bg-base">
-      <header className="h-14 border-b border-border-subtle flex items-center justify-between px-4 sm:px-6 sticky top-0 bg-bg-base/95 backdrop-blur z-10">
-        <div className="flex items-center gap-1.5">
-          <span className="font-semibold text-sm text-text-primary">
-            ArtMaster
-          </span>
-          <span className="font-mono text-[9px] text-accent border border-accent/30 rounded px-1 py-0.5 tracking-widest">
-            PLATFORM
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="font-mono text-xs text-text-muted hidden sm:block">
-            {(user as { email?: string }).email}
-          </span>
-          <Link
-            href="/api/auth/logout"
-            className="font-mono text-xs text-text-muted hover:text-text-primary transition-colors"
-          >
-            Sign out
-          </Link>
-        </div>
-      </header>
-
-      <main className="px-4 py-8 sm:px-6 max-w-5xl mx-auto">
+    <div className="px-4 py-8 sm:px-6 max-w-5xl mx-auto">
         <div className="mb-8">
           <h1 className="font-semibold text-2xl text-text-primary tracking-tight">
             Good morning 👋
@@ -119,6 +96,7 @@ export default async function DashboardPage() {
                 <Link
                   key={action.label}
                   href={action.href}
+                  prefetch={false}
                   className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border text-center transition-all duration-150 min-h-[88px] ${
                     action.accent
                       ? "bg-accent border-accent text-black hover:bg-accent-dim"
@@ -195,6 +173,7 @@ export default async function DashboardPage() {
               </div>
               <Link
                 href="/dashboard/create"
+                prefetch={false}
                 className="inline-flex items-center gap-2 bg-accent text-black font-semibold text-sm px-5 py-2.5 rounded-lg hover:bg-accent-dim transition-colors whitespace-nowrap min-h-[44px]"
               >
                 Generate now →
@@ -202,7 +181,6 @@ export default async function DashboardPage() {
             </div>
           </div>
         )}
-      </main>
     </div>
   );
 }
