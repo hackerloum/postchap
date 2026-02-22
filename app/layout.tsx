@@ -14,17 +14,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className="min-h-screen bg-bg-base text-text-primary antialiased">
         {children}
         <Toaster
           position="top-center"
           richColors
           toastOptions={{
             style: {
-              background: "#141414",
-              border: "1px solid #3f3f46",
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border-default)",
               color: "#fafafa",
-              fontFamily: "ui-monospace, monospace",
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif',
               fontSize: "12px",
               borderRadius: "12px",
             },

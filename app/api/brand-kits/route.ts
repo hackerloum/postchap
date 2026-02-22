@@ -2,21 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 
-async function verifyAuth(request: NextRequest) {
+async function getUidFromRequest(request: NextRequest): Promise<string> {
   const header = request.headers.get("Authorization");
-  if (!header?.startsWith("Bearer ")) {
-    throw new Error("Unauthorized");
-  }
-  const decoded = await getAdminAuth().verifyIdToken(
-    header.replace("Bearer ", "")
-  );
+  const token =
+    header?.startsWith("Bearer ")
+      ? header.replace("Bearer ", "")
+      : request.cookies.get("__session")?.value;
+  if (!token) throw new Error("Unauthorized");
+  const decoded = await getAdminAuth().verifyIdToken(token);
   return decoded.uid;
 }
 
 export async function POST(request: NextRequest) {
   let uid: string;
   try {
-    uid = await verifyAuth(request);
+    uid = await getUidFromRequest(request);
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   let uid: string;
   try {
-    uid = await verifyAuth(request);
+    uid = await getUidFromRequest(request);
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

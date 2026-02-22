@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { cookies } from "next/headers";
 
+export const dynamic = "force-dynamic";
+
 async function getBrandKits(uid: string) {
   try {
     const snap = await getAdminDb()

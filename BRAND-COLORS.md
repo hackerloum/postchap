@@ -9,7 +9,7 @@ Design tokens and brand colors used across the app.
 | Token | Hex | Usage | Tailwind |
 |-------|-----|-------|----------|
 | **accent** | `#E8FF47` | Primary CTA, highlights, badges | `bg-accent`, `text-accent`, `border-accent` |
-| **accent-dim** | `#D4F03A` | Hover state for accent buttons | `hover:bg-accent-dim` |
+| **accent-dim** | `#B8CC38` | Secondary brand, hover states | `hover:bg-accent-dim` |
 
 ---
 
@@ -17,9 +17,9 @@ Design tokens and brand colors used across the app.
 
 | Token | Hex | Usage | Tailwind |
 |-------|-----|-------|----------|
-| **bg-base** | `#0a0a0a` | Page background, main canvas | `bg-bg-base` |
-| **bg-surface** | `#141414` | Cards, elevated surfaces | `bg-bg-surface` |
-| **bg-elevated** | `#1a1a1a` | Hover states, nested surfaces | `bg-bg-elevated` |
+| **bg-base** | `#080808` | Page background, main canvas | `bg-bg-base` |
+| **bg-surface** | `#111111` | Cards, elevated surfaces | `bg-bg-surface` |
+| **bg-elevated** | `#181818` | Hover states, nested surfaces | `bg-bg-elevated` |
 | **bg-overlay** | `#222222` | Overlays, modals, dropdowns | `bg-bg-overlay` |
 
 ---
@@ -75,9 +75,9 @@ Defined in `app/globals.css`:
 
 ```css
 :root {
-  --bg-base:        #0a0a0a;
-  --bg-surface:     #141414;
-  --bg-elevated:    #1a1a1a;
+  --bg-base:        #080808;
+  --bg-surface:     #111111;
+  --bg-elevated:    #181818;
   --bg-overlay:     #222222;
   --border-subtle:  #27272a;
   --border-default: #3f3f46;
@@ -86,7 +86,7 @@ Defined in `app/globals.css`:
   --text-secondary: #a1a1aa;
   --text-muted:     #71717a;
   --accent:         #e8ff47;
-  --accent-dim:     #d4f03a;
+  --accent-dim:     #b8cc38;
   --success:        #3ddc84;
   --warning:        #f59e0b;
   --error:          #ef4444;

@@ -8,10 +8,14 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["-apple-system", "BlinkMacSystemFont", "SF Pro Display", "SF Pro Text", "system-ui", "Segoe UI", "Roboto", "sans-serif"],
+        mono: ["-apple-system", "BlinkMacSystemFont", "SF Pro Display", "SF Pro Text", "system-ui", "Segoe UI", "Roboto", "sans-serif"],
+      },
       colors: {
-        "bg-base": "#0a0a0a",
-        "bg-surface": "#141414",
-        "bg-elevated": "#1a1a1a",
+        "bg-base": "#080808",
+        "bg-surface": "#111111",
+        "bg-elevated": "#181818",
         "bg-overlay": "#222222",
         "border-subtle": "#27272a",
         "border-default": "#3f3f46",
@@ -20,7 +24,7 @@ const config: Config = {
         "text-secondary": "#a1a1aa",
         "text-muted": "#71717a",
         accent: "#e8ff47",
-        "accent-dim": "#d4f03a",
+        "accent-dim": "#b8cc38",
         success: "#3ddc84",
         warning: "#f59e0b",
         error: "#ef4444",
