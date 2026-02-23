@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { getAuthClient } from "@/lib/firebase/client";
+import { getClientIdToken } from "@/lib/auth-client";
 import { Download, ExternalLink, Loader2, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -28,9 +29,30 @@ function PostersPageContent() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Poster | null>(null);
   const newRef = useRef<HTMLDivElement>(null);
+  const noUserTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    loadPosters();
+    const auth = getAuthClient();
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        if (noUserTimeoutRef.current) {
+          clearTimeout(noUserTimeoutRef.current);
+          noUserTimeoutRef.current = null;
+        }
+        loadPosters();
+      } else {
+        noUserTimeoutRef.current = setTimeout(() => {
+          noUserTimeoutRef.current = null;
+          setPosters([]);
+          setSelected(null);
+          setLoading(false);
+        }, 500);
+      }
+    });
+    return () => {
+      unsubscribe();
+      if (noUserTimeoutRef.current) clearTimeout(noUserTimeoutRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -48,7 +70,10 @@ function PostersPageContent() {
     try {
       const auth = getAuthClient();
       const user = auth.currentUser;
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       const token = await user.getIdToken();
 
       const res = await fetch("/api/posters", {
@@ -69,6 +94,60 @@ function PostersPageContent() {
       toast.error("Failed to load posters");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleDownload(posterId: string) {
+    const token = await getClientIdToken();
+    if (!token) {
+      toast.error("Please sign in to download");
+      return;
+    }
+    try {
+      const res = await fetch(`/api/posters/${posterId}/download`, {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data?.error ?? "Download failed");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `poster-${posterId}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Downloaded");
+    } catch {
+      toast.error("Download failed");
+    }
+  }
+
+  async function handleOpenInNewTab(posterId: string) {
+    const token = await getClientIdToken();
+    if (!token) {
+      toast.error("Please sign in to open");
+      return;
+    }
+    try {
+      const res = await fetch(`/api/posters/${posterId}/download?inline=1`, {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data?.error ?? "Failed to open");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener");
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch {
+      toast.error("Failed to open");
     }
   }
 
@@ -211,22 +290,21 @@ function PostersPageContent() {
 
                   {selected.imageUrl && (
                     <div className="flex gap-2 mt-4">
-                      <a
-                        href={`/api/posters/${selected.id}/download`}
-                        download="poster.png"
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(selected.id)}
                         className="flex-1 inline-flex items-center justify-center gap-2 bg-accent text-black font-semibold text-sm py-3 rounded-xl hover:bg-accent-dim transition-colors min-h-[48px]"
                       >
                         <Download size={16} />
                         Download
-                      </a>
-                      <a
-                        href={`/api/posters/${selected.id}/download?inline=1`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenInNewTab(selected.id)}
                         className="inline-flex items-center justify-center gap-2 bg-bg-surface border border-border-default text-text-primary text-sm font-medium px-4 py-3 rounded-xl hover:border-border-strong transition-colors min-h-[48px]"
                       >
                         <ExternalLink size={16} />
-                      </a>
+                      </button>
                     </div>
                   )}
                 </div>

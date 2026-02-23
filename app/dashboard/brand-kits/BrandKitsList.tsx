@@ -2,15 +2,19 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Palette } from "lucide-react";
+import { toast } from "sonner";
 import { getClientIdToken } from "@/lib/auth-client";
-import { getBrandKitsAction, type BrandKitItem } from "./actions";
+import { getBrandKitsAction, deleteBrandKitAction, duplicateBrandKitAction, type BrandKitItem } from "./actions";
 
 type Props = { initialKits: BrandKitItem[] };
 
 export function BrandKitsList({ initialKits }: Props) {
+  const router = useRouter();
   const [brandKits, setBrandKits] = useState<BrandKitItem[]>(initialKits);
   const [loading, setLoading] = useState(initialKits.length === 0);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialKits.length > 0) {
@@ -100,13 +104,45 @@ export function BrandKitsList({ initialKits }: Props) {
           </div>
 
           <div className="px-6 py-3 border-t border-border-subtle flex gap-2">
-            <button className="flex-1 py-2 rounded-lg bg-bg-elevated border border-border-default font-mono text-[11px] text-text-secondary hover:text-text-primary hover:border-border-strong transition-colors">
+            <button
+              onClick={() => router.push(`/dashboard/brand-kits/${kit.id}/edit`)}
+              className="flex-1 py-2 rounded-lg bg-bg-elevated border border-border-default font-mono text-[11px] text-text-secondary hover:text-text-primary hover:border-border-strong transition-colors disabled:opacity-50"
+            >
               Edit
             </button>
-            <button className="flex-1 py-2 rounded-lg bg-bg-elevated border border-border-default font-mono text-[11px] text-text-secondary hover:text-text-primary hover:border-border-strong transition-colors">
+            <button
+              onClick={async () => {
+                if (busyId) return;
+                setBusyId(kit.id);
+                const token = await getClientIdToken();
+                const result = await duplicateBrandKitAction(kit.id, token ?? undefined);
+                setBusyId(null);
+                if (result.success) {
+                  const list = await getBrandKitsAction(token ?? undefined);
+                  setBrandKits(list);
+                  toast.success("Brand kit duplicated");
+                } else toast.error(result.error ?? "Failed to duplicate");
+              }}
+              disabled={!!busyId}
+              className="flex-1 py-2 rounded-lg bg-bg-elevated border border-border-default font-mono text-[11px] text-text-secondary hover:text-text-primary hover:border-border-strong transition-colors disabled:opacity-50"
+            >
               Duplicate
             </button>
-            <button className="px-4 py-2 rounded-lg font-mono text-[11px] text-error hover:bg-error/10 transition-colors">
+            <button
+              onClick={async () => {
+                if (busyId || !confirm("Delete this brand kit? This cannot be undone.")) return;
+                setBusyId(kit.id);
+                const token = await getClientIdToken();
+                const result = await deleteBrandKitAction(kit.id, token ?? undefined);
+                setBusyId(null);
+                if (result.success) {
+                  setBrandKits((prev) => prev.filter((k) => k.id !== kit.id));
+                  toast.success("Brand kit deleted");
+                } else toast.error(result.error ?? "Failed to delete");
+              }}
+              disabled={!!busyId}
+              className="px-4 py-2 rounded-lg font-mono text-[11px] text-error hover:bg-error/10 transition-colors disabled:opacity-50"
+            >
               Delete
             </button>
           </div>

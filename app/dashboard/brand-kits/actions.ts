@@ -1,6 +1,8 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import { FieldValue } from "firebase-admin/firestore";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
 
 export type BrandKitItem = {
@@ -15,16 +17,24 @@ export type BrandKitItem = {
   brandLocation?: { country?: string };
 };
 
-export async function getBrandKitsAction(clientToken?: string | null): Promise<BrandKitItem[]> {
+async function getUidFromCookieOrToken(clientToken?: string | null): Promise<string | null> {
   try {
     const token =
       clientToken && clientToken.trim()
         ? clientToken.trim()
         : (await cookies()).get("__session")?.value;
-    if (!token) return [];
-
+    if (!token) return null;
     const decoded = await getAdminAuth().verifyIdToken(token);
-    const uid = decoded.uid;
+    return decoded.uid;
+  } catch {
+    return null;
+  }
+}
+
+export async function getBrandKitsAction(clientToken?: string | null): Promise<BrandKitItem[]> {
+  try {
+    const uid = await getUidFromCookieOrToken(clientToken);
+    if (!uid) return [];
 
     const snap = await getAdminDb()
       .collection("users")
@@ -52,5 +62,62 @@ export async function getBrandKitsAction(clientToken?: string | null): Promise<B
     return withTime.map(({ _createdAt, ...k }) => k);
   } catch {
     return [];
+  }
+}
+
+export async function deleteBrandKitAction(
+  id: string,
+  clientToken?: string | null
+): Promise<{ success: boolean; error?: string }> {
+  const uid = await getUidFromCookieOrToken(clientToken);
+  if (!uid) return { success: false, error: "Unauthorized" };
+  try {
+    const ref = getAdminDb()
+      .collection("users")
+      .doc(uid)
+      .collection("brand_kits")
+      .doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) return { success: false, error: "Brand kit not found" };
+    await ref.delete();
+    revalidatePath("/dashboard/brand-kits");
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Failed to delete" };
+  }
+}
+
+export async function duplicateBrandKitAction(
+  id: string,
+  clientToken?: string | null
+): Promise<{ success: boolean; newId?: string; error?: string }> {
+  const uid = await getUidFromCookieOrToken(clientToken);
+  if (!uid) return { success: false, error: "Unauthorized" };
+  try {
+    const snap = await getAdminDb()
+      .collection("users")
+      .doc(uid)
+      .collection("brand_kits")
+      .doc(id)
+      .get();
+    if (!snap.exists) return { success: false, error: "Brand kit not found" };
+    const data = snap.data()!;
+    const { analysis, analyzedAt, createdAt, updatedAt, ...rest } = data;
+    const newRef = await getAdminDb()
+      .collection("users")
+      .doc(uid)
+      .collection("brand_kits")
+      .add({
+        ...rest,
+        userId: uid,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    revalidatePath("/dashboard/brand-kits");
+    revalidatePath("/dashboard");
+    return { success: true, newId: newRef.id };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Failed to duplicate" };
   }
 }

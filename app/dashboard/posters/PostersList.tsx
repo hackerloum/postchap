@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Image as ImageIcon } from "lucide-react";
+import { toast } from "sonner";
 import { getAuthClient } from "@/lib/firebase/client";
 import { getClientIdToken } from "@/lib/auth-client";
 
@@ -35,6 +36,60 @@ export function PostersList() {
   const [posters, setPosters] = useState<PosterItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const handleDownload = useCallback(async (posterId: string) => {
+    const token = await getClientIdToken();
+    if (!token) {
+      toast.error("Please sign in to download");
+      return;
+    }
+    try {
+      const res = await fetch(`/api/posters/${posterId}/download`, {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data?.error ?? "Download failed");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `poster-${posterId}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Downloaded");
+    } catch {
+      toast.error("Download failed");
+    }
+  }, []);
+
+  const handleOpenInNewTab = useCallback(async (posterId: string) => {
+    const token = await getClientIdToken();
+    if (!token) {
+      toast.error("Please sign in to open");
+      return;
+    }
+    try {
+      const res = await fetch(`/api/posters/${posterId}/download?inline=1`, {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data?.error ?? "Failed to open");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener");
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch {
+      toast.error("Failed to open");
+    }
+  }, []);
 
   const loadPosters = useCallback(async () => {
     setError(null);
@@ -166,21 +221,20 @@ export function PostersList() {
             </p>
             {poster.imageUrl && (
               <div className="flex gap-2 mt-3">
-                <a
-                  href={`/api/posters/${poster.id}/download?inline=1`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => handleOpenInNewTab(poster.id)}
                   className="flex-1 py-1.5 rounded-lg bg-bg-elevated border border-border-default font-mono text-[10px] text-text-secondary hover:text-text-primary hover:border-border-strong transition-colors text-center"
                 >
                   Open
-                </a>
-                <a
-                  href={`/api/posters/${poster.id}/download`}
-                  download="poster.png"
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDownload(poster.id)}
                   className="flex-1 py-1.5 rounded-lg bg-bg-elevated border border-border-default font-mono text-[10px] text-text-secondary hover:text-text-primary hover:border-border-strong transition-colors text-center"
                 >
                   Download
-                </a>
+                </button>
               </div>
             )}
           </div>
