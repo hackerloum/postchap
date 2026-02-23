@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { getClientIdToken } from "@/lib/auth-client";
+import { usePathname } from "next/navigation";
+import { getAuthClient } from "@/lib/firebase/client";
+import { getClientIdToken, refreshSessionCookie } from "@/lib/auth-client";
 import { getBrandKitsAction, type BrandKitItem } from "./brand-kits/actions";
 import { BrandAnalysisCard } from "./BrandAnalysisCard";
 import { Sparkles, Image, Palette, CalendarClock } from "lucide-react";
@@ -12,9 +13,9 @@ type Props = { initialKits: BrandKitItem[] };
 
 export function DashboardContent({ initialKits }: Props) {
   const pathname = usePathname();
-  const router = useRouter();
   const [kits, setKits] = useState<BrandKitItem[]>(initialKits);
   const [loading, setLoading] = useState(true);
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (initialKits.length > 0) {
@@ -26,6 +27,7 @@ export function DashboardContent({ initialKits }: Props) {
   const fetchKits = useCallback(async () => {
     setLoading(true);
     try {
+      await refreshSessionCookie();
       const token = await getClientIdToken();
       const data = await getBrandKitsAction(token ?? undefined);
       setKits(data);
@@ -38,17 +40,21 @@ export function DashboardContent({ initialKits }: Props) {
 
   useEffect(() => {
     if (pathname !== "/dashboard") return;
+    if (initialKits.length > 0) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
-    let retryTimeout: ReturnType<typeof setTimeout> | null = null;
     const run = async (isRetry = false) => {
       if (isRetry) setLoading(true);
       try {
+        await refreshSessionCookie();
         const token = await getClientIdToken();
         const data = await getBrandKitsAction(token ?? undefined);
         if (cancelled) return;
         setKits(data);
         if (data.length === 0 && !isRetry) {
-          retryTimeout = setTimeout(() => run(true), 600);
+          retryTimeoutRef.current = setTimeout(() => run(true), 800);
         }
       } catch {
         if (!cancelled) setKits([]);
@@ -56,14 +62,24 @@ export function DashboardContent({ initialKits }: Props) {
         if (!cancelled) setLoading(false);
       }
     };
-    setLoading(true);
-    if (initialKits.length === 0) router.refresh();
-    run();
+    const auth = getAuthClient();
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (cancelled) return;
+      if (user) run();
+      else {
+        setKits([]);
+        setLoading(false);
+      }
+    });
     return () => {
       cancelled = true;
-      if (retryTimeout) clearTimeout(retryTimeout);
+      unsubscribe();
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
     };
-  }, [pathname]);
+  }, [pathname, initialKits.length]);
 
   const hasBrandKits = kits.length > 0;
 

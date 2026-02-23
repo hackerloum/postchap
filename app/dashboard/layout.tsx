@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { LayoutDashboard, Sparkles, Image, Palette, CalendarClock } from "lucide-react";
+import { SessionRefresher } from "./SessionRefresher";
+import { CookiePreferencesLink } from "@/components/CookiePreferencesLink";
 
 export default function DashboardLayout({
   children,
@@ -16,6 +18,7 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-bg-base flex flex-col">
+      <SessionRefresher />
       <header className="h-14 border-b border-border-subtle flex items-center justify-between px-4 sm:px-6 sticky top-0 bg-bg-base/95 backdrop-blur z-20">
         <div className="flex items-center gap-6">
           <Link href="/dashboard" className="flex items-center gap-1.5">
@@ -37,6 +40,9 @@ export default function DashboardLayout({
           </nav>
         </div>
         <div className="flex items-center gap-4">
+          <CookiePreferencesLink className="font-mono text-[11px] text-text-muted hover:text-text-primary transition-colors hidden sm:block">
+            Cookie preferences
+          </CookiePreferencesLink>
           <Link href="/api/auth/logout" className="font-mono text-[11px] text-text-muted hover:text-text-primary transition-colors">Sign out</Link>
         </div>
       </header>

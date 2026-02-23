@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Palette } from "lucide-react";
 import { toast } from "sonner";
-import { getClientIdToken } from "@/lib/auth-client";
+import { getAuthClient } from "@/lib/firebase/client";
+import { getClientIdToken, refreshSessionCookie } from "@/lib/auth-client";
 import { getBrandKitsAction, deleteBrandKitAction, duplicateBrandKitAction, type BrandKitItem } from "./actions";
 
 type Props = { initialKits: BrandKitItem[] };
@@ -15,25 +16,48 @@ export function BrandKitsList({ initialKits }: Props) {
   const [brandKits, setBrandKits] = useState<BrandKitItem[]>(initialKits);
   const [loading, setLoading] = useState(initialKits.length === 0);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const authChecked = useRef(false);
 
   useEffect(() => {
     if (initialKits.length > 0) {
       setBrandKits(initialKits);
       setLoading(false);
+      authChecked.current = true;
       return;
     }
-    setLoading(true);
-    (async () => {
+  }, [initialKits]);
+
+  useEffect(() => {
+    if (initialKits.length > 0) return;
+    const auth = getAuthClient();
+    let cancelled = false;
+    const fetchWithAuth = async () => {
+      setLoading(true);
       try {
+        await refreshSessionCookie();
         const token = await getClientIdToken();
         const data = await getBrandKitsAction(token ?? undefined);
-        setBrandKits(data);
+        if (!cancelled) setBrandKits(data);
       } catch {
-        setBrandKits([]);
+        if (!cancelled) setBrandKits([]);
       } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      authChecked.current = true;
+      if (cancelled) return;
+      if (user) {
+        fetchWithAuth();
+      } else {
+        setBrandKits([]);
         setLoading(false);
       }
-    })();
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, [initialKits.length]);
 
   if (loading) {

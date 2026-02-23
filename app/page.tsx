@@ -11,6 +11,7 @@ import {
   Clock,
   Layers,
 } from "lucide-react";
+import { CookiePreferencesLink } from "@/components/CookiePreferencesLink";
 
 export default function Home() {
   return (
@@ -414,16 +415,19 @@ export default function Home() {
               ArtMaster Platform
             </span>
           </div>
-          <div className="flex items-center gap-6">
-            {["Privacy", "Terms", "Contact"].map((link) => (
-              <a
-                key={link}
-                href={`/${link.toLowerCase()}`}
-                className="font-mono text-[11px] text-text-muted hover:text-text-secondary transition-colors"
-              >
-                {link}
-              </a>
-            ))}
+          <div className="flex items-center gap-6 flex-wrap justify-center sm:justify-start">
+            <Link href="/privacy" className="font-mono text-[11px] text-text-muted hover:text-text-secondary transition-colors">
+              Privacy
+            </Link>
+            <Link href="/terms" className="font-mono text-[11px] text-text-muted hover:text-text-secondary transition-colors">
+              Terms
+            </Link>
+            <Link href="/contact" className="font-mono text-[11px] text-text-muted hover:text-text-secondary transition-colors">
+              Contact
+            </Link>
+            <CookiePreferencesLink className="font-mono text-[11px] text-text-muted hover:text-text-secondary transition-colors">
+              Cookie preferences
+            </CookiePreferencesLink>
           </div>
           <p className="font-mono text-[11px] text-text-muted">
             © {new Date().getFullYear()} ArtMaster Platform

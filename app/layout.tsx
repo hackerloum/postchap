@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
+import { CookieConsent } from "@/components/CookieConsent";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="min-h-screen bg-bg-base text-text-primary antialiased">
         {children}
+        <CookieConsent />
         <Toaster
           position="top-center"
           richColors
