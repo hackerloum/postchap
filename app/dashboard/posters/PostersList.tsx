@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { getAuthClient } from "@/lib/firebase/client";
 import { getClientIdToken } from "@/lib/auth-client";
 
 type PosterItem = {
@@ -15,38 +16,86 @@ type PosterItem = {
   headline: string;
 };
 
+async function fetchPosters(token: string | null): Promise<PosterItem[]> {
+  const res = await fetch("/api/posters", {
+    method: "GET",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: "include",
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new Error("Unauthorized");
+    throw new Error("Failed to load posters");
+  }
+  const data = await res.json();
+  return data.posters ?? [];
+}
+
 export function PostersList() {
   const [posters, setPosters] = useState<PosterItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadPosters = useCallback(async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const token = await getClientIdToken();
+      const list = await fetchPosters(token);
+      setPosters(list);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to load";
+      setError(msg);
+      setPosters([]);
+      if (msg === "Unauthorized") {
+        const retryToken = await getClientIdToken();
+        if (retryToken) {
+          try {
+            const list = await fetchPosters(retryToken);
+            setPosters(list);
+            setError(null);
+          } catch {
+            // keep error state
+          }
+        }
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const token = await getClientIdToken();
-        const res = await fetch("/api/posters", {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          credentials: "include",
-        });
-        if (cancelled) return;
-        if (!res.ok) return;
-        const data = await res.json();
-        setPosters(data.posters ?? []);
-      } catch {
-        if (!cancelled) setPosters([]);
-      } finally {
-        if (!cancelled) setLoading(false);
+    const auth = getAuthClient();
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        loadPosters();
+      } else {
+        setPosters([]);
+        setLoading(false);
+        setError("Please sign in to view your posters.");
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    });
+    return () => unsubscribe();
+  }, [loadPosters]);
 
   if (loading) {
     return (
       <div className="flex justify-center py-12">
         <span className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 bg-bg-surface border border-border-default rounded-2xl">
+        <p className="font-mono text-sm text-text-muted mb-4">{error}</p>
+        <button
+          type="button"
+          onClick={() => loadPosters()}
+          className="inline-flex items-center gap-2 bg-accent text-black font-semibold text-sm px-6 py-3 rounded-lg hover:bg-accent-dim transition-colors"
+        >
+          Retry
+        </button>
       </div>
     );
   }
