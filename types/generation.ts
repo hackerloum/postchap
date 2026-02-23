@@ -38,6 +38,20 @@ export interface OccasionContext {
   answers?: { question: string; answer: string }[];
 }
 
+export interface Recommendation {
+  id?: string;
+  theme: string;
+  topic: string;
+  description: string;
+  suggestedHeadline: string;
+  suggestedCta: string;
+  visualMood: string;
+  urgency?: "high" | "medium" | "low";
+  reason?: string;
+  hashtags?: string[];
+  category?: string;
+}
+
 export interface CopyData {
   headline: string;
   subheadline: string;

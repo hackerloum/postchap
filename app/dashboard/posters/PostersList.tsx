@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Image as ImageIcon } from "lucide-react";
 import { getAuthClient } from "@/lib/firebase/client";
 import { getClientIdToken } from "@/lib/auth-client";
 
@@ -103,8 +104,8 @@ export function PostersList() {
   if (posters.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 bg-bg-surface border border-border-default rounded-2xl">
-        <div className="w-20 h-20 rounded-2xl bg-bg-elevated border border-border-default flex items-center justify-center mb-4">
-          <span className="text-3xl opacity-50">🖼️</span>
+        <div className="w-20 h-20 rounded-2xl bg-bg-elevated border border-border-default flex items-center justify-center mb-4 text-text-muted">
+          <ImageIcon size={40} className="opacity-50" />
         </div>
         <h2 className="font-semibold text-lg text-text-primary mb-2">No posters yet</h2>
         <p className="font-mono text-xs text-text-muted text-center max-w-sm mb-6">
@@ -138,8 +139,8 @@ export function PostersList() {
                 unoptimized
               />
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-4xl opacity-30">🖼️</span>
+              <div className="absolute inset-0 flex items-center justify-center text-text-muted">
+                <ImageIcon size={48} className="opacity-30" />
               </div>
             )}
             <div className="absolute top-2 right-2">

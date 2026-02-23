@@ -4,6 +4,38 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getAuthClient } from "@/lib/firebase/client";
 import { toast } from "sonner";
+import {
+  ShoppingBag,
+  UtensilsCrossed,
+  Shirt,
+  Monitor,
+  CreditCard,
+  HeartPulse,
+  BookOpen,
+  Building2,
+  Building,
+  Radio,
+  Smartphone,
+  MoreHorizontal,
+  Instagram,
+  Facebook,
+  Twitter,
+  Linkedin,
+  Music2,
+  MessageCircle,
+  Briefcase,
+  Zap,
+  Sun,
+  Square,
+  Gem,
+  Flame,
+  Image as ImageIcon,
+  CheckCircle,
+  ArrowRight,
+  Clock,
+  Banknote,
+  Languages,
+} from "lucide-react";
 
 type Industry =
   | "retail"
@@ -165,19 +197,19 @@ function Step1Brand({
   onNext: () => void;
 }) {
   const [error, setError] = useState("");
-  const industries: { value: Industry; label: string; icon: string }[] = [
-    { value: "retail", label: "Retail", icon: "🛍️" },
-    { value: "food_beverage", label: "Food & Drink", icon: "🍽️" },
-    { value: "fashion", label: "Fashion", icon: "👗" },
-    { value: "technology", label: "Technology", icon: "💻" },
-    { value: "finance", label: "Finance", icon: "💳" },
-    { value: "healthcare", label: "Healthcare", icon: "🏥" },
-    { value: "education", label: "Education", icon: "📚" },
-    { value: "hospitality", label: "Hospitality", icon: "🏨" },
-    { value: "real_estate", label: "Real Estate", icon: "🏢" },
-    { value: "telecom", label: "Telecom", icon: "📡" },
-    { value: "media", label: "Media", icon: "📱" },
-    { value: "other", label: "Other", icon: "✦" },
+  const industries: { value: Industry; label: string; icon: React.ReactNode }[] = [
+    { value: "retail", label: "Retail", icon: <ShoppingBag size={16} /> },
+    { value: "food_beverage", label: "Food & Drink", icon: <UtensilsCrossed size={16} /> },
+    { value: "fashion", label: "Fashion", icon: <Shirt size={16} /> },
+    { value: "technology", label: "Technology", icon: <Monitor size={16} /> },
+    { value: "finance", label: "Finance", icon: <CreditCard size={16} /> },
+    { value: "healthcare", label: "Healthcare", icon: <HeartPulse size={16} /> },
+    { value: "education", label: "Education", icon: <BookOpen size={16} /> },
+    { value: "hospitality", label: "Hospitality", icon: <Building2 size={16} /> },
+    { value: "real_estate", label: "Real Estate", icon: <Building size={16} /> },
+    { value: "telecom", label: "Telecom", icon: <Radio size={16} /> },
+    { value: "media", label: "Media", icon: <Smartphone size={16} /> },
+    { value: "other", label: "Other", icon: <MoreHorizontal size={16} /> },
   ];
 
   function handleNext() {
@@ -223,7 +255,7 @@ function Step1Brand({
                 data.industry === ind.value ? "border-accent bg-accent/10 text-text-primary" : "border-border-default bg-bg-elevated text-text-secondary hover:border-border-strong"
               }`}
             >
-              <span className="text-base">{ind.icon}</span>
+              <span className="text-text-primary flex items-center">{ind.icon}</span>
               <span className="text-xs font-medium">{ind.label}</span>
             </button>
           ))}
@@ -254,8 +286,8 @@ function Step1Brand({
 
       {error && <p className="font-mono text-xs text-error">{error}</p>}
 
-      <button onClick={handleNext} className="w-full bg-accent text-black font-semibold text-sm py-3 rounded-lg hover:bg-accent-dim transition-colors min-h-[48px]">
-        Continue →
+      <button onClick={handleNext} className="w-full bg-accent text-black font-semibold text-sm py-3 rounded-lg hover:bg-accent-dim transition-colors min-h-[48px] inline-flex items-center justify-center gap-2">
+        Continue <ArrowRight size={14} />
       </button>
     </div>
   );
@@ -389,7 +421,7 @@ function Step2Visual({
             </div>
           ) : (
             <div className="space-y-2">
-              <div className="text-2xl">🖼️</div>
+              <div className="flex justify-center text-text-muted"><ImageIcon size={32} /></div>
               <p className="font-mono text-xs text-text-muted">Tap to upload logo</p>
               <p className="font-mono text-[10px] text-text-muted">PNG, JPG, SVG · Max 5MB</p>
             </div>
@@ -402,8 +434,8 @@ function Step2Visual({
         <button onClick={onBack} className="flex-1 bg-transparent border border-border-default text-text-secondary text-sm font-medium py-3 rounded-lg hover:border-border-strong transition-colors min-h-[48px]">
           ← Back
         </button>
-        <button onClick={onNext} className="flex-1 bg-accent text-black font-semibold text-sm py-3 rounded-lg hover:bg-accent-dim transition-colors min-h-[48px]">
-          Continue →
+        <button onClick={onNext} className="flex-1 bg-accent text-black font-semibold text-sm py-3 rounded-lg hover:bg-accent-dim transition-colors min-h-[48px] inline-flex items-center justify-center gap-2">
+          Continue <ArrowRight size={14} />
         </button>
       </div>
     </div>
@@ -443,13 +475,13 @@ function Step3Audience({
     return code.toUpperCase().split("").map((c) => String.fromCodePoint(127397 + c.charCodeAt(0))).join("");
   }
 
-  const platforms: { value: Platform; label: string; icon: string }[] = [
-    { value: "instagram", label: "Instagram", icon: "📸" },
-    { value: "facebook", label: "Facebook", icon: "👥" },
-    { value: "twitter", label: "Twitter/X", icon: "✦" },
-    { value: "linkedin", label: "LinkedIn", icon: "💼" },
-    { value: "tiktok", label: "TikTok", icon: "🎵" },
-    { value: "whatsapp", label: "WhatsApp", icon: "💬" },
+  const platforms: { value: Platform; label: string; icon: React.ReactNode }[] = [
+    { value: "instagram", label: "Instagram", icon: <Instagram size={16} /> },
+    { value: "facebook", label: "Facebook", icon: <Facebook size={16} /> },
+    { value: "twitter", label: "Twitter/X", icon: <Twitter size={16} /> },
+    { value: "linkedin", label: "LinkedIn", icon: <Linkedin size={16} /> },
+    { value: "tiktok", label: "TikTok", icon: <Music2 size={16} /> },
+    { value: "whatsapp", label: "WhatsApp", icon: <MessageCircle size={16} /> },
   ];
 
   function togglePlatform(p: Platform) {
@@ -522,8 +554,12 @@ function Step3Audience({
               <span className="text-xl">{getFlagEmoji(data.countryCode)}</span>
               <span className="font-semibold text-sm text-text-primary">{data.country}</span>
             </div>
-            <p className="font-mono text-[11px] text-text-muted">🕐 {data.timezone} · 💰 {data.currency}</p>
-            <p className="font-mono text-[11px] text-text-muted">🗣 {data.languages.join(", ")}</p>
+            <p className="font-mono text-[11px] text-text-muted flex items-center gap-1.5">
+              <Clock size={12} className="shrink-0" /> {data.timezone} · <Banknote size={12} className="shrink-0 inline" /> {data.currency}
+            </p>
+            <p className="font-mono text-[11px] text-text-muted flex items-center gap-1.5">
+              <Languages size={12} className="shrink-0" /> {data.languages.join(", ")}
+            </p>
           </div>
         )}
       </div>
@@ -562,7 +598,7 @@ function Step3Audience({
                 data.platforms.includes(p.value) ? "border-accent bg-accent/10 text-text-primary" : "border-border-default bg-bg-elevated text-text-secondary hover:border-border-strong"
               }`}
             >
-              <span>{p.icon}</span>
+              <span className="text-text-primary flex items-center">{p.icon}</span>
               <span className="text-xs font-medium">{p.label}</span>
             </button>
           ))}
@@ -571,10 +607,10 @@ function Step3Audience({
 
       <div className="flex gap-3">
         <button onClick={onBack} className="flex-1 bg-transparent border border-border-default text-text-secondary text-sm font-medium py-3 rounded-lg hover:border-border-strong transition-colors min-h-[48px]">
-          ← Back
+          Back
         </button>
-        <button onClick={onNext} className="flex-1 bg-accent text-black font-semibold text-sm py-3 rounded-lg hover:bg-accent-dim transition-colors min-h-[48px]">
-          Continue →
+        <button onClick={onNext} className="flex-1 bg-accent text-black font-semibold text-sm py-3 rounded-lg hover:bg-accent-dim transition-colors min-h-[48px] inline-flex items-center justify-center gap-2">
+          Continue <ArrowRight size={14} />
         </button>
       </div>
     </div>
@@ -594,13 +630,13 @@ function Step4Content({
   onSubmit: () => void;
   submitting: boolean;
 }) {
-  const tones: { value: Tone; label: string; desc: string; icon: string }[] = [
-    { value: "professional", label: "Professional", desc: "Formal, trustworthy", icon: "👔" },
-    { value: "bold", label: "Bold", desc: "Strong, confident", icon: "⚡" },
-    { value: "friendly", label: "Friendly", desc: "Warm, approachable", icon: "😊" },
-    { value: "minimal", label: "Minimal", desc: "Clean, simple", icon: "◻️" },
-    { value: "luxury", label: "Luxury", desc: "Premium, elegant", icon: "✦" },
-    { value: "energetic", label: "Energetic", desc: "Fun, vibrant", icon: "🔥" },
+  const tones: { value: Tone; label: string; desc: string; icon: React.ReactNode }[] = [
+    { value: "professional", label: "Professional", desc: "Formal, trustworthy", icon: <Briefcase size={16} /> },
+    { value: "bold", label: "Bold", desc: "Strong, confident", icon: <Zap size={16} /> },
+    { value: "friendly", label: "Friendly", desc: "Warm, approachable", icon: <Sun size={16} /> },
+    { value: "minimal", label: "Minimal", desc: "Clean, simple", icon: <Square size={16} /> },
+    { value: "luxury", label: "Luxury", desc: "Premium, elegant", icon: <Gem size={16} /> },
+    { value: "energetic", label: "Energetic", desc: "Fun, vibrant", icon: <Flame size={16} /> },
   ];
 
   return (
@@ -622,7 +658,7 @@ function Step4Content({
                 data.tone === t.value ? "border-accent bg-accent/10" : "border-border-default bg-bg-elevated hover:border-border-strong"
               }`}
             >
-              <span className="text-lg">{t.icon}</span>
+              <span className="text-text-primary flex items-center">{t.icon}</span>
               <span className="text-xs font-semibold text-text-primary">{t.label}</span>
               <span className="text-[10px] font-mono text-text-muted">{t.desc}</span>
             </button>
@@ -657,7 +693,7 @@ function Step4Content({
         <div className="space-y-1">
           {[`Brand: ${data.brandName}`, `Industry: ${data.industry}`, `Country: ${data.country || "Not set"}`, `Tone: ${data.tone || "Not set"}`].map((item) => (
             <p key={item} className="font-mono text-xs text-text-secondary flex items-center gap-2">
-              <span className="text-accent">✦</span>
+              <CheckCircle size={12} className="text-accent shrink-0" />
               {item}
             </p>
           ))}
@@ -679,7 +715,7 @@ function Step4Content({
               Setting up...
             </>
           ) : (
-            "Launch ArtMaster →"
+            <>Launch ArtMaster <ArrowRight size={14} /></>
           )}
         </button>
       </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Image as ImageIcon } from "lucide-react";
 import { getClientIdToken } from "@/lib/auth-client";
 import { getBrandKitsAction, type BrandKitItem } from "../brand-kits/actions";
 
@@ -171,7 +172,7 @@ export function CreatePosterForm({ brandKits: initialKits }: { brandKits: BrandK
         <div className="aspect-square max-w-sm mx-auto rounded-2xl overflow-hidden bg-bg-elevated border border-border-default flex items-center justify-center">
           <div className="text-center p-6">
             <div className="w-16 h-16 rounded-2xl border-2 border-dashed border-border-strong flex items-center justify-center mx-auto mb-3">
-              <span className="text-2xl opacity-50">🖼️</span>
+              <ImageIcon size={32} className="opacity-50 text-text-muted" />
             </div>
             <p className="font-mono text-[11px] text-text-muted">Preview will appear here</p>
           </div>

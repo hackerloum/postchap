@@ -32,15 +32,20 @@ export async function GET(request: NextRequest) {
 
     const posters = snap.docs.map((doc) => {
       const d = doc.data();
-      const createdAt = d.createdAt?.toMillis?.() ?? 0;
+      const copy = d.copy ?? {};
+      const createdAt = d.createdAt?.toMillis?.() ?? null;
       return {
         id: doc.id,
         imageUrl: d.imageUrl ?? null,
-        status: d.status ?? "draft",
-        copy: d.copy ?? null,
-        posterSize: d.posterSize ?? "1080x1080",
+        headline: d.headline ?? copy.headline ?? d.message ?? "Poster",
+        subheadline: d.subheadline ?? copy.subheadline ?? "",
+        body: d.body ?? copy.body ?? "",
+        cta: d.cta ?? copy.cta ?? "",
+        hashtags: d.hashtags ?? copy.hashtags ?? [],
+        theme: d.theme ?? "General",
+        topic: d.topic ?? "",
+        status: d.status ?? "generated",
         createdAt,
-        headline: d.copy?.headline ?? d.message ?? "Poster",
       };
     });
 

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { getClientIdToken } from "@/lib/auth-client";
 import { getBrandKitsAction, type BrandKitItem } from "./brand-kits/actions";
 import { BrandAnalysisCard } from "./BrandAnalysisCard";
+import { Sparkles, Image, Palette, CalendarClock } from "lucide-react";
 
 type Props = { initialKits: BrandKitItem[] };
 
@@ -70,10 +71,10 @@ export function DashboardContent({ initialKits }: Props) {
     <>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Generate Poster", icon: "✦", href: "/dashboard/create", accent: true },
-          { label: "My Posters", icon: "🖼️", href: "/dashboard/posters", accent: false },
-          { label: "Brand Kits", icon: "🎨", href: "/dashboard/brand-kits", accent: false },
-          { label: "Schedule", icon: "⏰", href: "/dashboard/schedule", accent: false },
+          { label: "Generate Poster", icon: <Sparkles size={18} />, href: "/dashboard/create", accent: true },
+          { label: "My Posters", icon: <Image size={18} />, href: "/dashboard/posters", accent: false },
+          { label: "Brand Kits", icon: <Palette size={18} />, href: "/dashboard/brand-kits", accent: false },
+          { label: "Schedule", icon: <CalendarClock size={18} />, href: "/dashboard/schedule", accent: false },
         ].map((action) => (
           <Link
             key={action.label}
@@ -85,7 +86,7 @@ export function DashboardContent({ initialKits }: Props) {
                 : "bg-bg-surface border-border-default text-text-primary hover:border-border-strong"
             }`}
           >
-            <span className="text-xl">{action.icon}</span>
+            <span className="flex items-center justify-center">{action.icon}</span>
             <span className="font-medium text-xs leading-tight">{action.label}</span>
           </Link>
         ))}
@@ -97,8 +98,8 @@ export function DashboardContent({ initialKits }: Props) {
         </div>
       ) : !hasBrandKits ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-bg-surface border border-border-default flex items-center justify-center mb-4">
-            <span className="text-2xl">🎨</span>
+          <div className="w-16 h-16 rounded-2xl bg-bg-surface border border-border-default flex items-center justify-center mb-4 text-text-muted">
+            <Palette size={32} />
           </div>
           <h2 className="font-semibold text-lg text-text-primary">No brand kits yet</h2>
           <p className="mt-2 font-mono text-xs text-text-muted max-w-xs">

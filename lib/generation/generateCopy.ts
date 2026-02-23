@@ -1,9 +1,10 @@
 import OpenAI from "openai";
-import type { BrandKit, CopyData, OccasionContext } from "@/types/generation";
+import type { BrandKit, CopyData, OccasionContext, Recommendation } from "@/types/generation";
 
 export async function generateCopy(
   brandKit: BrandKit,
-  occasionContext?: OccasionContext | null
+  occasionContext?: OccasionContext | null,
+  recommendation?: Recommendation | null
 ): Promise<CopyData> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
@@ -17,9 +18,26 @@ JSON format: { "headline": "max 6 words", "subheadline": "max 12 words", "body":
 
   const brandContext = `BRAND: Name: ${brandKit.brandName} Industry: ${brandKit.industry} Tagline: ${brandKit.tagline || "none"} Tone: ${brandKit.tone} Language: ${brandKit.language ?? "en"} Target: ${brandKit.targetAudience || "general"} Country: ${brandKit.brandLocation?.country || "Global"} Continent: ${brandKit.brandLocation?.continent || "Global"} Currency: ${brandKit.brandLocation?.currency || "USD"} Languages: ${brandKit.brandLocation?.languages?.join(", ") || "English"} Style: ${brandKit.styleNotes || "none"} Sample: ${brandKit.sampleContent || "none"}`;
 
-  const occasionSection = occasionContext
-    ? `OCCASION (write specifically for this): Name: ${occasionContext.name} Category: ${occasionContext.category ?? ""} Visual mood: ${occasionContext.visualMood ?? ""} Tone: ${occasionContext.messagingTone ?? ""}. CRITICAL: Copy MUST reference ${occasionContext.name} in ${brandKit.brandLocation?.country ?? "their market"}.`
-    : `No specific occasion. Write evergreen content for ${brandKit.brandName}.`;
+  const recSection = recommendation
+    ? `
+CONTENT DIRECTION (follow this closely):
+  Theme: ${recommendation.theme}
+  Topic: ${recommendation.topic}
+  Description: ${recommendation.description}
+  Use this headline as inspiration: "${recommendation.suggestedHeadline}"
+  Use this CTA as inspiration: "${recommendation.suggestedCta}"
+  Include these hashtags: ${recommendation.hashtags?.join(", ") ?? ""}
+
+CRITICAL: The copy MUST be about "${recommendation.topic}".
+Stay on this specific theme.
+`.trim()
+    : "";
+
+  const occasionSection = recommendation
+    ? recSection
+    : occasionContext
+      ? `OCCASION (write specifically for this): Name: ${occasionContext.name} Category: ${occasionContext.category ?? ""} Visual mood: ${occasionContext.visualMood ?? ""} Tone: ${occasionContext.messagingTone ?? ""}. CRITICAL: Copy MUST reference ${occasionContext.name} in ${brandKit.brandLocation?.country ?? "their market"}.`
+      : `No specific occasion. Write evergreen content for ${brandKit.brandName}.`;
 
   const userPrompt = `${brandContext}\n${occasionSection}\nWrite copy for ${brandKit.brandName}. Return only the JSON object.`;
 

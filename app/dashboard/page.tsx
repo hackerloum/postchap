@@ -50,7 +50,7 @@ export default async function DashboardPage() {
     <div className="px-4 py-8 sm:px-6 max-w-5xl mx-auto">
       <div className="mb-8">
         <h1 className="font-semibold text-2xl text-text-primary tracking-tight">
-          Good morning 👋
+          Good morning
         </h1>
         <p className="mt-1 font-mono text-xs text-text-muted">
           {new Date().toLocaleDateString("en-GB", {

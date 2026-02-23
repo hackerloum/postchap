@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LayoutDashboard, Sparkles, Image, Palette, CalendarClock } from "lucide-react";
 
 export default function DashboardLayout({
   children,
@@ -6,11 +7,11 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const navItems = [
-    { label: "Overview", href: "/dashboard", icon: "◉" },
-    { label: "Generate Poster", href: "/dashboard/create", icon: "✦" },
-    { label: "My Posters", href: "/dashboard/posters", icon: "🖼️" },
-    { label: "Brand Kits", href: "/dashboard/brand-kits", icon: "🎨" },
-    { label: "Schedule", href: "/dashboard/schedule", icon: "⏰" },
+    { label: "Overview", href: "/dashboard", icon: <LayoutDashboard size={14} /> },
+    { label: "Generate Poster", href: "/dashboard/create", icon: <Sparkles size={14} /> },
+    { label: "My Posters", href: "/dashboard/posters", icon: <Image size={14} /> },
+    { label: "Brand Kits", href: "/dashboard/brand-kits", icon: <Palette size={14} /> },
+    { label: "Schedule", href: "/dashboard/schedule", icon: <CalendarClock size={14} /> },
   ];
 
   return (
@@ -29,7 +30,7 @@ export default function DashboardLayout({
                 prefetch={false}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg font-mono text-[11px] text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors"
               >
-                <span className="opacity-70">{item.icon}</span>
+                <span className="opacity-70 flex items-center">{item.icon}</span>
                 {item.label}
               </Link>
             ))}

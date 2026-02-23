@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Palette } from "lucide-react";
 import { getClientIdToken } from "@/lib/auth-client";
 import { getBrandKitsAction, type BrandKitItem } from "./actions";
 
@@ -42,8 +43,8 @@ export function BrandKitsList({ initialKits }: Props) {
   if (brandKits.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 bg-bg-surface border border-border-default rounded-2xl">
-        <div className="w-20 h-20 rounded-2xl bg-bg-elevated border border-border-default flex items-center justify-center mb-4">
-          <span className="text-3xl opacity-50">🎨</span>
+        <div className="w-20 h-20 rounded-2xl bg-bg-elevated border border-border-default flex items-center justify-center mb-4 text-text-muted">
+          <Palette size={40} className="opacity-50" />
         </div>
         <h2 className="font-semibold text-lg text-text-primary mb-2">No brand kits</h2>
         <p className="font-mono text-xs text-text-muted text-center max-w-sm mb-6">Create your first brand kit to personalize poster generation</p>

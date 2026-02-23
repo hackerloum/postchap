@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Sparkles, ArrowRight } from "lucide-react";
 import { getClientIdToken } from "@/lib/auth-client";
 
 interface Props {
@@ -64,7 +65,7 @@ export function BrandAnalysisCard({ brandKitId }: Props) {
     <div className="bg-bg-surface border border-border-default rounded-2xl p-6 space-y-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-lg">✦</span>
+          <Sparkles size={18} className="text-accent" />
           <span className="font-semibold text-sm text-text-primary">AI Brand Analysis</span>
         </div>
         <div className="flex items-center gap-2">
@@ -116,7 +117,7 @@ export function BrandAnalysisCard({ brandKitId }: Props) {
           <div className="space-y-1.5">
             {analysis.suggestions.map((s, i) => (
               <p key={i} className="font-mono text-[11px] text-text-secondary flex items-start gap-2">
-                <span className="text-accent mt-0.5">→</span>
+                <ArrowRight size={12} className="text-accent mt-0.5 shrink-0" />
                 {s}
               </p>
             ))}

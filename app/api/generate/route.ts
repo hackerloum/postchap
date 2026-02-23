@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-
-export const maxDuration = 120;
-import { FieldValue } from "firebase-admin/firestore";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
+import { FieldValue } from "firebase-admin/firestore";
 import { generateCopy } from "@/lib/generation/generateCopy";
 import { generateImagePrompt } from "@/lib/generation/generateImagePrompt";
-import { generateImage } from "@/lib/generation/generateImage";
-import { compositePoster } from "@/lib/generation/compositePoster";
+import { generateImage } from "@/lib/freepik/generateImage";
+import { improvePrompt } from "@/lib/freepik/improvePrompt";
+import { compositePoster } from "@/lib/sharp/compositePoster";
 import { uploadBufferToCloudinary } from "@/lib/uploadToCloudinary";
-import type { BrandKit, CopyData, PosterSize } from "@/types/generation";
+import type { BrandKit, CopyData, Recommendation } from "@/types/generation";
 
-async function getUidFromRequest(request: NextRequest): Promise<string> {
+export const maxDuration = 300;
+
+async function verifyAuth(request: NextRequest): Promise<string> {
   const header = request.headers.get("Authorization");
   const token =
     header?.startsWith("Bearer ")
@@ -21,82 +22,44 @@ async function getUidFromRequest(request: NextRequest): Promise<string> {
   return decoded.uid;
 }
 
-const VALID_SIZES: PosterSize[] = ["1080x1080", "1080x1350", "1080x1920"];
-
 export async function POST(request: NextRequest) {
   let uid: string;
   try {
-    uid = await getUidFromRequest(request);
+    uid = await verifyAuth(request);
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: {
-    brandKitId?: string;
-    theme?: string;
-    occasion?: string;
-    customPrompt?: string;
-    posterSize?: string;
-  };
+  let body: { brandKitId?: string; recommendation?: Recommendation | null };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  const posterSize: PosterSize = VALID_SIZES.includes((body.posterSize as PosterSize) ?? "")
-    ? (body.posterSize as PosterSize)
-    : "1080x1080";
+  const { brandKitId, recommendation } = body;
 
-  const db = getAdminDb();
-  const posterRef = db.collection("users").doc(uid).collection("posters").doc();
-
-  try {
-    await posterRef.set({
-      userId: uid,
-      brandKitId: body.brandKitId ?? "",
-      theme: body.theme ?? "",
-      occasion: body.occasion ?? "",
-      customPrompt: body.customPrompt ?? "",
-      status: "generating_copy",
-      progress: 10,
-      message: "Writing your copy...",
-      platform: "instagram",
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    });
-  } catch (e) {
+  if (!brandKitId) {
     return NextResponse.json(
-      { error: "Failed to create poster record", details: String(e) },
-      { status: 500 }
+      { error: "brandKitId is required" },
+      { status: 400 }
     );
   }
 
-  const posterId = posterRef.id;
-
-  const updateStatus = async (status: string, progress: number, message: string) => {
-    await posterRef.update({
-      status,
-      progress,
-      message,
-      updatedAt: FieldValue.serverTimestamp(),
-    });
-  };
-
   try {
-    const kitSnap = await db
+    console.log("[generate] Fetching brand kit...");
+    const kitSnap = await getAdminDb()
       .collection("users")
       .doc(uid)
       .collection("brand_kits")
-      .doc(body.brandKitId ?? "")
+      .doc(brandKitId)
       .get();
+
     if (!kitSnap.exists) {
-      await posterRef.update({
-        status: "failed",
-        message: "Brand kit not found",
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-      return NextResponse.json({ error: "Brand kit not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Brand kit not found" },
+        { status: 404 }
+      );
     }
 
     const kitData = kitSnap.data()!;
@@ -118,63 +81,112 @@ export async function POST(request: NextRequest) {
       language: kitData.language,
       sampleContent: kitData.sampleContent,
     };
+    console.log("[generate] Brand kit loaded:", brandKit.brandName);
 
-    const hasOccasion = !!(body.theme || body.occasion || body.customPrompt);
-    const occasionContext = hasOccasion
-      ? {
-          name: body.occasion || body.theme || "Campaign",
-          category: body.theme ?? "",
-          visualMood: body.customPrompt ?? "",
-          messagingTone: brandKit.tone ?? "professional",
-          answers: [] as { question: string; answer: string }[],
-        }
-      : null;
-
-    await updateStatus("generating_copy", 15, "Writing your copy...");
-    const copy: CopyData = await generateCopy(brandKit, occasionContext);
-
-    await updateStatus("generating_image", 25, "Building visual prompt...");
-    const imagePrompt = await generateImagePrompt(brandKit, copy, occasionContext);
-
-    await updateStatus("generating_image", 35, "Freepik Mystic is rendering...");
-    const backgroundBuffer = await generateImage(imagePrompt, posterSize);
-
-    await updateStatus("compositing", 78, "Compositing your poster...");
-    const finalBuffer = await compositePoster(backgroundBuffer, copy, brandKit, posterSize);
-
-    await updateStatus("uploading", 90, "Saving to your library...");
-    const imageUrl = await uploadBufferToCloudinary(
-      finalBuffer,
-      `artmaster/posters/${uid}`,
-      posterId
+    console.log("[generate] Generating copy...");
+    const copy: CopyData = await generateCopy(
+      brandKit,
+      null,
+      recommendation ?? null
     );
-    console.log("[generate] Poster uploaded to Cloudinary:", imageUrl);
+    console.log("[generate] Copy:", copy);
 
-    await posterRef.update({
-      status: "complete",
-      progress: 100,
-      message: "Complete",
-      imageUrl,
+    console.log("[generate] Generating image prompt...");
+    const imagePrompt = await generateImagePrompt(
+      brandKit,
+      copy,
+      null,
+      recommendation ?? null
+    );
+    console.log("[generate] Image prompt:", imagePrompt?.slice(0, 80) + "...");
+
+    // Optional: enhance prompt with Freepik Improve Prompt API (lighting, composition, style)
+    let promptForSeedream = imagePrompt;
+    if (process.env.USE_FREEPIK_IMPROVE_PROMPT === "true") {
+      try {
+        promptForSeedream = await improvePrompt(imagePrompt, {
+          type: "image",
+          language: "en",
+        });
+        console.log("[generate] Improved prompt:", promptForSeedream?.slice(0, 80) + "...");
+      } catch (err) {
+        console.warn("[generate] Improve Prompt failed, using original:", err);
+      }
+    }
+
+    console.log("[generate] Generating image (Seedream 4.5 primary)...");
+    const { buffer: backgroundBuffer, imageHasText } = await generateImage(promptForSeedream);
+    console.log("[generate] Background buffer size:", backgroundBuffer.length, "imageHasText:", imageHasText);
+
+    console.log("[generate] Compositing poster...");
+    const finalBuffer = await compositePoster({
+      backgroundBuffer,
+      brandKit: {
+        brandName: brandKit.brandName ?? "",
+        primaryColor: brandKit.primaryColor ?? "#E8FF47",
+        secondaryColor: brandKit.secondaryColor ?? "#111111",
+        accentColor: brandKit.accentColor ?? "#FFFFFF",
+        logoUrl: brandKit.logoUrl,
+        tone: brandKit.tone,
+      },
       copy: {
         headline: copy.headline,
         subheadline: copy.subheadline,
         body: copy.body,
         cta: copy.cta,
-        hashtags: copy.hashtags,
+        hashtags: copy.hashtags ?? [],
       },
-      posterSize,
-      updatedAt: FieldValue.serverTimestamp(),
+      imageHasText,
     });
+    console.log("[generate] Final buffer size:", finalBuffer.length);
 
-    return NextResponse.json({ success: true, posterId, imageUrl });
+    console.log("[generate] Uploading to Cloudinary...");
+    const posterId = `poster_${uid}_${Date.now()}`;
+    const imageUrl = await uploadBufferToCloudinary(
+      finalBuffer,
+      `artmaster/posters/${uid}`,
+      posterId
+    );
+    console.log("[generate] Uploaded:", imageUrl);
+
+    console.log("[generate] Saving to Firestore...");
+    const posterRef = await getAdminDb()
+      .collection("users")
+      .doc(uid)
+      .collection("posters")
+      .add({
+        userId: uid,
+        brandKitId,
+        imageUrl,
+        headline: copy.headline,
+        subheadline: copy.subheadline,
+        body: copy.body,
+        cta: copy.cta,
+        hashtags: copy.hashtags ?? [],
+        theme: recommendation?.theme ?? "General",
+        topic: recommendation?.topic ?? "",
+        status: "generated",
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+    console.log("[generate] Done. Poster ID:", posterRef.id);
+
+    return NextResponse.json({
+      success: true,
+      posterId: posterRef.id,
+      imageUrl,
+      copy,
+    });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    console.error("[generate]", msg);
-    await posterRef.update({
-      status: "failed",
-      message: msg,
-      updatedAt: FieldValue.serverTimestamp(),
-    }).catch(() => {});
-    return NextResponse.json({ error: "Generation failed", details: msg }, { status: 500 });
+    console.error("[generate]", error);
+    return NextResponse.json(
+      {
+        error: "Generation failed",
+        details:
+          error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
   }
 }
