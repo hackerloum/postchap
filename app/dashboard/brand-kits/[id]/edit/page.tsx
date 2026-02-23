@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { getClientIdToken } from "@/lib/auth-client";
-import { BrandCoachPanel } from "../BrandCoachPanel";
+import { BrandCoachPanel } from "../../BrandCoachPanel";
 import type { CoachPayload } from "@/app/api/brand-kits/coach/route";
 
 type Industry =
