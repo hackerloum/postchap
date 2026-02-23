@@ -13,8 +13,9 @@ async function getUid(request: NextRequest): Promise<string> {
   return decoded.uid;
 }
 
-function kitFromDoc(id: string, data: FirebaseFirestore.DocumentData) {
-  const createdAt = data.createdAt?.toMillis?.() ?? data.createdAt ?? 0;
+function kitFromDoc(id: string, data: Record<string, unknown>) {
+  const ts = data.createdAt as { toMillis?: () => number } | undefined;
+  const createdAt = (ts?.toMillis?.() ?? (data.createdAt as number) ?? 0) as number;
   return {
     id,
     brandName: data.brandName,

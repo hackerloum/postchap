@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getAuthClient } from "@/lib/firebase/client";
+import { getClientIdToken } from "@/lib/auth-client";
 import { toast } from "sonner";
+import { BrandCoachPanel } from "@/app/dashboard/brand-kits/BrandCoachPanel";
 import {
   ShoppingBag,
   UtensilsCrossed,
@@ -824,15 +826,77 @@ export default function OnboardingPage() {
     }
   }
 
+  const coachStep = (step === 1 ? "brand" : step === 2 ? "visual" : step === 3 ? "audience" : "content") as "brand" | "visual" | "audience" | "content";
+  const coachPayload = {
+    brandName: data.brandName,
+    industry: data.industry,
+    tagline: data.tagline,
+    website: data.website,
+    primaryColor: data.primaryColor,
+    secondaryColor: data.secondaryColor,
+    accentColor: data.accentColor,
+    logoUrl: data.logoPreview || undefined,
+    brandLocation: data.country
+      ? {
+          country: data.country,
+          countryCode: data.countryCode,
+          continent: data.continent,
+          timezone: data.timezone,
+          currency: data.currency,
+          languages: data.languages,
+        }
+      : undefined,
+    targetAudience: data.targetAudience,
+    platforms: data.platforms,
+    language: data.language,
+    tone: data.tone,
+    styleNotes: data.styleNotes,
+    sampleContent: data.sampleContent,
+    step: coachStep,
+  };
+
+  function handleApplyCoachSuggestion(field: string, value: string) {
+    const key = field as keyof WizardData;
+    if (key in defaultData) update({ [key]: value } as Partial<WizardData>);
+    else if (["country", "city", "continent", "timezone", "currency", "languages"].includes(field)) {
+      const c = COUNTRIES.find((x) => x.name === value || x.currency === value);
+      if (c) {
+        update({
+          country: c.name,
+          countryCode: c.code,
+          continent: c.continent,
+          timezone: c.timezone,
+          currency: c.currency,
+          languages: c.languages,
+          language: c.languages.includes("English") ? "en" : c.languages[0].toLowerCase().slice(0, 2),
+        });
+      } else {
+        update({ [field === "city" ? "city" : "country"]: value } as Partial<WizardData>);
+      }
+    }
+  }
+
   return (
     <div>
       <StepIndicator current={step} total={4} />
 
-      <div className="mt-8">
-        {step === 1 && <Step1Brand data={data} update={update} onNext={() => setStep(2)} />}
-        {step === 2 && <Step2Visual data={data} update={update} onBack={() => setStep(1)} onNext={() => setStep(3)} />}
-        {step === 3 && <Step3Audience data={data} update={update} onBack={() => setStep(2)} onNext={() => setStep(4)} />}
-        {step === 4 && <Step4Content data={data} update={update} onBack={() => setStep(3)} onSubmit={handleSubmit} submitting={submitting} />}
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          {step === 1 && <Step1Brand data={data} update={update} onNext={() => setStep(2)} />}
+          {step === 2 && <Step2Visual data={data} update={update} onBack={() => setStep(1)} onNext={() => setStep(3)} />}
+          {step === 3 && <Step3Audience data={data} update={update} onBack={() => setStep(2)} onNext={() => setStep(4)} />}
+          {step === 4 && <Step4Content data={data} update={update} onBack={() => setStep(3)} onSubmit={handleSubmit} submitting={submitting} />}
+        </div>
+        <div className="lg:col-span-1">
+          <div className="sticky top-4">
+            <BrandCoachPanel
+              payload={coachPayload}
+              step={coachStep}
+              onApplySuggestion={handleApplyCoachSuggestion}
+              getToken={getClientIdToken}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
