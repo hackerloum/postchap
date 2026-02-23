@@ -43,7 +43,9 @@ export function CreatePosterForm({ brandKits: initialKits }: { brandKits: BrandK
     setLoading(true);
     try {
       const token = await getClientIdToken();
-      const res = await fetch("/api/posters", {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000);
+      const res = await fetch("/api/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -55,19 +57,29 @@ export function CreatePosterForm({ brandKits: initialKits }: { brandKits: BrandK
           theme,
           occasion,
           customPrompt,
+          posterSize: "1080x1080",
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error || "Failed to create poster");
+        toast.error(data.details || data.error || "Generation failed");
         return;
       }
-      toast.success("Poster saved as draft. Preview and image generation coming soon.");
+      toast.success("Poster generated! High quality generation took 30–90 seconds.");
       setTheme("");
       setOccasion("");
       setCustomPrompt("");
-    } catch {
-      toast.error("Something went wrong");
+      if (data.imageUrl) {
+        window.open(data.imageUrl, "_blank");
+      }
+    } catch (e) {
+      if ((e as Error).name === "AbortError") {
+        toast.error("Generation timed out. Check My Posters in a minute.");
+      } else {
+        toast.error("Something went wrong");
+      }
     } finally {
       setLoading(false);
     }
@@ -175,7 +187,7 @@ export function CreatePosterForm({ brandKits: initialKits }: { brandKits: BrandK
         {loading ? (
           <>
             <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-            Generating...
+            Generating... (30–90s)
           </>
         ) : (
           "Generate poster"

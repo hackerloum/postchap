@@ -1,6 +1,7 @@
 import { getApps, cert, type App } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 
 function getAdminApp(): App {
   const apps = getApps();
@@ -14,6 +15,11 @@ function getAdminApp(): App {
   if (!privateKey || !process.env.FIREBASE_ADMIN_CLIENT_EMAIL) {
     throw new Error("Missing Firebase Admin env vars");
   }
+  const bucket =
+    process.env.FIREBASE_STORAGE_BUCKET ||
+    (process.env.FIREBASE_ADMIN_PROJECT_ID
+      ? `${process.env.FIREBASE_ADMIN_PROJECT_ID}.appspot.com`
+      : undefined);
   const admin = require("firebase-admin");
   return admin.initializeApp({
     credential: cert({
@@ -21,6 +27,7 @@ function getAdminApp(): App {
       clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
       privateKey,
     }),
+    ...(bucket ? { storageBucket: bucket } : {}),
   });
 }
 
@@ -30,4 +37,8 @@ export function getAdminAuth() {
 
 export function getAdminDb() {
   return getFirestore(getAdminApp());
+}
+
+export function getAdminStorage() {
+  return getStorage(getAdminApp());
 }
