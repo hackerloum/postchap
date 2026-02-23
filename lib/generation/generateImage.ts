@@ -1,232 +1,276 @@
 import type { PosterSize } from "@/types/generation";
 
-const FREEPIK_API_KEY = process.env.FREEPIK_API_KEY!;
-const BASE_URL = "https://api.freepik.com";
-const HEADERS: Record<string, string> = {
-  "Content-Type": "application/json",
-  "x-freepik-api-key": FREEPIK_API_KEY,
-};
+const FREEPIK_KEY = process.env.FREEPIK_API_KEY!;
+const BASE = "https://api.freepik.com/v1/ai";
 
-function getMysticImageSize(posterSize: PosterSize): { width: number; height: number } {
-  const map: Record<PosterSize, { width: number; height: number }> = {
-    "1080x1080": { width: 1080, height: 1080 },
-    "1080x1350": { width: 1080, height: 1350 },
-    "1080x1920": { width: 1080, height: 1920 },
-  };
-  return map[posterSize];
+// Recursively finds any image URL or base64 in response
+function extractImageUrl(obj: unknown, depth = 0): string | null {
+  if (depth > 6 || obj == null) return null;
+
+  if (typeof obj === "string") {
+    if (obj.startsWith("https://") || obj.startsWith("http://")) return obj;
+    if (obj.startsWith("data:image")) return obj;
+    if (
+      obj.length > 200 &&
+      (obj.startsWith("/9j/") || obj.startsWith("iVBOR"))
+    ) {
+      return `data:image/jpeg;base64,${obj}`;
+    }
+    return null;
+  }
+
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const found = extractImageUrl(item, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  if (typeof obj === "object") {
+    const o = obj as Record<string, unknown>;
+    // Check URL-like keys first
+    const priority = [
+      "url",
+      "image_url",
+      "imageUrl",
+      "src",
+      "base64",
+      "image",
+      "generated",
+      "images",
+      "data",
+      "result",
+      "output",
+    ];
+    for (const key of priority) {
+      if (key in o) {
+        const found = extractImageUrl(o[key], depth + 1);
+        if (found) return found;
+      }
+    }
+    // Then check remaining keys
+    for (const key of Object.keys(o)) {
+      if (!priority.includes(key)) {
+        const found = extractImageUrl(o[key], depth + 1);
+        if (found) return found;
+      }
+    }
+  }
+
+  return null;
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function getStatus(data: unknown): string {
+  const d = data as Record<string, unknown> | null | undefined;
+  const inner = d?.data as Record<string, unknown> | null | undefined;
+  const status =
+    (inner?.status as string) ??
+    (d?.status as string) ??
+    (inner?.state as string) ??
+    (d?.state as string) ??
+    "";
+  return String(status).toUpperCase().trim() || "UNKNOWN";
 }
 
-async function submitMysticTask(
-  prompt: string,
-  posterSize: PosterSize
-): Promise<string> {
-  const size = getMysticImageSize(posterSize);
+async function submitMystic(prompt: string): Promise<string> {
+  console.log("[Freepik] Submitting to Mystic...");
 
-  const response = await fetch(`${BASE_URL}/v1/ai/mystic`, {
+  const res = await fetch(`${BASE}/mystic`, {
     method: "POST",
-    headers: HEADERS,
+    headers: {
+      "Content-Type": "application/json",
+      "x-freepik-api-key": FREEPIK_KEY,
+      Accept: "application/json",
+    },
     body: JSON.stringify({
       prompt,
       negative_prompt:
-        "text, typography, words, letters, watermark, logo, blurry, " +
-        "low quality, distorted, ugly, bad anatomy, deformed",
-      image: {
-        width: size.width,
-        height: size.height,
-      },
+        "text, typography, words, letters, watermark, logo, blurry",
+      image: { size: "1_1" },
       styling: {
         style: "photo",
         color: "vibrant",
         lightning: "warm",
         framing: "portrait",
       },
-      guidance_scale: 7,
-      num_inference_steps: 30,
+      generative_upscaler: false,
     }),
   });
 
-  if (!response.ok) {
-    const err = response.status;
-    if (err === 401) throw new Error("Invalid API key. Check FREEPIK_API_KEY.");
-    if (err === 402) throw new Error("Freepik credits exhausted. Top up your account.");
-    if (err === 429) throw new Error("Rate limit hit. Retry after 60 seconds.");
-    if (err === 503) throw new Error("Freepik service unavailable. Retrying later.");
-    const error = await response.json().catch(() => ({}));
-    throw new Error(
-      `Freepik Mystic submit failed: ${response.status} — ${JSON.stringify(error)}`
-    );
+  const text = await res.text();
+  console.log("[Freepik] Submit status:", res.status);
+  console.log("[Freepik] Submit response:", text);
+
+  if (!res.ok) {
+    throw new Error(`Mystic submit failed ${res.status}: ${text}`);
   }
 
-  const data = await response.json();
-  const taskId = data?.data?.task_id;
+  const data = JSON.parse(text) as Record<string, unknown>;
+  const inner = data?.data as Record<string, unknown> | undefined;
+
+  const taskId =
+    (inner?.task_id as string) ??
+    (data?.task_id as string) ??
+    (inner?.id as string) ??
+    (data?.id as string);
+
   if (!taskId) {
-    throw new Error("Freepik Mystic: No task_id returned");
+    throw new Error(`No task_id found. Response: ${text}`);
   }
-  return taskId;
+
+  console.log("[Freepik] Mystic task submitted:", taskId);
+  return String(taskId);
 }
 
-async function pollMysticTask(
-  taskId: string,
-  maxAttempts = 40,
-  intervalMs = 3000
-): Promise<string> {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    await sleep(intervalMs);
+async function pollMystic(taskId: string): Promise<string> {
+  const MAX = 40;
+  const INTERVAL = 3000;
 
-    const response = await fetch(`${BASE_URL}/v1/ai/mystic/${taskId}`, {
-      method: "GET",
-      headers: HEADERS,
+  for (let i = 1; i <= MAX; i++) {
+    await new Promise((r) => setTimeout(r, INTERVAL));
+
+    const res = await fetch(`${BASE}/mystic/${taskId}`, {
+      headers: {
+        "x-freepik-api-key": FREEPIK_KEY,
+        Accept: "application/json",
+      },
     });
 
-    if (!response.ok) {
-      if (response.status === 429) throw new Error("Rate limit hit. Retry after 60 seconds.");
-      throw new Error(`Freepik poll failed: ${response.status}`);
+    const text = await res.text();
+
+    if (!res.ok) {
+      console.warn(`[Freepik] Poll ${i} HTTP error: ${res.status}`);
+      continue;
     }
 
-    const data = await response.json();
-    const status = data?.data?.status;
+    let data: unknown;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.warn(`[Freepik] Poll ${i} invalid JSON:`, text);
+      continue;
+    }
 
-    if (status === "COMPLETED") {
-      const imageUrl = data?.data?.generated?.[0]?.url;
-      if (!imageUrl) {
-        throw new Error("Freepik: Task completed but no image URL found");
+    const status = getStatus(data);
+    console.log(`[Freepik] Task ${taskId} status: ${status} (attempt ${i}/40)`);
+
+    if (
+      status === "COMPLETED" ||
+      status === "SUCCESS" ||
+      status === "DONE"
+    ) {
+      // Log EVERYTHING so we can see exactly what came back
+      console.log("[Freepik] COMPLETED response:");
+      console.log(JSON.stringify(data, null, 2));
+
+      const url = extractImageUrl(data);
+      if (url) {
+        console.log("[Freepik] Extracted URL:", url.slice(0, 100));
+        return url;
       }
-      return imageUrl;
+
+      throw new Error(
+        `Freepik: Task completed but no image URL found. ` +
+          `Response was: ${JSON.stringify(data)}`
+      );
     }
 
-    if (status === "FAILED" || status === "ERROR") {
-      const errorMsg = data?.data?.error || "Unknown error";
-      throw new Error(`Freepik Mystic task failed: ${errorMsg}`);
+    if (
+      status === "FAILED" ||
+      status === "ERROR" ||
+      status === "CANCELLED"
+    ) {
+      const d = data as Record<string, unknown>;
+      const innerData = d?.data as Record<string, unknown> | undefined;
+      const errMsg =
+        (innerData?.error as string) ?? (d?.error as string) ?? text;
+      throw new Error(`Freepik task ${status}: ${errMsg}`);
     }
 
-    console.log(
-      `[Freepik] Task ${taskId} status: ${status} (attempt ${attempt + 1}/${maxAttempts})`
-    );
+    // IN_PROGRESS / PENDING / QUEUED — keep polling
   }
 
-  throw new Error(
-    `Freepik Mystic: Task ${taskId} timed out after ${maxAttempts} attempts`
-  );
+  throw new Error(`Freepik: Timed out after ${(MAX * INTERVAL) / 1000}s`);
 }
 
-async function downloadImageBuffer(imageUrl: string): Promise<Buffer> {
-  const response = await fetch(imageUrl);
-  if (!response.ok) {
-    throw new Error(`Failed to download Freepik image: ${response.status}`);
-  }
-  const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer);
-}
+async function fallbackGenerate(prompt: string): Promise<string> {
+  console.log("[Freepik Fallback] Trying text-to-image endpoint...");
 
-async function generateWithFluxTurbo(
-  prompt: string,
-  posterSize: PosterSize
-): Promise<Buffer> {
-  const size = getMysticImageSize(posterSize);
-
-  const response = await fetch(`${BASE_URL}/v1/ai/text-to-image`, {
+  const res = await fetch(`${BASE}/text-to-image`, {
     method: "POST",
-    headers: HEADERS,
+    headers: {
+      "Content-Type": "application/json",
+      "x-freepik-api-key": FREEPIK_KEY,
+      Accept: "application/json",
+    },
     body: JSON.stringify({
-      prompt,
-      negative_prompt: "text, typography, words, letters, watermark, blurry",
-      model: "flux-2-turbo",
-      image: {
-        width: size.width,
-        height: size.height,
-      },
-      num_inference_steps: 20,
-      guidance_scale: 6,
+      prompt: prompt.slice(0, 500),
+      negative_prompt: "text, words, letters, watermark",
+      num_images: 1,
+      image: { size: "1_1" },
+      styling: { style: "photo" },
     }),
   });
 
-  if (!response.ok) {
-    throw new Error(`Flux Turbo failed: ${response.status}`);
+  const text = await res.text();
+  console.log("[Freepik Fallback] Status:", res.status);
+  console.log("[Freepik Fallback] Response:", text);
+
+  if (!res.ok) {
+    throw new Error(`Flux Turbo failed: ${res.status}`);
   }
 
-  const data = await response.json();
-  const taskId = data?.data?.task_id;
-  if (!taskId) throw new Error("Flux Turbo: No task_id returned");
+  const data = JSON.parse(text) as unknown;
+  const url = extractImageUrl(data);
 
-  for (let i = 0; i < 30; i++) {
-    await sleep(3000);
-    const poll = await fetch(`${BASE_URL}/v1/ai/text-to-image/${taskId}`, {
-      method: "GET",
-      headers: HEADERS,
-    });
-    const pollData = await poll.json();
-    if (pollData?.data?.status === "COMPLETED") {
-      const url = pollData?.data?.generated?.[0]?.url;
-      if (!url) throw new Error("Flux Turbo: No image URL");
-      return downloadImageBuffer(url);
-    }
-    if (pollData?.data?.status === "FAILED") {
-      throw new Error("Flux Turbo task failed");
-    }
+  if (!url) {
+    throw new Error(`Fallback: No URL found. Response: ${text}`);
   }
 
-  throw new Error("Flux Turbo: Timed out");
+  return url;
+}
+
+async function downloadBuffer(url: string): Promise<Buffer> {
+  if (url.startsWith("data:")) {
+    const base64 = url.split(",")[1];
+    return Buffer.from(base64 ?? "", "base64");
+  }
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+  return Buffer.from(await res.arrayBuffer());
 }
 
 export async function generateImage(
   prompt: string,
-  posterSize: PosterSize
+  _posterSize?: PosterSize
 ): Promise<Buffer> {
+  if (!FREEPIK_KEY) {
+    throw new Error("FREEPIK_API_KEY is not set");
+  }
+
+  // Try Mystic first (size fixed to 1_1 for API compatibility; poster resized in composite)
   try {
-    console.log("[Freepik] Submitting to Mystic...");
-    const taskId = await submitMysticTask(prompt, posterSize);
+    const taskId = await submitMystic(prompt);
+    const url = await pollMystic(taskId);
+    const buffer = await downloadBuffer(url);
+    console.log("[Freepik] Mystic success. Size:", buffer.length, "bytes");
+    return buffer;
+  } catch (primaryErr) {
+    console.error("[Freepik] Mystic failed, trying fallback:", primaryErr);
 
-    console.log(`[Freepik] Mystic task submitted: ${taskId}`);
-    const imageUrl = await pollMysticTask(taskId);
-
-    console.log("[Freepik] Mystic completed. Downloading image...");
-    return await downloadImageBuffer(imageUrl);
-  } catch (primaryError) {
-    console.error("[Freepik] Mystic failed, trying Flux Turbo fallback:", primaryError);
     try {
-      return await generateWithFluxTurbo(prompt, posterSize);
-    } catch (fallbackError) {
-      console.error("[Freepik] All generation attempts failed:", fallbackError);
+      const url = await fallbackGenerate(prompt);
+      const buffer = await downloadBuffer(url);
+      console.log("[Freepik] Fallback success. Size:", buffer.length, "bytes");
+      return buffer;
+    } catch (fallbackErr) {
+      console.error("[Freepik] All generation attempts failed:", fallbackErr);
       throw new Error(
-        `Image generation failed. Primary: ${primaryError}. Fallback: ${fallbackError}`
+        `Image generation failed. ` +
+          `Primary: ${primaryErr instanceof Error ? primaryErr.message : String(primaryErr)}. ` +
+          `Fallback: ${fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)}`
       );
     }
   }
-}
-
-export async function generatePreviewImage(prompt: string): Promise<string> {
-  const response = await fetch(`${BASE_URL}/v1/ai/text-to-image`, {
-    method: "POST",
-    headers: HEADERS,
-    body: JSON.stringify({
-      prompt,
-      model: "flux-2-klein",
-      image: { width: 512, height: 512 },
-      num_inference_steps: 8,
-      guidance_scale: 5,
-    }),
-  });
-
-  if (!response.ok) throw new Error("Preview generation failed");
-
-  const data = await response.json();
-  const taskId = data?.data?.task_id;
-
-  for (let i = 0; i < 15; i++) {
-    await sleep(2000);
-    const poll = await fetch(`${BASE_URL}/v1/ai/text-to-image/${taskId}`, {
-      method: "GET",
-      headers: HEADERS,
-    });
-    const pollData = await poll.json();
-    if (pollData?.data?.status === "COMPLETED") {
-      return pollData?.data?.generated?.[0]?.url ?? "";
-    }
-  }
-
-  throw new Error("Preview timed out");
 }
