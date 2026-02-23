@@ -65,7 +65,7 @@ export function CreatePosterForm({ brandKits: initialKits }: { brandKits: BrandK
       clearTimeout(timeoutId);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.details || data.error || "Generation failed");
+        toast.error((data as { error?: string }).error || "Generation failed");
         return;
       }
       toast.success("Poster generated! High quality generation took 30–90 seconds.");

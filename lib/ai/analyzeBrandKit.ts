@@ -19,7 +19,7 @@ export interface BrandAnalysis {
 
 export async function analyzeBrandKit(brandKit: BrandKit): Promise<BrandAnalysis> {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
+  if (!apiKey) throw new Error("Brand analysis is not available. Please try again later.");
   const openai = new OpenAI({ apiKey });
 
   const today = new Date().toLocaleDateString("en-GB", {

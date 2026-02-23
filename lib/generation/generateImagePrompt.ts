@@ -24,7 +24,7 @@ export async function generateImagePrompt(
   recommendation?: Recommendation | null
 ): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
+  if (!apiKey) throw new Error("Image prompt generation is not available. Please try again later.");
   const openai = new OpenAI({ apiKey });
 
   const systemPrompt = `

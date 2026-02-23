@@ -502,7 +502,7 @@ e.g. "Motivational Monday post for our followers"`}
         </button>
 
         <p className="mt-3 text-center font-mono text-[11px] text-text-muted">
-          Takes 30–60 seconds · Powered by Freepik Mystic + GPT-4o
+          Takes 30–60 seconds · Powered by our AI
         </p>
       </main>
     </div>

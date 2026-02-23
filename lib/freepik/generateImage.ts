@@ -76,7 +76,10 @@ async function downloadBuffer(url: string): Promise<Buffer> {
     return Buffer.from(base64, "base64");
   }
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+  if (!res.ok) {
+    console.warn("[ImageGen] Download failed:", res.status);
+    throw new Error("Image generation failed");
+  }
   return Buffer.from(await res.arrayBuffer());
 }
 
@@ -105,7 +108,8 @@ async function submitSeedream(prompt: string): Promise<string> {
   console.log("[Seedream] Submit response:", text);
 
   if (!res.ok) {
-    throw new Error(`Seedream submit failed ${res.status}: ${text}`);
+    console.warn("[ImageGen] Submit failed:", res.status, text.slice(0, 200));
+    throw new Error("Image generation failed");
   }
 
   const data = JSON.parse(text) as Record<string, unknown>;
@@ -117,7 +121,8 @@ async function submitSeedream(prompt: string): Promise<string> {
     (data?.id as string);
 
   if (!taskId) {
-    throw new Error(`Seedream: No task_id. Response: ${text}`);
+    console.warn("[ImageGen] No task_id in response:", text.slice(0, 200));
+    throw new Error("Image generation failed");
   }
 
   console.log("[Seedream] Task ID:", taskId);
@@ -182,13 +187,13 @@ async function pollSeedream(taskId: string): Promise<string> {
     ) {
       const d = data as Record<string, unknown>;
       const innerData = d?.data as Record<string, unknown> | undefined;
-      throw new Error(
-        `Seedream task ${status}: ${(innerData?.error as string) ?? (d?.error as string) ?? text}`
-      );
+      console.warn("[ImageGen] Task failed:", status, (innerData?.error as string) ?? (d?.error as string));
+      throw new Error("Image generation failed");
     }
   }
 
-  throw new Error(`Seedream: Timed out after ${(MAX * INTERVAL) / 1000}s`);
+  console.warn("[ImageGen] Timed out waiting for image");
+  throw new Error("Image generation failed");
 }
 
 async function submitMystic(prompt: string): Promise<string> {
@@ -215,7 +220,8 @@ async function submitMystic(prompt: string): Promise<string> {
   console.log("[Mystic] Submit response:", text);
 
   if (!res.ok) {
-    throw new Error(`Mystic submit failed ${res.status}: ${text}`);
+    console.warn("[ImageGen] Fallback submit failed:", res.status, text.slice(0, 200));
+    throw new Error("Image generation failed");
   }
 
   const data = JSON.parse(text) as Record<string, unknown>;
@@ -273,9 +279,8 @@ async function pollMystic(taskId: string): Promise<string> {
       const url = extractImageUrl(data);
       if (url) return url;
 
-      throw new Error(
-        `Mystic: COMPLETED but no URL. Response: ${JSON.stringify(data)}`
-      );
+      console.warn("[ImageGen] Fallback completed but no URL");
+      throw new Error("Image generation failed");
     }
 
     if (
@@ -283,48 +288,43 @@ async function pollMystic(taskId: string): Promise<string> {
       status === "ERROR" ||
       status === "CANCELLED"
     ) {
-      throw new Error(`Mystic task ${status}`);
+      console.warn("[ImageGen] Fallback task failed:", status);
+      throw new Error("Image generation failed");
     }
   }
 
-  throw new Error("Mystic: Timed out");
+  console.warn("[ImageGen] Fallback timed out");
+  throw new Error("Image generation failed");
 }
 
 export type ImageGenResult = { buffer: Buffer; imageHasText: boolean };
 
 export async function generateImage(prompt: string): Promise<ImageGenResult> {
   if (!FREEPIK_KEY) {
-    throw new Error("FREEPIK_API_KEY is not set");
+    console.error("[ImageGen] Image service not configured");
+    throw new Error("Image generation is not available. Please try again later.");
   }
 
   try {
-    console.log("[ImageGen] Trying Seedream 4.5 (primary)...");
+    console.log("[ImageGen] Primary provider...");
     const taskId = await submitSeedream(prompt);
     const url = await pollSeedream(taskId);
     const buffer = await downloadBuffer(url);
-    console.log("[ImageGen] Seedream success:", buffer.length, "bytes");
+    console.log("[ImageGen] Success:", buffer.length, "bytes");
     return { buffer, imageHasText: true };
-  } catch (seedreamErr) {
-    console.error("[ImageGen] Seedream failed:", seedreamErr);
+  } catch (primaryErr) {
+    console.error("[ImageGen] Primary failed:", primaryErr);
 
     try {
-      console.log("[ImageGen] Trying Mystic (fallback)...");
+      console.log("[ImageGen] Fallback provider...");
       const taskId = await submitMystic(prompt);
       const url = await pollMystic(taskId);
       const buffer = await downloadBuffer(url);
-      console.log(
-        "[ImageGen] Mystic fallback success:",
-        buffer.length,
-        "bytes"
-      );
+      console.log("[ImageGen] Fallback success:", buffer.length, "bytes");
       return { buffer, imageHasText: false };
-    } catch (mysticErr) {
-      console.error("[ImageGen] Mystic fallback failed:", mysticErr);
-      throw new Error(
-        `Image generation failed.\n` +
-          `Seedream: ${seedreamErr instanceof Error ? seedreamErr.message : String(seedreamErr)}\n` +
-          `Mystic: ${mysticErr instanceof Error ? mysticErr.message : String(mysticErr)}`
-      );
+    } catch (fallbackErr) {
+      console.error("[ImageGen] Fallback failed:", fallbackErr);
+      throw new Error("Image generation failed. Please try again.");
     }
   }
 }

@@ -109,7 +109,7 @@ export async function POST(
   } catch (error) {
     console.error("[analyze POST]", error);
     return NextResponse.json(
-      { error: "Analysis failed", details: error instanceof Error ? error.message : String(error) },
+      { error: "Analysis failed. Please try again." },
       { status: 500 }
     );
   }

@@ -139,7 +139,7 @@ Return the JSON array now. 6 items. No other text.
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: "OPENAI_API_KEY is not configured" },
+        { error: "Recommendations are not available right now." },
         { status: 503 }
       );
     }

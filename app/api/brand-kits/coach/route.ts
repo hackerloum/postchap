@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
-      { error: "OPENAI_API_KEY is not configured" },
+      { error: "Coach is not available right now." },
       { status: 503 }
     );
   }

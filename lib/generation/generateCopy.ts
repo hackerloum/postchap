@@ -7,7 +7,7 @@ export async function generateCopy(
   recommendation?: Recommendation | null
 ): Promise<CopyData> {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
+  if (!apiKey) throw new Error("Copy generation is not available. Please try again later.");
   const openai = new OpenAI({ apiKey });
 
   const systemPrompt = `You are a senior copywriter at a top creative agency.
@@ -79,6 +79,6 @@ Stay on this specific theme.
       hashtags,
     };
   } catch {
-    throw new Error("Failed to parse OpenAI copy response: " + toParse.slice(0, 200));
+    throw new Error("Copy generation failed. Please try again.");
   }
 }

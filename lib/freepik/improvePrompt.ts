@@ -47,7 +47,7 @@ export async function improvePrompt(
   prompt: string,
   options: ImprovePromptOptions = {}
 ): Promise<string> {
-  if (!FREEPIK_KEY) throw new Error("FREEPIK_API_KEY is not set");
+  if (!FREEPIK_KEY) throw new Error("Prompt enhancement is not available");
 
   const { type = "image", language = "en" } = options;
 
@@ -67,14 +67,16 @@ export async function improvePrompt(
 
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(`Improve Prompt submit failed ${res.status}: ${text}`);
+    console.warn("[ImprovePrompt] Submit failed:", res.status, text.slice(0, 200));
+    throw new Error("Prompt enhancement failed");
   }
 
   let data: unknown;
   try {
     data = JSON.parse(text);
   } catch {
-    throw new Error(`Improve Prompt invalid JSON: ${text.slice(0, 200)}`);
+    console.warn("[ImprovePrompt] Invalid response");
+    throw new Error("Prompt enhancement failed");
   }
 
   const taskId =
@@ -88,7 +90,8 @@ export async function improvePrompt(
   const id = taskId ?? taskIdTop ?? (data as Record<string, unknown>)?.id;
 
   if (!id || typeof id !== "string") {
-    throw new Error(`Improve Prompt: No task_id. Response: ${text.slice(0, 300)}`);
+    console.warn("[ImprovePrompt] No task_id in response");
+    throw new Error("Prompt enhancement failed");
   }
 
   const MAX = 15;
@@ -130,9 +133,8 @@ export async function improvePrompt(
         console.log("[ImprovePrompt] Enhanced:", improved.slice(0, 120));
         return improved;
       }
-      throw new Error(
-        `Improve Prompt: COMPLETED but no generated text. Response: ${getText.slice(0, 400)}`
-      );
+      console.warn("[ImprovePrompt] Completed but no text in response");
+      throw new Error("Prompt enhancement failed");
     }
 
     if (
@@ -140,18 +142,11 @@ export async function improvePrompt(
       status === "ERROR" ||
       status === "CANCELLED"
     ) {
-      const err =
-        (pollData as Record<string, unknown>)?.data != null
-          ? ((pollData as Record<string, unknown>).data as Record<string, unknown>)
-              ?.error
-          : (pollData as Record<string, unknown>)?.error;
-      throw new Error(
-        `Improve Prompt task ${status}: ${err ?? getText.slice(0, 200)}`
-      );
+      console.warn("[ImprovePrompt] Task failed:", status);
+      throw new Error("Prompt enhancement failed");
     }
   }
 
-  throw new Error(
-    `Improve Prompt: Timed out after ${(MAX * INTERVAL_MS) / 1000}s`
-  );
+  console.warn("[ImprovePrompt] Timed out");
+  throw new Error("Prompt enhancement failed");
 }
