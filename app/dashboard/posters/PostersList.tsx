@@ -164,25 +164,25 @@ export function PostersList() {
             <p className="font-mono text-[10px] text-text-muted mt-1">
               {poster.posterSize}
             </p>
-            <div className="flex gap-2 mt-3">
-              {poster.imageUrl && (
+            {poster.imageUrl && (
+              <div className="flex gap-2 mt-3">
                 <a
-                  href={poster.imageUrl}
+                  href={`/api/posters/${poster.id}/download?inline=1`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex-1 py-1.5 rounded-lg bg-bg-elevated border border-border-default font-mono text-[10px] text-text-secondary hover:text-text-primary hover:border-border-strong transition-colors text-center"
                 >
                   Open
                 </a>
-              )}
-              <a
-                href={poster.imageUrl ?? "#"}
-                download
-                className="flex-1 py-1.5 rounded-lg bg-bg-elevated border border-border-default font-mono text-[10px] text-text-secondary hover:text-text-primary hover:border-border-strong transition-colors text-center"
-              >
-                Download
-              </a>
-            </div>
+                <a
+                  href={`/api/posters/${poster.id}/download`}
+                  download="poster.png"
+                  className="flex-1 py-1.5 rounded-lg bg-bg-elevated border border-border-default font-mono text-[10px] text-text-secondary hover:text-text-primary hover:border-border-strong transition-colors text-center"
+                >
+                  Download
+                </a>
+              </div>
+            )}
           </div>
         </div>
       ))}

@@ -212,17 +212,15 @@ function PostersPageContent() {
                   {selected.imageUrl && (
                     <div className="flex gap-2 mt-4">
                       <a
-                        href={selected.imageUrl}
-                        download
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href={`/api/posters/${selected.id}/download`}
+                        download="poster.png"
                         className="flex-1 inline-flex items-center justify-center gap-2 bg-accent text-black font-semibold text-sm py-3 rounded-xl hover:bg-accent-dim transition-colors min-h-[48px]"
                       >
                         <Download size={16} />
                         Download
                       </a>
                       <a
-                        href={selected.imageUrl}
+                        href={`/api/posters/${selected.id}/download?inline=1`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center justify-center gap-2 bg-bg-surface border border-border-default text-text-primary text-sm font-medium px-4 py-3 rounded-xl hover:border-border-strong transition-colors min-h-[48px]"

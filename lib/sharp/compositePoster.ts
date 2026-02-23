@@ -51,6 +51,14 @@ function escapeXml(str: string): string {
     .replace(/'/g, "&apos;");
 }
 
+/** Keep only chars that render reliably in SVG (avoid missing-glyph boxes). */
+function sanitizeWatermarkText(s: string): string {
+  const t = String(s ?? "").trim();
+  if (!t) return "";
+  const safe = t.replace(/[^\x20-\x7E]/g, "");
+  return safe.trim() || "";
+}
+
 async function downloadImage(url: string): Promise<Buffer | null> {
   try {
     const res = await fetch(url);
@@ -105,11 +113,13 @@ export async function compositePoster({
         console.warn("[sharp] Logo composite failed:", err);
       }
     }
-    // Subtle brand watermark strip at very bottom
+    // Subtle brand watermark strip at very bottom (safe text only to avoid box glyphs)
+    const watermarkLabel = sanitizeWatermarkText(brandKit.brandName ?? "");
+    const watermarkText = watermarkLabel ? watermarkLabel.toUpperCase() : "BRAND";
     const watermarkSvg = `
 <svg width="${SIZE}" height="36" xmlns="http://www.w3.org/2000/svg">
   <rect x="0" y="0" width="${SIZE}" height="36" fill="${secondary}" opacity="0.85"/>
-  <text x="${SIZE / 2}" y="24" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="600" fill="${primary}" letter-spacing="1">${escapeXml((brandKit.brandName ?? "").toUpperCase())}</text>
+  <text x="${SIZE / 2}" y="24" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="600" fill="${primary}" letter-spacing="1">${escapeXml(watermarkText)}</text>
 </svg>`;
     compositeInputs.push({
       input: Buffer.from(watermarkSvg),

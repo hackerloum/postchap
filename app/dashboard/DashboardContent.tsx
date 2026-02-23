@@ -166,7 +166,7 @@ export function DashboardContent({ initialKits }: Props) {
             </div>
           </div>
 
-          {kits[0]?.id && <BrandAnalysisCard brandKitId={kits[0].id} />}
+          <BrandAnalysisCard kits={kits} />
 
           <div className="bg-bg-surface border border-border-default rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>

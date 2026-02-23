@@ -56,16 +56,26 @@ Stay on this specific theme.
   const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
   const toParse = jsonMatch ? jsonMatch[0] : cleaned;
 
+  /** Hex color pattern — must not appear as poster text (e.g. #d1700w) */
+  const looksLikeHexColor = (s: string) => /^#[0-9a-fA-F]{5,8}$/.test(s.trim());
+
   try {
     const parsed = JSON.parse(toParse) as Record<string, unknown>;
-    const hashtags = Array.isArray(parsed.hashtags)
+    const rawHashtags = Array.isArray(parsed.hashtags)
       ? (parsed.hashtags as string[]).map((t) => (t.startsWith("#") ? t : `#${t}`))
       : [];
+    const hashtags = rawHashtags.filter((t) => !looksLikeHexColor(t));
+
+    let cta = (parsed.cta as string) ?? "Learn More";
+    if (looksLikeHexColor(cta) || /\#[0-9a-fA-F]{5,8}/.test(cta)) {
+      cta = "Learn More";
+    }
+
     return {
       headline: ((parsed.headline as string) || brandKit.brandName) ?? "Headline",
       subheadline: (parsed.subheadline as string) ?? "",
       body: (parsed.body as string) ?? "",
-      cta: (parsed.cta as string) ?? "Learn More",
+      cta,
       hashtags,
     };
   } catch {

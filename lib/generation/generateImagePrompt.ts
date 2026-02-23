@@ -46,6 +46,10 @@ Seedream 4.5 has superior typography rendering. Your prompt must describe the CO
 
 7. DESCRIBE THE SUBJECT CLEARLY — What is the main visual element (product, person, scene, abstract) and style (photography, illustration, flat design).
 
+8. CRITICAL — TEXT ON POSTER: Only the exact headline, tagline, and CTA phrase (e.g. "Start Learning") must appear as visible text. NEVER include hex color codes (e.g. #d1700w), technical IDs, or variable names on the poster. When describing colors for the image, use color NAMES only (e.g. orange, gold, dark brown), never hex codes in quotes or as button text.
+
+9. CLEAN BOTTOM EDGE: Request "no footer artifacts, no small symbols or patterns at the bottom edge, clean bottom edge, no watermark symbols".
+
 Write the prompt in English only. Maximum 400 words. Return ONLY the prompt, no explanation or quotes around the whole thing.
 `.trim();
 
@@ -94,7 +98,7 @@ ${tagline ? `- Tagline: "${tagline}"` : ""}
 Create a Seedream 4.5 prompt using this template structure:
 
 Create a professional social media poster for ${brandKit.brandName ?? "the brand"}.
-Brand colors: ${colors}. Use this palette for typography, accents, and overall mood.
+Brand colors (describe using color NAMES only in the prompt, e.g. orange/gold/dark — do not put hex codes like #xxxxx as text on the poster): ${colors}.
 Main headline: "${copy.headline}" — specify where it appears (e.g. centered at top, large bold).
 ${tagline ? `Tagline: "${tagline}" — specify placement (e.g. below headline or at bottom).` : ""}
 CTA: "${copy.cta}" — specify placement (e.g. button at bottom, bottom right).
