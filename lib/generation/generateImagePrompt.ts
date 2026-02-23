@@ -48,7 +48,9 @@ Seedream 4.5 has superior typography rendering. Your prompt must describe the CO
 
 8. CRITICAL — TEXT ON POSTER: Only the exact headline, tagline, and CTA phrase (e.g. "Start Learning") must appear as visible text. NEVER include hex color codes (e.g. #d1700w), technical IDs, or variable names on the poster. When describing colors for the image, use color NAMES only (e.g. orange, gold, dark brown), never hex codes in quotes or as button text.
 
-9. CLEAN BOTTOM EDGE: Request "no footer artifacts, no small symbols or patterns at the bottom edge, clean bottom edge, no watermark symbols".
+9. FULL-BLEED BACKGROUND: The main image (photo, illustration, or gradient) must fill the entire poster from edge to edge. Do not describe separate colored bars, panels, or strips at the bottom. No orange/white/brown rectangular blocks below the main image. The background is one continuous visual that extends to all edges.
+
+10. CLEAN BOTTOM EDGE: No footer artifacts, no small symbols or patterns at the bottom edge, no watermark symbols, no letter-like shapes at the very bottom.
 
 Write the prompt in English only. Maximum 400 words. Return ONLY the prompt, no explanation or quotes around the whole thing.
 `.trim();
@@ -106,7 +108,7 @@ Visual subject: Describe the main visual (scene, product, or abstract) relevant 
 Style: ${brandKit.tone ?? "professional"}, ${recommendation?.visualMood ?? "clean"}.
 Background: Describe the background (e.g. gradient, photo, minimal).
 Lighting: e.g. studio lighting, warm ambient glow, soft shadows.
-Quality: professional, high-end advertising, clean layout, production-ready, no watermarks.
+Quality: professional, high-end advertising, clean layout, production-ready, no watermarks. Full-bleed: the main background must extend to all four edges with no separate bottom panels or colored bars.
 
 Additional context:
 - Industry: ${industry}. Country/market: ${country}.

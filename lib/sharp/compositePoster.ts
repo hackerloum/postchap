@@ -51,14 +51,6 @@ function escapeXml(str: string): string {
     .replace(/'/g, "&apos;");
 }
 
-/** Keep only chars that render reliably in SVG (avoid missing-glyph boxes). */
-function sanitizeWatermarkText(s: string): string {
-  const t = String(s ?? "").trim();
-  if (!t) return "";
-  const safe = t.replace(/[^\x20-\x7E]/g, "");
-  return safe.trim() || "";
-}
-
 async function downloadImage(url: string): Promise<Buffer | null> {
   try {
     const res = await fetch(url);
@@ -83,14 +75,14 @@ export async function compositePoster({
   const accent = brandKit.accentColor || "#FFFFFF";
 
   const bg = await sharp(backgroundBuffer)
-    .resize(SIZE, SIZE, { fit: "cover", position: "centre" })
+    .resize(SIZE, SIZE, { fit: "cover", position: "top" })
     .png()
     .toBuffer();
 
   const compositeInputs: sharp.OverlayOptions[] = [];
 
   if (imageHasText) {
-    // Seedream already rendered text — only add logo + brand watermark strip
+    // Seedream already rendered text — only add logo; no bottom strip to avoid font glyph issues (boxes/U's on server)
     if (brandKit.logoUrl) {
       try {
         const logoBuffer = await downloadImage(brandKit.logoUrl);
@@ -113,20 +105,6 @@ export async function compositePoster({
         console.warn("[sharp] Logo composite failed:", err);
       }
     }
-    // Subtle brand watermark strip at very bottom (safe text only to avoid box glyphs)
-    const watermarkLabel = sanitizeWatermarkText(brandKit.brandName ?? "");
-    const watermarkText = watermarkLabel ? watermarkLabel.toUpperCase() : "BRAND";
-    const watermarkSvg = `
-<svg width="${SIZE}" height="36" xmlns="http://www.w3.org/2000/svg">
-  <rect x="0" y="0" width="${SIZE}" height="36" fill="${secondary}" opacity="0.85"/>
-  <text x="${SIZE / 2}" y="24" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="600" fill="${primary}" letter-spacing="1">${escapeXml(watermarkText)}</text>
-</svg>`;
-    compositeInputs.push({
-      input: Buffer.from(watermarkSvg),
-      top: SIZE - 36,
-      left: 0,
-      blend: "over",
-    });
 
     const finalBuffer = await sharp(bg)
       .composite(compositeInputs)
