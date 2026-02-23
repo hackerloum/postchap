@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { getClientIdToken } from "@/lib/auth-client";
 import { getBrandKitsAction, type BrandKitItem } from "./brand-kits/actions";
+import { BrandAnalysisCard } from "./BrandAnalysisCard";
 
 type Props = { initialKits: BrandKitItem[] };
 
@@ -163,6 +164,8 @@ export function DashboardContent({ initialKits }: Props) {
               ))}
             </div>
           </div>
+
+          {kits[0]?.id && <BrandAnalysisCard brandKitId={kits[0].id} />}
 
           <div className="bg-bg-surface border border-border-default rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>

@@ -1,6 +1,6 @@
 // SERVER ONLY — never import this in client components
 
-import cloudinary from "@/lib/cloudinary";
+import getCloudinary from "@/lib/cloudinary";
 
 /** Upload a Buffer (poster after sharp compositing) */
 export async function uploadBufferToCloudinary(
@@ -8,6 +8,7 @@ export async function uploadBufferToCloudinary(
   folder: string,
   publicId: string
 ): Promise<string> {
+  const cloudinary = getCloudinary();
   return new Promise((resolve, reject) => {
     cloudinary.uploader
       .upload_stream(
@@ -42,6 +43,7 @@ export async function uploadLogoToCloudinary(
   fileBuffer: Buffer,
   uid: string
 ): Promise<string> {
+  const cloudinary = getCloudinary();
   return new Promise((resolve, reject) => {
     cloudinary.uploader
       .upload_stream(

@@ -13,6 +13,47 @@ async function getUidFromRequest(request: NextRequest): Promise<string> {
   return decoded.uid;
 }
 
+export async function GET(request: NextRequest) {
+  let uid: string;
+  try {
+    uid = await getUidFromRequest(request);
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const snap = await getAdminDb()
+      .collection("users")
+      .doc(uid)
+      .collection("posters")
+      .orderBy("createdAt", "desc")
+      .limit(50)
+      .get();
+
+    const posters = snap.docs.map((doc) => {
+      const d = doc.data();
+      const createdAt = d.createdAt?.toMillis?.() ?? 0;
+      return {
+        id: doc.id,
+        imageUrl: d.imageUrl ?? null,
+        status: d.status ?? "draft",
+        copy: d.copy ?? null,
+        posterSize: d.posterSize ?? "1080x1080",
+        createdAt,
+        headline: d.copy?.headline ?? d.message ?? "Poster",
+      };
+    });
+
+    return NextResponse.json({ posters });
+  } catch (error) {
+    console.error("[posters GET]", error);
+    return NextResponse.json(
+      { error: "Failed to list posters", details: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   let uid: string;
   try {

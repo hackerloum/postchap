@@ -1,55 +1,56 @@
 import OpenAI from "openai";
-import type { BrandKit, CopyData } from "@/types/generation";
+import type { BrandKit, CopyData, OccasionContext } from "@/types/generation";
 
 export async function generateCopy(
   brandKit: BrandKit,
-  theme: string,
-  occasion: string,
-  customPrompt: string
+  occasionContext?: OccasionContext | null
 ): Promise<CopyData> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
   const openai = new OpenAI({ apiKey });
+
+  const systemPrompt = `You are a senior copywriter at a top creative agency.
+You write social media poster copy that is sharp, specific, and on-brand. Never write generic content.
+Every word must be tailored to the exact brand below.
+Output ONLY valid JSON. No explanation. No markdown. No code blocks. Just the raw JSON object.
+JSON format: { "headline": "max 6 words", "subheadline": "max 12 words", "body": "2-3 lines", "cta": "max 4 words", "hashtags": ["#tag1", "#tag2"] } (8-12 tags)`;
+
+  const brandContext = `BRAND: Name: ${brandKit.brandName} Industry: ${brandKit.industry} Tagline: ${brandKit.tagline || "none"} Tone: ${brandKit.tone} Language: ${brandKit.language ?? "en"} Target: ${brandKit.targetAudience || "general"} Country: ${brandKit.brandLocation?.country || "Global"} Continent: ${brandKit.brandLocation?.continent || "Global"} Currency: ${brandKit.brandLocation?.currency || "USD"} Languages: ${brandKit.brandLocation?.languages?.join(", ") || "English"} Style: ${brandKit.styleNotes || "none"} Sample: ${brandKit.sampleContent || "none"}`;
+
+  const occasionSection = occasionContext
+    ? `OCCASION (write specifically for this): Name: ${occasionContext.name} Category: ${occasionContext.category ?? ""} Visual mood: ${occasionContext.visualMood ?? ""} Tone: ${occasionContext.messagingTone ?? ""}. CRITICAL: Copy MUST reference ${occasionContext.name} in ${brandKit.brandLocation?.country ?? "their market"}.`
+    : `No specific occasion. Write evergreen content for ${brandKit.brandName}.`;
+
+  const userPrompt = `${brandContext}\n${occasionSection}\nWrite copy for ${brandKit.brandName}. Return only the JSON object.`;
+
   const response = await openai.chat.completions.create({
     model: "gpt-4o",
+    temperature: 0.8,
     messages: [
-      {
-        role: "system",
-        content: `You are a copywriter for social media marketing posters.
-Output valid JSON only, with these exact keys: headline, subheadline, body, cta, hashtags.
-- headline: short, punchy, max 8 words
-- subheadline: supporting line, max 12 words
-- body: 1-2 sentences for the poster body, optional
-- cta: single call-to-action phrase (e.g. "Shop now", "Learn more")
-- hashtags: array of 3-5 relevant hashtags without # symbol
-Match the brand tone and industry. No other text, only the JSON object.`,
-      },
-      {
-        role: "user",
-        content: `Brand: ${brandKit.brandName}
-Industry: ${brandKit.industry}
-Tone: ${brandKit.tone ?? "professional"}
-Theme/topic: ${theme}
-Occasion: ${occasion}
-Additional instructions: ${customPrompt || "None"}
-
-Generate poster copy as JSON.`,
-      },
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
     ],
     max_tokens: 500,
   });
 
-  let raw = response.choices?.[0]?.message?.content?.trim() ?? "";
-  const jsonMatch = raw.match(/\{[\s\S]*\}/);
-  if (jsonMatch) raw = jsonMatch[0];
-  if (!raw) throw new Error("OpenAI returned empty copy");
+  const raw = response.choices[0]?.message?.content ?? "";
+  const cleaned = raw.replace(/```json/g, "").replace(/```/g, "").trim();
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  const toParse = jsonMatch ? jsonMatch[0] : cleaned;
 
-  const parsed = JSON.parse(raw) as CopyData;
-  if (!parsed.headline || !parsed.cta) {
-    throw new Error("OpenAI copy missing required fields");
+  try {
+    const parsed = JSON.parse(toParse) as Record<string, unknown>;
+    const hashtags = Array.isArray(parsed.hashtags)
+      ? (parsed.hashtags as string[]).map((t) => (t.startsWith("#") ? t : `#${t}`))
+      : [];
+    return {
+      headline: ((parsed.headline as string) || brandKit.brandName) ?? "Headline",
+      subheadline: (parsed.subheadline as string) ?? "",
+      body: (parsed.body as string) ?? "",
+      cta: (parsed.cta as string) ?? "Learn More",
+      hashtags,
+    };
+  } catch {
+    throw new Error("Failed to parse OpenAI copy response: " + toParse.slice(0, 200));
   }
-  if (!Array.isArray(parsed.hashtags)) parsed.hashtags = [];
-  parsed.subheadline = parsed.subheadline ?? "";
-  parsed.body = parsed.body ?? "";
-  return parsed;
 }

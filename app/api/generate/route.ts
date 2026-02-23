@@ -112,18 +112,29 @@ export async function POST(request: NextRequest) {
       tone: kitData.tone,
       styleNotes: kitData.styleNotes,
       brandLocation: kitData.brandLocation,
+      targetAudience: kitData.targetAudience,
+      ageRange: kitData.ageRange,
+      platforms: kitData.platforms,
+      language: kitData.language,
+      sampleContent: kitData.sampleContent,
     };
 
+    const hasOccasion = !!(body.theme || body.occasion || body.customPrompt);
+    const occasionContext = hasOccasion
+      ? {
+          name: body.occasion || body.theme || "Campaign",
+          category: body.theme ?? "",
+          visualMood: body.customPrompt ?? "",
+          messagingTone: brandKit.tone ?? "professional",
+          answers: [] as { question: string; answer: string }[],
+        }
+      : null;
+
     await updateStatus("generating_copy", 15, "Writing your copy...");
-    const copy: CopyData = await generateCopy(
-      brandKit,
-      body.theme ?? "",
-      body.occasion ?? "",
-      body.customPrompt ?? ""
-    );
+    const copy: CopyData = await generateCopy(brandKit, occasionContext);
 
     await updateStatus("generating_image", 25, "Building visual prompt...");
-    const imagePrompt = await generateImagePrompt(brandKit, copy);
+    const imagePrompt = await generateImagePrompt(brandKit, copy, occasionContext);
 
     await updateStatus("generating_image", 35, "Freepik Mystic is rendering...");
     const backgroundBuffer = await generateImage(imagePrompt, posterSize);
