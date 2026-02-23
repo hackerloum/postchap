@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { getClientIdToken } from "@/lib/auth-client";
 import { getBrandKitsAction, type BrandKitItem } from "../brand-kits/actions";
 
@@ -36,6 +37,41 @@ export function CreatePosterForm({ brandKits: initialKits }: { brandKits: BrandK
   }, [initialKits.length]);
 
   const selectedKit = kits.find((k) => k.id === brandKitId);
+
+  async function handleGenerate() {
+    if (loading || kits.length === 0) return;
+    setLoading(true);
+    try {
+      const token = await getClientIdToken();
+      const res = await fetch("/api/posters", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          brandKitId,
+          theme,
+          occasion,
+          customPrompt,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || "Failed to create poster");
+        return;
+      }
+      toast.success("Poster saved as draft. Preview and image generation coming soon.");
+      setTheme("");
+      setOccasion("");
+      setCustomPrompt("");
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -132,7 +168,7 @@ export function CreatePosterForm({ brandKits: initialKits }: { brandKits: BrandK
 
       <button
         type="button"
-        onClick={() => setLoading(true)}
+        onClick={handleGenerate}
         disabled={loading || kits.length === 0}
         className="w-full flex items-center justify-center gap-2 bg-accent text-black font-semibold text-sm py-4 rounded-xl hover:bg-accent-dim transition-colors disabled:opacity-50 min-h-[52px]"
       >
