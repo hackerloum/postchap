@@ -169,6 +169,10 @@ export function ScheduleForm() {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="font-semibold text-base text-text-primary">Schedule settings</h2>
+        <span className="font-mono text-[10px] text-text-muted">Saved to your account</span>
+      </div>
       {noKits && (
         <div className="bg-warning/10 border border-warning/20 rounded-2xl p-4">
           <p className="font-mono text-xs text-text-primary">
@@ -288,9 +292,9 @@ export function ScheduleForm() {
           </div>
         ) : (
           <p className="font-mono text-xs text-text-muted py-2">
-            {schedule.enabled
-              ? "Save your schedule to see upcoming runs."
-              : "Enable daily generation and save to see upcoming runs."}
+            No upcoming runs yet. {schedule.enabled
+              ? "Click “Save schedule” below to set your first run."
+              : "Turn on daily generation above, pick a brand kit, then save."}
           </p>
         )}
         {schedule.lastRunAt != null && (
