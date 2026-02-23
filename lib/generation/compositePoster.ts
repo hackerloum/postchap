@@ -1,6 +1,11 @@
 import sharp from "sharp";
 import type { BrandKit, CopyData, PosterSize } from "@/types/generation";
 
+// Suppress fontconfig warning on Vercel serverless (we use Arial/Helvetica in SVG)
+if (typeof process !== "undefined" && !process.env.FONTCONFIG_PATH) {
+  process.env.FONTCONFIG_PATH = "/etc/fonts";
+}
+
 const SIZE_MAP: Record<PosterSize, { width: number; height: number }> = {
   "1080x1080": { width: 1080, height: 1080 },
   "1080x1350": { width: 1080, height: 1350 },
@@ -36,7 +41,7 @@ export async function compositePoster(
 
   const svgText =
     `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">` +
-    `<style>.headline{font:bold 56px system-ui,sans-serif;fill:${textColor}}.cta{font:bold 32px system-ui,sans-serif;fill:${primaryColor}}</style>` +
+    `<style>.headline{font:bold 56px Arial,Helvetica,sans-serif;fill:${textColor}}.cta{font:bold 32px Arial,Helvetica,sans-serif;fill:${primaryColor}}</style>` +
     `<text x="${width / 2}" y="${height - 180}" text-anchor="middle" class="headline">${escapeXml(headline)}</text>` +
     `<text x="${width / 2}" y="${height - 100}" text-anchor="middle" class="cta">${escapeXml(cta)}</text>` +
     `</svg>`;

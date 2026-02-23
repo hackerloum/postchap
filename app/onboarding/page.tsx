@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { getAuthClient, getStorageClient } from "@/lib/firebase/client";
+import { getAuthClient } from "@/lib/firebase/client";
 import { toast } from "sonner";
 
 type Industry =
@@ -710,15 +710,23 @@ export default function OnboardingPage() {
       let logoUrl = "";
       if (data.logoFile) {
         try {
-          const storage = getStorageClient();
-          if (storage) {
-            const { ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
-            const storageRef = ref(storage, `logos/${user.uid}/${Date.now()}`);
-            await uploadBytes(storageRef, data.logoFile);
-            logoUrl = await getDownloadURL(storageRef);
+          const formData = new FormData();
+          formData.append("file", data.logoFile);
+
+          const uploadRes = await fetch("/api/upload/logo", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body: formData,
+          });
+
+          if (uploadRes.ok) {
+            const uploadData = await uploadRes.json();
+            logoUrl = uploadData.url;
+            console.log("[Onboarding] Logo uploaded:", logoUrl);
           }
-        } catch {
-          // Non-fatal
+        } catch (err) {
+          console.warn("[Onboarding] Logo upload failed:", err);
+          // Non-fatal — continue without logo
         }
       }
 

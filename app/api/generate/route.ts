@@ -7,7 +7,7 @@ import { generateCopy } from "@/lib/generation/generateCopy";
 import { generateImagePrompt } from "@/lib/generation/generateImagePrompt";
 import { generateImage } from "@/lib/generation/generateImage";
 import { compositePoster } from "@/lib/generation/compositePoster";
-import { uploadPosterImage } from "@/lib/generation/uploadPosterImage";
+import { uploadBufferToCloudinary } from "@/lib/uploadToCloudinary";
 import type { BrandKit, CopyData, PosterSize } from "@/types/generation";
 
 async function getUidFromRequest(request: NextRequest): Promise<string> {
@@ -132,7 +132,12 @@ export async function POST(request: NextRequest) {
     const finalBuffer = await compositePoster(backgroundBuffer, copy, brandKit, posterSize);
 
     await updateStatus("uploading", 90, "Saving to your library...");
-    const imageUrl = await uploadPosterImage(uid, posterId, finalBuffer);
+    const imageUrl = await uploadBufferToCloudinary(
+      finalBuffer,
+      `artmaster/posters/${uid}`,
+      posterId
+    );
+    console.log("[generate] Poster uploaded to Cloudinary:", imageUrl);
 
     await posterRef.update({
       status: "complete",
