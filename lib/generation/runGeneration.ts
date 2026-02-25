@@ -181,9 +181,11 @@ export async function runGenerationForUser(
     imagePrompt = stripTemplateLabelsFromPrompt(imagePrompt);
     imagePrompt = ensureRealisticHumanStyle(imagePrompt);
   } else if (templateId != null && String(templateId).trim() !== "") {
-    // Template flow: download → image-to-prompt → merge with user copy → improve → generate
+    // Template flow: get prompt from selected (AI-generated) template, then modify with brand + copy
+    // 1) Download template image → 2) extract style prompt (image-to-prompt) → 3) merge with brand colors, headline, CTA, brand name → 4) improve → 5) generate
     const { url: templateImageUrl } = await downloadResource(templateId, "jpg");
     const extractedPrompt = await imageToPrompt(templateImageUrl);
+    // Merge template style with our brand: colors (colorDescription), copy (headline, CTA, brand name), layout rules, no template watermarks
     const customizations = [
       `Change main text/headline to: "${copy.headline}"`,
       `CTA/button text: "${copy.cta}"`,

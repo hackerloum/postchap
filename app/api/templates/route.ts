@@ -16,8 +16,8 @@ async function verifyAuth(request: NextRequest): Promise<string> {
 
 /**
  * GET /api/templates?term=birthday+poster&page=1&limit=20&order=relevance
+ * We only search AI-generated templates (has_prompt: true) so we can reuse/modify the style prompt.
  * Template results are filtered by plan: Free = freemium only, Pro/Business = all (including premium).
- * Optional: filters[content_type][psd]=1, filters[orientation][portrait]=1
  */
 export async function GET(request: NextRequest) {
   let uid: string;
@@ -36,10 +36,11 @@ export async function GET(request: NextRequest) {
   const order = (searchParams.get("order") === "recent" ? "recent" : "relevance") as "relevance" | "recent";
 
   const filters: Record<string, Record<string, number | string>> = {};
+  // Only AI-generated templates: they have the original prompt so we get accurate style extraction
+  filters["ai-generated"] = { only: 1 };
   if (plan === "free") {
     filters.license = { freemium: 1 };
   }
-  // Pro and Business: no license filter — they get premium assets too
   const contentType = searchParams.get("filters[content_type][psd]");
   if (contentType !== null && contentType !== undefined) {
     filters.content_type = { psd: contentType === "1" ? 1 : 0 };
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
       page,
       limit,
       order,
-      filters: Object.keys(filters).length > 0 ? filters : undefined,
+      filters,
     });
     return NextResponse.json(result);
   } catch (err) {
