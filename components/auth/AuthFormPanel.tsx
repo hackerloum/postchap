@@ -1,14 +1,20 @@
+import Image from "next/image";
+import Link from "next/link";
+
 export function AuthFormPanel({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex-1 flex flex-col min-h-screen bg-bg-base overflow-y-auto">
       {/* Mobile logo — only visible on mobile */}
-      <div className="flex lg:hidden items-center gap-2 px-6 pt-8 mb-8">
-        <div className="w-6 h-6 bg-accent rounded-[4px] flex items-center justify-center">
-          <div className="w-3 h-3 bg-black rounded-[2px]" />
-        </div>
-        <span className="font-semibold text-[14px] text-text-primary">
-          ArtMaster
-        </span>
+      <div className="flex lg:hidden items-center px-6 pt-8 mb-8">
+        <Link href="/" className="flex-shrink-0">
+          <Image
+            src="/artmasterwordmarklogo-03-03.webp"
+            alt="ArtMaster"
+            width={200}
+            height={52}
+            className="h-6 w-auto object-contain object-left"
+          />
+        </Link>
       </div>
 
       {/* Form centered vertically */}

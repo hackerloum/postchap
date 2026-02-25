@@ -1,3 +1,6 @@
+import Image from "next/image";
+import Link from "next/link";
+
 export function AuthLeftPanel() {
   return (
     <div
@@ -23,19 +26,15 @@ export function AuthLeftPanel() {
       {/* Content */}
       <div className="relative z-10 flex flex-col justify-between h-full p-10">
         {/* Logo */}
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-accent rounded-[5px] flex items-center justify-center">
-            <div className="w-3.5 h-3.5 bg-black rounded-[3px]" />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-[15px] text-text-primary tracking-tight">
-              ArtMaster
-            </span>
-            <span className="font-mono text-[10px] text-text-muted tracking-widest">
-              PLATFORM
-            </span>
-          </div>
-        </div>
+        <Link href="/" className="flex items-center flex-shrink-0">
+          <Image
+            src="/artmasterwordmarklogo-03-03.webp"
+            alt="ArtMaster"
+            width={200}
+            height={52}
+            className="h-7 w-auto object-contain object-left"
+          />
+        </Link>
 
         {/* Center content */}
         <div className="space-y-8">
