@@ -27,6 +27,16 @@ function getStatus(data: unknown): string {
   return String(status).toUpperCase().trim() || "UNKNOWN";
 }
 
+const NON_PROMPT_KEYS = new Set(["task_id", "id", "status", "state", "created_at", "updated_at"]);
+
+function takeFirstString(value: unknown): string | null {
+  if (typeof value === "string" && value.trim().length > 0) return value.trim();
+  if (Array.isArray(value) && value.length > 0 && typeof value[0] === "string" && (value[0] as string).trim().length > 0) {
+    return (value[0] as string).trim();
+  }
+  return null;
+}
+
 function extractImprovedPrompt(data: unknown): string | null {
   if (!data || typeof data !== "object") return null;
   const d = data as Record<string, unknown>;
@@ -47,11 +57,14 @@ function extractImprovedPrompt(data: unknown): string | null {
     d?.text,
   ];
   for (const c of candidates) {
-    if (typeof c === "string" && c.trim().length > 0) return c.trim();
+    const s = takeFirstString(c);
+    if (s && !/^[0-9a-f-]{36}$/i.test(s)) return s;
   }
   if (inner && typeof inner === "object") {
-    for (const v of Object.values(inner)) {
-      if (typeof v === "string" && v.trim().length > 0) return v.trim();
+    for (const [key, v] of Object.entries(inner)) {
+      if (NON_PROMPT_KEYS.has(key)) continue;
+      const s = takeFirstString(v);
+      if (s && s.length > 20 && !/^[0-9a-f-]{36}$/i.test(s)) return s;
     }
   }
   return null;
