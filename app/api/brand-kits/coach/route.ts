@@ -19,6 +19,8 @@ export interface CoachPayload {
   industry?: string;
   tagline?: string;
   website?: string;
+  phoneNumber?: string;
+  contactLocation?: string;
   primaryColor?: string;
   secondaryColor?: string;
   accentColor?: string;
