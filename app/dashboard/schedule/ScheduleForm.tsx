@@ -176,21 +176,6 @@ export function ScheduleForm() {
 
   return (
     <>
-      <div className="mb-8">
-        <Link
-          href="/dashboard"
-          className="text-[13px] text-text-muted hover:text-text-primary transition-colors inline-flex items-center gap-1.5 mb-4"
-        >
-          ← Back to dashboard
-        </Link>
-        <h1 className="font-semibold text-[22px] text-text-primary tracking-tight">
-          Daily poster schedule
-        </h1>
-        <p className="text-[14px] text-text-muted mt-1.5 max-w-xl">
-          Set time, timezone, and brand kit — we&apos;ll generate a poster every day at that time.
-        </p>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* LEFT — settings (2 cols): Daily generation, Notifications, Brand kit */}
         <div className="lg:col-span-2 space-y-4">
