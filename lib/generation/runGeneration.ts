@@ -58,6 +58,19 @@ function getHue(r: number, g: number, b: number): number {
   return (h / 6) * 360;
 }
 
+/** If the prompt describes people/humans, append a rule so they are rendered realistically, not cartoon/anime. */
+function ensureRealisticHumanStyle(prompt: string): string {
+  if (!prompt || typeof prompt !== "string") return prompt;
+  const lower = prompt.toLowerCase();
+  const hasPerson =
+    /\b(woman|man|women|men|person|people|portrait|girl|boy|human|figure|child|student|holding|smiling)\b/.test(lower) ||
+    /\b(18|20|30)\s*[-]?\s*year\s*old\b/.test(lower);
+  if (!hasPerson) return prompt;
+  const suffix =
+    " Photorealistic or high-quality refined style for all human figures. No cartoon, no anime, no simplistic illustration. Professional advertising quality.";
+  return prompt.trim().endsWith(suffix.trim()) ? prompt : prompt.trim() + suffix;
+}
+
 /** Remove template/format labels so they are never rendered on the poster (e.g. A4-learning, POSTER A4 TEMPLATE). */
 function stripTemplateLabelsFromPrompt(prompt: string): string {
   if (!prompt || typeof prompt !== "string") return prompt;
@@ -128,6 +141,9 @@ export async function runGenerationForUser(
     platforms: kitData.platforms,
     language: kitData.language,
     sampleContent: kitData.sampleContent,
+    phoneNumber: kitData.phoneNumber,
+    contactLocation: kitData.contactLocation,
+    website: kitData.website,
   };
 
   const copy: CopyData = await generateCopy(brandKit, null, recommendation ?? null);
@@ -139,12 +155,17 @@ export async function runGenerationForUser(
     brandKit.secondaryColor,
     brandKit.accentColor
   );
+  const HUMAN_STYLE_RULE =
+    "CRITICAL style for any people or human figures: render in realistic, photographic, or high-quality refined digital art style. Do NOT use cartoon, anime, manga, or simplistic illustration for humans. Professional advertising quality.";
+
   const baseCustomizations = [
+    "Preserve the exact layout and design: position of headline, CTA button, main visual, and any sections. Match the composition and structure of the reference.",
     `Replace all text with: headline "${copy.headline}", CTA "${copy.cta}", brand name "${brandKit.brandName ?? ""}".`,
     `Use brand colors: ${colorDescription}. Describe colors by name only (e.g. orange, dark blue), never write hex codes or color codes on the poster.`,
     "Keep the same layout, style, and composition. No logos or emblems in the image; the brand logo will be added separately.",
     "Do not include any platform name, product name, or service name (e.g. Chuo AI, Artmaster) — only the user's brand name may appear.",
     "CRITICAL: Only the user's brand name, headline, and CTA may appear as text on the poster. Do not reproduce any other text or logos from a reference.",
+    HUMAN_STYLE_RULE,
   ];
 
   if (inspirationImageUrl != null && String(inspirationImageUrl).trim() !== "") {
@@ -158,6 +179,7 @@ export async function runGenerationForUser(
     const mergedPrompt = `${cleanedExtracted}. Create a new poster with the same layout and style: ${customizations}`;
     imagePrompt = await improvePrompt(mergedPrompt, { type: "image", language: "en" });
     imagePrompt = stripTemplateLabelsFromPrompt(imagePrompt);
+    imagePrompt = ensureRealisticHumanStyle(imagePrompt);
   } else if (templateId != null && String(templateId).trim() !== "") {
     // Template flow: download → image-to-prompt → merge with user copy → improve → generate
     const { url: templateImageUrl } = await downloadResource(templateId, "jpg");
@@ -173,6 +195,7 @@ export async function runGenerationForUser(
     const mergedPrompt = `${cleanedExtracted}. Customize for poster: ${customizations}`;
     imagePrompt = await improvePrompt(mergedPrompt, { type: "image", language: "en" });
     imagePrompt = stripTemplateLabelsFromPrompt(imagePrompt);
+    imagePrompt = ensureRealisticHumanStyle(imagePrompt);
   } else {
     imagePrompt = await generateImagePrompt(brandKit, copy, null, recommendation ?? null);
     if (process.env.USE_FREEPIK_IMPROVE_PROMPT === "true") {
@@ -198,6 +221,9 @@ export async function runGenerationForUser(
       accentColor: brandKit.accentColor ?? "#FFFFFF",
       logoUrl: brandKit.logoUrl,
       tone: brandKit.tone,
+      phoneNumber: brandKit.phoneNumber,
+      contactLocation: brandKit.contactLocation,
+      website: brandKit.website,
     },
     copy: {
       headline: copy.headline,

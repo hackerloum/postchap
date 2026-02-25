@@ -27,6 +27,12 @@ export interface BrandKit {
   platforms?: string[];
   language?: string;
   sampleContent?: string;
+  /** Shown on poster when set (e.g. 012 3456 7890) */
+  phoneNumber?: string;
+  /** Shown on poster when set (e.g. Dar es Salaam, or full address) */
+  contactLocation?: string;
+  /** Shown on poster when set (e.g. www.example.com) */
+  website?: string;
 }
 
 export interface OccasionContext {

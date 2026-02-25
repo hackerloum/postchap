@@ -44,6 +44,8 @@ interface EditFormData {
   industry: Industry | "";
   tagline: string;
   website: string;
+  phoneNumber: string;
+  contactLocation: string;
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
@@ -71,6 +73,8 @@ const defaultForm: EditFormData = {
   industry: "",
   tagline: "",
   website: "",
+  phoneNumber: "",
+  contactLocation: "",
   primaryColor: "#E8FF47",
   secondaryColor: "#080808",
   accentColor: "#FFFFFF",
@@ -117,6 +121,8 @@ export default function EditBrandKitPage() {
         industry: data.industry ?? "",
         tagline: data.tagline ?? "",
         website: data.website ?? "",
+        phoneNumber: data.phoneNumber ?? "",
+        contactLocation: data.contactLocation ?? "",
         primaryColor: data.primaryColor ?? "#E8FF47",
         secondaryColor: data.secondaryColor ?? "#080808",
         accentColor: data.accentColor ?? "#FFFFFF",
@@ -146,6 +152,8 @@ export default function EditBrandKitPage() {
     industry: form.industry,
     tagline: form.tagline,
     website: form.website,
+    phoneNumber: form.phoneNumber,
+    contactLocation: form.contactLocation,
     primaryColor: form.primaryColor,
     secondaryColor: form.secondaryColor,
     accentColor: form.accentColor,
@@ -190,6 +198,8 @@ export default function EditBrandKitPage() {
           industry: form.industry,
           tagline: form.tagline,
           website: form.website,
+          phoneNumber: form.phoneNumber,
+          contactLocation: form.contactLocation,
           primaryColor: form.primaryColor,
           secondaryColor: form.secondaryColor,
           accentColor: form.accentColor,
@@ -336,6 +346,30 @@ export default function EditBrandKitPage() {
                   value={form.website}
                   onChange={(e) => update({ website: e.target.value })}
                   placeholder="https://..."
+                  className="w-full bg-bg-elevated border border-border-default rounded-lg px-3 py-2.5 text-sm text-text-primary outline-none focus:border-border-strong"
+                />
+              </div>
+            </div>
+            <p className="mt-3 font-mono text-[11px] text-text-muted mb-2">Contact on posters (optional)</p>
+            <p className="text-[12px] text-text-secondary mb-3">If set, these appear at the bottom of generated posters.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block font-mono text-[11px] text-text-muted mb-1">Phone number</label>
+                <input
+                  type="tel"
+                  value={form.phoneNumber}
+                  onChange={(e) => update({ phoneNumber: e.target.value })}
+                  placeholder="e.g. 012 3456 7890"
+                  className="w-full bg-bg-elevated border border-border-default rounded-lg px-3 py-2.5 text-sm text-text-primary outline-none focus:border-border-strong"
+                />
+              </div>
+              <div>
+                <label className="block font-mono text-[11px] text-text-muted mb-1">Location / address</label>
+                <input
+                  type="text"
+                  value={form.contactLocation}
+                  onChange={(e) => update({ contactLocation: e.target.value })}
+                  placeholder="e.g. Dar es Salaam, or full address"
                   className="w-full bg-bg-elevated border border-border-default rounded-lg px-3 py-2.5 text-sm text-text-primary outline-none focus:border-border-strong"
                 />
               </div>

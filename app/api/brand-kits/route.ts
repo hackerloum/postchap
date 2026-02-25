@@ -71,6 +71,8 @@ export async function POST(request: NextRequest) {
         industry: body.industry || "other",
         tagline: body.tagline || "",
         website: body.website || "",
+        phoneNumber: body.phoneNumber || "",
+        contactLocation: body.contactLocation || "",
         primaryColor: body.primaryColor || "#E8FF47",
         secondaryColor: body.secondaryColor || "#111111",
         accentColor: body.accentColor || "#FFFFFF",

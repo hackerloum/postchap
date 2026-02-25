@@ -7,6 +7,9 @@ interface BrandKit {
   accentColor: string;
   logoUrl?: string;
   tone?: string;
+  phoneNumber?: string;
+  contactLocation?: string;
+  website?: string;
 }
 
 interface CopyData {
@@ -118,8 +121,25 @@ export async function compositePoster({
   }
 
   if (imageHasText) {
-    // Seedream already rendered text — no extra overlay; logo already added above
-
+    const hasContactText =
+      (brandKit.phoneNumber && brandKit.phoneNumber.trim()) ||
+      (brandKit.contactLocation && brandKit.contactLocation.trim()) ||
+      (brandKit.website && brandKit.website.trim());
+    if (hasContactText) {
+      const parts: string[] = [];
+      if (brandKit.phoneNumber?.trim()) parts.push(brandKit.phoneNumber.trim());
+      if (brandKit.contactLocation?.trim()) parts.push(brandKit.contactLocation.trim());
+      if (brandKit.website?.trim()) parts.push(brandKit.website.trim());
+      const line = parts.join("  •  ");
+      const contactBarH = Math.round(44 * scale);
+      const contactSvg = `<svg width="${W}" height="${contactBarH}" xmlns="http://www.w3.org/2000/svg"><rect width="${W}" height="${contactBarH}" fill="${secondary}" opacity="0.85"/><text x="${W / 2}" y="${contactBarH / 2 + 4}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${Math.round(12 * scale)}" fill="${primary}" opacity="0.95" dominant-baseline="middle">${escapeXml(line)}</text></svg>`;
+      compositeInputs.push({
+        input: Buffer.from(contactSvg),
+        top: H - contactBarH,
+        left: 0,
+        blend: "over",
+      });
+    }
     const finalBuffer = await sharp(bg)
       .composite(compositeInputs)
       .png({ quality: 95, compressionLevel: 6 })
@@ -158,9 +178,19 @@ export async function compositePoster({
   const hl2Size = Math.round(64 * scale);
   const subSize = Math.round(22 * scale);
   const bodySize = Math.round(18 * scale);
-  const ctaY = H - Math.round(130 * scaleY);
+  const hasContact =
+    (brandKit.phoneNumber && brandKit.phoneNumber.trim()) ||
+    (brandKit.contactLocation && brandKit.contactLocation.trim()) ||
+    (brandKit.website && brandKit.website.trim());
+  const contactParts: string[] = [];
+  if (brandKit.phoneNumber?.trim()) contactParts.push(brandKit.phoneNumber.trim());
+  if (brandKit.contactLocation?.trim()) contactParts.push(brandKit.contactLocation.trim());
+  if (brandKit.website?.trim()) contactParts.push(brandKit.website.trim());
+  const contactLine = contactParts.join("  •  ");
+  const contactY = hasContact ? H - Math.round(50 * scaleY) : 0;
+  const hashtagY = hasContact ? H - Math.round(75 * scaleY) : H - Math.round(30 * scaleY);
+  const ctaY = H - Math.round(hasContact ? 160 : 130 * scaleY);
   const ctaH = Math.round(48 * scaleY);
-  const hashtagY = H - Math.round(30 * scaleY);
 
   const svg = `
 <svg width="${W}" height="${H}"
@@ -284,6 +314,17 @@ export async function compositePoster({
     opacity="0.5"
     letter-spacing="0.5"
   >${hashtags}</text>
+  ` : ""}
+  ${hasContact && contactLine ? `
+  <text
+    x="${W / 2}"
+    y="${contactY}"
+    text-anchor="middle"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="${Math.round(12 * scale)}"
+    fill="${primary}"
+    opacity="0.7"
+  >${escapeXml(contactLine)}</text>
   ` : ""}
 </svg>`;
 
