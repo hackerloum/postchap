@@ -28,13 +28,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const userData = userSnap.exists ? userSnap.data() : null;
+    const freshSnap = await userRef.get();
+    const userData = freshSnap.exists ? freshSnap.data() : null;
     const hasOnboarded = userData?.hasOnboarded ?? false;
+    const plan = (userData?.plan as string) ?? "free";
 
     const response = NextResponse.json({
       success: true,
       hasOnboarded,
       uid,
+      plan,
     });
 
     response.cookies.set("__session", token, {

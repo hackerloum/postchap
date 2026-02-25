@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ArtMaster Platform",
-  description: "AI-powered daily poster generation for your brand",
+  description: "Automated daily poster generation for your brand",
   icons: {
     icon: [
       { url: "/favicon/favicon.ico", sizes: "any" },

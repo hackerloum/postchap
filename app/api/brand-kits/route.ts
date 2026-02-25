@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
+import { getPlanLimits } from "@/lib/plans";
+import { getUserPlan } from "@/lib/user-plan";
 
 async function getUidFromRequest(request: NextRequest): Promise<string> {
   const header = request.headers.get("Authorization");
@@ -33,6 +35,27 @@ export async function POST(request: NextRequest) {
       { error: "brandName and industry are required" },
       { status: 400 }
     );
+  }
+
+  const plan = await getUserPlan(uid);
+  const limits = getPlanLimits(plan);
+  if (limits.brandKits !== -1) {
+    const snap = await getAdminDb()
+      .collection("users")
+      .doc(uid)
+      .collection("brand_kits")
+      .count()
+      .get();
+    const count = snap.data().count;
+    if (count >= limits.brandKits) {
+      return NextResponse.json(
+        {
+          error: "Brand kit limit reached for your plan. Upgrade to create more.",
+          code: "BRAND_KIT_LIMIT_REACHED",
+        },
+        { status: 403 }
+      );
+    }
   }
 
   try {

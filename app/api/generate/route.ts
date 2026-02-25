@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminAuth } from "@/lib/firebase/admin";
+import { Timestamp } from "firebase-admin/firestore";
+import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
 import { runGenerationForUser } from "@/lib/generation/runGeneration";
+import { getPlanLimits } from "@/lib/plans";
+import { getUserPlan } from "@/lib/user-plan";
 import type { Recommendation } from "@/types/generation";
 
 export const maxDuration = 300;
@@ -38,6 +41,30 @@ export async function POST(request: NextRequest) {
       { error: "brandKitId is required" },
       { status: 400 }
     );
+  }
+
+  const plan = await getUserPlan(uid);
+  const limits = getPlanLimits(plan);
+  if (limits.postersPerMonth !== -1) {
+    const now = new Date();
+    const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
+    const snap = await getAdminDb()
+      .collection("users")
+      .doc(uid)
+      .collection("posters")
+      .where("createdAt", ">=", Timestamp.fromDate(startOfMonth))
+      .count()
+      .get();
+    const count = snap.data().count;
+    if (count >= limits.postersPerMonth) {
+      return NextResponse.json(
+        {
+          error: "Poster limit reached for your plan. Upgrade to create more.",
+          code: "POSTER_LIMIT_REACHED",
+        },
+        { status: 403 }
+      );
+    }
   }
 
   try {

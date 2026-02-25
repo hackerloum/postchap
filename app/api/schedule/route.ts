@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
 import { Timestamp } from "firebase-admin/firestore";
+import { getPlanLimits } from "@/lib/plans";
 import { getNextRunAt } from "@/lib/schedule/nextRunAt";
+import { getUserPlan } from "@/lib/user-plan";
 
 async function getUid(request: NextRequest): Promise<string> {
   const header = request.headers.get("Authorization");
@@ -90,6 +92,21 @@ export async function PATCH(request: NextRequest) {
   const current = doc.exists ? doc.data()! : {};
 
   const enabled = body.enabled ?? current.enabled ?? false;
+
+  if (enabled) {
+    const plan = await getUserPlan(uid);
+    const limits = getPlanLimits(plan);
+    if (!limits.scheduledGeneration) {
+      return NextResponse.json(
+        {
+          error: "Scheduled generation is not included in your plan. Upgrade to enable it.",
+          code: "SCHEDULE_NOT_AVAILABLE",
+        },
+        { status: 403 }
+      );
+    }
+  }
+
   const time = body.time ?? current.time ?? DEFAULT_TIME;
   const timezone = body.timezone ?? current.timezone ?? DEFAULT_TIMEZONE;
   const brandKitId = body.brandKitId ?? current.brandKitId ?? "";

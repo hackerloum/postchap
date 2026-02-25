@@ -1,0 +1,49 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { CreditCard } from "lucide-react";
+import { PricingModal } from "@/components/PricingModal";
+import type { PlanId } from "@/lib/plans";
+
+export function DashboardPlanTrigger() {
+  const [plan, setPlan] = useState<PlanId>("free");
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const fetchPlan = useCallback(async () => {
+    try {
+      const res = await fetch("/api/me");
+      if (res.ok) {
+        const data = await res.json();
+        setPlan((data.plan as PlanId) ?? "free");
+      }
+    } catch {
+      // keep default free
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPlan();
+  }, [fetchPlan]);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setModalOpen(true)}
+        className="flex items-center gap-1.5 font-mono text-[11px] text-text-muted hover:text-text-primary transition-colors px-3 py-2 rounded-lg hover:bg-bg-elevated"
+      >
+        <CreditCard size={14} className="opacity-70" />
+        {loading ? "Plan…" : `Plan: ${plan.charAt(0).toUpperCase() + plan.slice(1)}`}
+      </button>
+      <PricingModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        currentPlan={plan}
+        onPlanSelected={fetchPlan}
+      />
+    </>
+  );
+}

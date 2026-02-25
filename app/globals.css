@@ -3,8 +3,8 @@
 /* Tailwind v4: define theme colors so bg-accent, text-accent, etc. work */
 @theme {
   --color-bg-base: #080808;
-  --color-bg-surface: #111111;
-  --color-bg-elevated: #181818;
+  --color-bg-surface: #080808;
+  --color-bg-elevated: #111111;
   --color-bg-overlay: #222222;
   --color-border-subtle: #27272a;
   --color-border-default: #3f3f46;
@@ -54,11 +54,29 @@
   animation: slide-up-in 0.35s ease-out forwards;
 }
 
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+  width: max-content;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
 :root {
   --font-sf: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
   --bg-base:        #080808;
-  --bg-surface:     #111111;
-  --bg-elevated:    #181818;
+  --bg-surface:     #080808;
+  --bg-elevated:    #111111;
   --bg-overlay:     #222222;
   --border-subtle:  #27272a;
   --border-default: #3f3f46;
