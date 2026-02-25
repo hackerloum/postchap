@@ -3,6 +3,7 @@ import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
 import { Timestamp } from "firebase-admin/firestore";
 import { getPlanLimits } from "@/lib/plans";
 import { getNextRunAt } from "@/lib/schedule/nextRunAt";
+import { isAllowedScheduleTime, snapToAllowedTime } from "@/lib/schedule/timeSlots";
 import { getUserPlan } from "@/lib/user-plan";
 
 async function getUid(request: NextRequest): Promise<string> {
@@ -107,7 +108,13 @@ export async function PATCH(request: NextRequest) {
     }
   }
 
-  const time = body.time ?? current.time ?? DEFAULT_TIME;
+  let time = body.time ?? current.time ?? DEFAULT_TIME;
+  if (time && !isAllowedScheduleTime(time)) {
+    time = snapToAllowedTime(time);
+  }
+  if (!time || !isAllowedScheduleTime(time)) {
+    time = DEFAULT_TIME;
+  }
   const timezone = body.timezone ?? current.timezone ?? DEFAULT_TIMEZONE;
   const brandKitId = body.brandKitId ?? current.brandKitId ?? "";
   const notifyEmail = body.notifyEmail ?? current.notifyEmail ?? true;

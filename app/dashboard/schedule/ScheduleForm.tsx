@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { getClientIdToken } from "@/lib/auth-client";
+import { ALLOWED_SCHEDULE_TIMES, formatTimeLabel, snapToAllowedTime } from "@/lib/schedule/timeSlots";
 import { getBrandKitsAction, type BrandKitItem } from "../brand-kits/actions";
 
 const TIMEZONES = [
@@ -83,9 +84,13 @@ export function ScheduleForm() {
       setKits(kitsList);
       if (scheduleRes.ok) {
         const data = await scheduleRes.json();
+        const rawTime = data.time ?? "08:00";
+        const time = ALLOWED_SCHEDULE_TIMES.includes(rawTime)
+          ? rawTime
+          : snapToAllowedTime(rawTime);
         setSchedule({
           enabled: data.enabled ?? false,
-          time: data.time ?? "08:00",
+          time,
           timezone: data.timezone ?? "Africa/Lagos",
           brandKitId: data.brandKitId ?? "",
           notifyEmail: data.notifyEmail ?? true,
@@ -206,14 +211,21 @@ export function ScheduleForm() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block font-mono text-[11px] text-text-muted mb-2">Time</label>
-            <input
-              type="time"
+            <label className="block font-mono text-[11px] text-text-muted mb-2">
+              Time (30-min slots)
+            </label>
+            <select
               value={schedule.time}
               onChange={(e) => update({ time: e.target.value })}
               disabled={!schedule.enabled}
               className="w-full bg-bg-elevated border border-border-default rounded-lg px-3 py-2.5 text-sm text-text-primary outline-none focus:border-accent disabled:opacity-50"
-            />
+            >
+              {ALLOWED_SCHEDULE_TIMES.map((t) => (
+                <option key={t} value={t}>
+                  {formatTimeLabel(t)}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block font-mono text-[11px] text-text-muted mb-2">Timezone</label>
