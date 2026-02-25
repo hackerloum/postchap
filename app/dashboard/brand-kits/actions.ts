@@ -14,9 +14,11 @@ export type BrandKitItem = {
   secondaryColor?: string;
   accentColor?: string;
   logoUrl?: string;
-  brandLocation?: { country?: string };
+  brandLocation?: { country?: string; city?: string };
   tone?: string;
   platforms?: string[];
+  language?: string;
+  enabled?: boolean;
 };
 
 async function getUidFromCookieOrToken(clientToken?: string | null): Promise<string | null> {
@@ -59,6 +61,7 @@ export async function getBrandKitsAction(clientToken?: string | null): Promise<B
         brandLocation: data.brandLocation,
         tone: data.tone,
         platforms: Array.isArray(data.platforms) ? data.platforms : undefined,
+        language: data.language,
         _createdAt: createdAt,
       };
     });

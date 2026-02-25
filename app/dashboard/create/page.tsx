@@ -368,6 +368,7 @@ export default function CreatePage() {
   const [suggestedSearches, setSuggestedSearches] = useState<string[]>([]);
   const [loadingSuggestedSearches, setLoadingSuggestedSearches] = useState(false);
   const [useTemplate, setUseTemplate] = useState(false);
+  const [selectedFreepikTemplateTitle, setSelectedFreepikTemplateTitle] = useState<string>("");
   const [useInspiration, setUseInspiration] = useState(false);
   const [inspirationImageUrl, setInspirationImageUrl] = useState("");
   const [inspirationPreview, setInspirationPreview] = useState<string | null>(null);
@@ -390,6 +391,40 @@ export default function CreatePage() {
       setSuggestedSearches([]);
     }
   }, [selectedKit?.id]);
+
+  // When switching to template mode, clear static selection and run initial Freepik search if no results yet
+  useEffect(() => {
+    if (mode !== "template") return;
+    setSelectedTemplate(null);
+    if (templateResults.length > 0 || loadingTemplates) return;
+    const term = templateSearch.trim() || "social media poster";
+    let cancelled = false;
+    setLoadingTemplates(true);
+    getToken()
+      .then((token) =>
+        fetch(
+          `/api/templates?term=${encodeURIComponent(term)}&limit=${TEMPLATE_PAGE_SIZE}&page=1`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+      )
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("Search failed"))))
+      .then((data) => {
+        if (!cancelled) {
+          setTemplateResults(data.items ?? []);
+          setTemplateTotal(data.total ?? null);
+          setTemplatePage(1);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) toast.error("Could not load templates");
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingTemplates(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mode]);
 
   async function getToken(): Promise<string> {
     const token = await getClientIdToken();
@@ -584,7 +619,7 @@ export default function CreatePage() {
       }
     }
     if (mode === "template") {
-      if (!selectedTemplate) {
+      if (selectedTemplateId == null) {
         toast.error("Select a template to continue");
         return;
       }
@@ -620,8 +655,8 @@ export default function CreatePage() {
         platformFormatId,
         recommendation: recommendationPayload,
         customTopic: mode === "ai" && useCustom ? customTopic : null,
-        templateId: mode === "template" ? selectedTemplate?.id ?? null : null,
-        templateName: mode === "template" ? selectedTemplate?.name ?? null : null,
+        templateId: mode === "template" ? (selectedTemplateId ?? null) : null,
+        templateName: mode === "template" ? (selectedFreepikTemplateTitle || null) : null,
         ...(inspirationImageUrlValue ? { inspirationImageUrl: inspirationImageUrlValue } : {}),
       };
 
@@ -963,16 +998,134 @@ export default function CreatePage() {
           )}
 
           {mode === "template" && (
-            <TemplateSelector
-              selectedTemplate={selectedTemplate}
-              onSelect={(t) => {
-                setSelectedTemplate(t);
-                setSelectedRec(null);
-                setUseCustom(false);
-                setUseTemplate(true);
-              }}
-              brandKit={selectedKit}
-            />
+            <div className="space-y-4">
+              <div className="bg-bg-surface border border-border-default rounded-2xl overflow-hidden">
+                <div className="px-5 py-4 border-b border-border-subtle">
+                  <p className="font-semibold text-[14px] text-text-primary">Search templates</p>
+                  <p className="font-mono text-[11px] text-text-muted mt-0.5">Find a poster style from Freepik to use as your base</p>
+                </div>
+                <div className="p-5 space-y-4">
+                  <div className="flex gap-2 flex-wrap">
+                    <div className="relative flex-1 min-w-[200px]">
+                      <input
+                        type="text"
+                        value={templateSearch}
+                        onChange={(e) => setTemplateSearch(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && searchTemplates()}
+                        placeholder="e.g. social media poster, birthday, promo"
+                        className="w-full bg-bg-elevated border border-border-default rounded-xl pl-4 pr-10 py-3 text-[13px] text-text-primary placeholder:text-text-muted outline-none focus:border-accent transition-colors"
+                      />
+                      <button
+                        type="button"
+                        onClick={searchTemplates}
+                        disabled={loadingTemplates}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-text-muted hover:text-accent hover:bg-accent/10 transition-colors disabled:opacity-50"
+                        aria-label="Search"
+                      >
+                        <Sparkles size={16} />
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={searchTemplates}
+                      disabled={loadingTemplates}
+                      className="bg-accent text-black font-semibold text-[13px] px-4 py-3 rounded-xl hover:bg-accent-dim transition-colors disabled:opacity-50 min-h-[44px]"
+                    >
+                      {loadingTemplates ? "Searching…" : "Search"}
+                    </button>
+                  </div>
+                  {suggestedSearches.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      <span className="font-mono text-[10px] text-text-muted self-center mr-1">Suggestions:</span>
+                      {suggestedSearches.slice(0, 8).map((phrase) => (
+                        <button
+                          key={phrase}
+                          type="button"
+                          onClick={() => applySuggestedSearch(phrase)}
+                          className="font-mono text-[11px] text-text-muted bg-bg-elevated border border-border-default rounded-full px-3 py-1.5 hover:border-accent/40 hover:text-accent transition-colors"
+                        >
+                          {phrase}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {loadingTemplates && templateResults.length === 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="aspect-square bg-bg-elevated rounded-xl animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {templateResults.map((item) => {
+                      const isSelected = selectedTemplateId != null && String(item.id) === String(selectedTemplateId);
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedTemplateId(item.id);
+                            setSelectedFreepikTemplateTitle(item.title ?? "");
+                            setSelectedTemplate(null);
+                            setSelectedRec(null);
+                            setUseCustom(false);
+                            setUseTemplate(true);
+                          }}
+                          className={`text-left rounded-xl border overflow-hidden transition-all duration-150 group ${
+                            isSelected ? "border-accent ring-2 ring-accent/20" : "border-border-default hover:border-border-strong"
+                          }`}
+                        >
+                          <div className="aspect-square relative bg-bg-elevated">
+                            {item.thumbnail ? (
+                              <img
+                                src={item.thumbnail}
+                                alt={item.title ?? ""}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <LayoutTemplate size={32} className="text-text-muted" />
+                              </div>
+                            )}
+                            {isSelected && (
+                              <div className="absolute inset-0 bg-accent/10 flex items-center justify-center">
+                                <CheckCircle size={24} className="text-accent drop-shadow" />
+                              </div>
+                            )}
+                          </div>
+                          {item.title && (
+                            <div className="p-2.5 border-t border-border-subtle">
+                              <p className="font-mono text-[11px] text-text-secondary line-clamp-2">{item.title}</p>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {templateResults.length > 0 && (
+                    <div className="flex items-center justify-between gap-4">
+                      {templateTotal != null && (
+                        <p className="font-mono text-[11px] text-text-muted">
+                          {templateResults.length} of {templateTotal} shown
+                        </p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={loadMoreTemplates}
+                        disabled={loadingMoreTemplates}
+                        className="font-mono text-[12px] text-accent hover:underline disabled:opacity-50"
+                      >
+                        {loadingMoreTemplates ? "Loading…" : "Load more"}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           )}
 
           {mode === "inspiration" && (
@@ -1048,7 +1201,7 @@ export default function CreatePage() {
           {/* Desktop: selection summary + generate button */}
           <div className="hidden lg:block sticky top-6 space-y-3">
             {(mode === "ai" && (selectedRec || (useCustom && customTopic))) ||
-            (mode === "template" && selectedTemplate) ||
+            (mode === "template" && selectedTemplateId != null) ||
             (mode === "inspiration" && (inspirationUrl.trim() || inspirationFile || inspirationImageUrl.trim())) ? (
               <div className="bg-bg-surface border border-border-default rounded-2xl p-4 space-y-2 animate-fade-up">
                 <p className="font-mono text-[10px] uppercase tracking-wider text-accent">
@@ -1066,12 +1219,12 @@ export default function CreatePage() {
                     <p className="font-mono text-[11px] text-text-muted leading-relaxed line-clamp-2">{customTopic}</p>
                   </>
                 )}
-                {mode === "template" && selectedTemplate && (
+                {mode === "template" && selectedTemplateId != null && (
                   <>
-                    <p className="font-semibold text-[13px] text-text-primary leading-tight">{selectedTemplate.name}</p>
-                    <p className="font-mono text-[11px] text-text-muted">
-                      {selectedTemplate.category} · {selectedTemplate.aspectRatio}
+                    <p className="font-semibold text-[13px] text-text-primary leading-tight line-clamp-2">
+                      {selectedFreepikTemplateTitle || "Template selected"}
                     </p>
+                    <p className="font-mono text-[11px] text-text-muted">Freepik style</p>
                   </>
                 )}
                 {mode === "inspiration" && (inspirationUrl.trim() || inspirationFile || inspirationImageUrl.trim()) && (
@@ -1099,7 +1252,7 @@ export default function CreatePage() {
                 generating ||
                 !selectedPlatform ||
                 (mode === "ai" && !selectedRec && !(useCustom && customTopic.trim())) ||
-                (mode === "template" && !selectedTemplate) ||
+                (mode === "template" && selectedTemplateId == null) ||
                 (mode === "inspiration" && !inspirationUrl.trim() && !inspirationImageUrl.trim())
               }
               className="w-full bg-accent text-black font-semibold text-[14px] py-3.5 rounded-xl hover:bg-accent-dim transition-all duration-200 active:scale-[0.99] min-h-[52px] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -1117,18 +1270,18 @@ export default function CreatePage() {
               )}
             </button>
             {!(mode === "ai" && (selectedRec || (useCustom && customTopic))) &&
-              !(mode === "template" && selectedTemplate) &&
+              !(mode === "template" && selectedTemplateId != null) &&
               !(mode === "inspiration" && (inspirationUrl.trim() || inspirationImageUrl.trim())) && (
               <p className="font-mono text-[10px] text-text-muted text-center">
                 {mode === "ai"
                   ? "Select a recommendation or write a brief"
                   : mode === "template"
-                    ? "Select a template"
+                    ? "Search and select a template"
                     : "Upload an image or paste a URL"}
               </p>
             )}
             {((mode === "ai" && (selectedRec || (useCustom && customTopic))) ||
-              (mode === "template" && selectedTemplate) ||
+              (mode === "template" && selectedTemplateId != null) ||
               (mode === "inspiration" && (inspirationUrl.trim() || inspirationImageUrl.trim()))) && (
               <p className="font-mono text-[10px] text-text-muted text-center">Takes 30–60 seconds</p>
             )}
@@ -1145,7 +1298,7 @@ export default function CreatePage() {
             generating ||
             !selectedPlatform ||
             (mode === "ai" && !selectedRec && !(useCustom && customTopic.trim())) ||
-            (mode === "template" && !selectedTemplate) ||
+            (mode === "template" && selectedTemplateId == null) ||
             (mode === "inspiration" && !inspirationUrl.trim() && !inspirationImageUrl.trim())
           }
           className="w-full bg-accent text-black font-semibold text-[15px] py-4 rounded-xl hover:bg-accent-dim transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[56px]"
