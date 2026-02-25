@@ -179,14 +179,14 @@ export function ScheduleForm() {
       <div className="mb-8">
         <Link
           href="/dashboard"
-          className="font-mono text-[11px] text-text-muted hover:text-text-secondary transition-colors flex items-center gap-1 mb-3 inline-flex"
+          className="text-[13px] text-text-muted hover:text-text-primary transition-colors inline-flex items-center gap-1.5 mb-4"
         >
           ← Back to dashboard
         </Link>
-        <h1 className="font-semibold text-[20px] text-text-primary tracking-tight">
-          Schedule
+        <h1 className="font-semibold text-[22px] text-text-primary tracking-tight">
+          Daily poster schedule
         </h1>
-        <p className="font-mono text-[12px] text-text-muted mt-1">
+        <p className="text-[14px] text-text-muted mt-1.5 max-w-xl">
           Set time, timezone, and brand kit — we&apos;ll generate a poster every day at that time.
         </p>
       </div>
@@ -201,7 +201,7 @@ export function ScheduleForm() {
                 <p className="font-semibold text-[14px] text-text-primary">
                   Daily generation
                 </p>
-                <p className="font-mono text-[11px] text-text-muted mt-0.5">
+                <p className="text-[12px] text-text-muted mt-0.5">
                   Automatically create a new poster every day
                 </p>
               </div>
@@ -252,7 +252,7 @@ export function ScheduleForm() {
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
                     />
                   </div>
-                  <p className="font-mono text-[10px] text-text-muted mt-1.5">
+                  <p className="text-[12px] text-text-muted mt-1.5">
                     30-minute intervals
                   </p>
                 </div>
@@ -302,7 +302,7 @@ export function ScheduleForm() {
               <p className="font-semibold text-[14px] text-text-primary">
                 Notifications
               </p>
-              <p className="font-mono text-[11px] text-text-muted mt-0.5">
+              <p className="text-[12px] text-text-muted mt-0.5">
                 Get alerted when your poster is ready to review
               </p>
             </div>
@@ -341,7 +341,7 @@ export function ScheduleForm() {
                     <p className="font-semibold text-[13px] text-text-primary">
                       {item.label}
                     </p>
-                    <p className="font-mono text-[10px] text-text-muted mt-0.5">
+                    <p className="text-[12px] text-text-muted mt-0.5">
                       {item.sub}
                     </p>
                   </div>
@@ -369,12 +369,12 @@ export function ScheduleForm() {
               <p className="font-semibold text-[14px] text-text-primary">
                 Brand kit
               </p>
-              <p className="font-mono text-[11px] text-text-muted mt-0.5">
+              <p className="text-[12px] text-text-muted mt-0.5">
                 Which brand to use for daily poster generation
               </p>
             </div>
             {noKits ? (
-              <p className="font-mono text-[11px] text-text-muted">
+              <p className="text-[12px] text-text-muted">
                 Create a brand kit first to schedule generation.{" "}
                 <Link href="/onboarding" className="text-accent hover:underline">
                   Create brand kit
@@ -403,7 +403,7 @@ export function ScheduleForm() {
                       <p className="font-semibold text-[13px] text-text-primary">
                         {kit.brandName}
                       </p>
-                      <p className="font-mono text-[10px] text-text-muted capitalize">
+                      <p className="text-[12px] text-text-muted capitalize">
                         {kit.industry}
                         {kit.brandLocation?.country
                           ? ` · ${kit.brandLocation.country}`
@@ -420,27 +420,29 @@ export function ScheduleForm() {
           </div>
         </div>
 
-        {/* RIGHT — status + upcoming */}
+        {/* RIGHT — status + save (no duplicate of left-column settings) */}
         <div className="space-y-4">
-          {/* Status card */}
           <div className="bg-bg-surface border border-border-default rounded-2xl p-5">
-            <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-text-muted mb-4">
+            <p className="font-semibold text-[14px] text-text-primary mb-1">
               Status
+            </p>
+            <p className="text-[12px] text-text-muted mb-4">
+              {schedule.enabled ? "Your schedule is active" : "Daily generation is off"}
             </p>
 
             <div
-              className={`flex items-center gap-3 p-3 rounded-xl border mb-4 ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${
                 schedule.enabled
                   ? "bg-success/5 border-success/20"
                   : "bg-bg-elevated border-border-default"
               }`}
             >
               <div
-                className={`w-2 h-2 rounded-full shrink-0 ${
+                className={`w-2.5 h-2.5 rounded-full shrink-0 ${
                   schedule.enabled ? "bg-success animate-pulse" : "bg-text-muted"
                 }`}
               />
-              <div>
+              <div className="min-w-0">
                 <p
                   className={`font-semibold text-[13px] ${
                     schedule.enabled ? "text-success" : "text-text-muted"
@@ -448,45 +450,12 @@ export function ScheduleForm() {
                 >
                   {schedule.enabled ? "Active" : "Inactive"}
                 </p>
-                <p className="font-mono text-[10px] text-text-muted">
+                <p className="text-[12px] text-text-muted truncate">
                   {schedule.enabled
-                    ? `Runs daily at ${formatTimeLabel(schedule.time)}`
-                    : "Turn on daily generation"}
+                    ? `${formatTimeLabel(schedule.time)} · ${timezoneLabel}${schedule.brandKitId ? ` · ${kits.find((k) => k.id === schedule.brandKitId)?.brandName ?? ""}` : ""}`
+                    : "Turn on daily generation in the left panel"}
                 </p>
               </div>
-            </div>
-
-            <div className="space-y-2.5">
-              {[
-                {
-                  label: "Time",
-                  value: schedule.enabled ? formatTimeLabel(schedule.time) : "—",
-                },
-                {
-                  label: "Timezone",
-                  value: schedule.enabled ? timezoneLabel : "—",
-                },
-                {
-                  label: "Brand kit",
-                  value:
-                    kits.find((k) => k.id === schedule.brandKitId)?.brandName ??
-                    "—",
-                },
-                { label: "Email alerts", value: schedule.notifyEmail ? "On" : "Off" },
-                { label: "SMS alerts", value: schedule.notifySms ? "On" : "Off" },
-              ].map((row) => (
-                <div
-                  key={row.label}
-                  className="flex items-center justify-between"
-                >
-                  <span className="font-mono text-[11px] text-text-muted">
-                    {row.label}
-                  </span>
-                  <span className="font-mono text-[11px] text-text-secondary">
-                    {row.value}
-                  </span>
-                </div>
-              ))}
             </div>
 
             <button
@@ -511,24 +480,26 @@ export function ScheduleForm() {
             </button>
 
             {saved && (
-              <p className="font-mono text-[10px] text-success text-center mt-2">
-                Changes saved successfully
+              <p className="text-[12px] text-success text-center mt-3">
+                Saved
               </p>
             )}
           </div>
 
-          {/* Upcoming runs */}
           <div className="bg-bg-surface border border-border-default rounded-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-border-subtle">
-              <p className="font-semibold text-[13px] text-text-primary">
+              <p className="font-semibold text-[14px] text-text-primary">
                 Upcoming runs
+              </p>
+              <p className="text-[12px] text-text-muted mt-0.5">
+                Next scheduled generations
               </p>
             </div>
 
             {!schedule.enabled ? (
               <div className="p-5 text-center">
-                <p className="font-mono text-[11px] text-text-muted leading-relaxed">
-                  Enable daily generation to see scheduled runs here.
+                <p className="text-[12px] text-text-muted">
+                  Turn on daily generation to see runs here.
                 </p>
               </div>
             ) : (
@@ -545,16 +516,16 @@ export function ScheduleForm() {
                             i === 0 ? "bg-accent" : "bg-border-strong"
                           }`}
                         />
-                        <span className="font-mono text-[12px] text-text-secondary">
+                        <span className="text-[12px] text-text-secondary">
                           {run.dateLabel}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-[11px] text-text-muted">
+                        <span className="text-[12px] text-text-muted">
                           {run.timeLabel}
                         </span>
                         {i === 0 && (
-                          <span className="font-mono text-[9px] text-accent bg-accent/10 border border-accent/20 rounded-full px-1.5 py-0.5">
+                          <span className="text-[10px] font-medium text-accent bg-accent/10 border border-accent/20 rounded-full px-1.5 py-0.5">
                             Next
                           </span>
                         )}
