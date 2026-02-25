@@ -11,6 +11,8 @@ import {
   ChevronRight,
   CheckCircle,
   Loader2,
+  Search,
+  Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getClientIdToken } from "@/lib/auth-client";
@@ -50,6 +52,10 @@ export default function CreatePage() {
   const [loadingRecs, setLoadingRecs] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generationStep, setGenerationStep] = useState("");
+  const [templateSearch, setTemplateSearch] = useState("");
+  const [templateResults, setTemplateResults] = useState<{ id: number | string; title?: string; thumbnail?: string }[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | string | null>(null);
 
   useEffect(() => {
     loadBrandKits();
@@ -84,6 +90,26 @@ export default function CreatePage() {
       toast.error("Failed to load brand kits");
     } finally {
       setLoadingKits(false);
+    }
+  }
+
+  async function searchTemplates() {
+    const term = templateSearch.trim() || "social media poster";
+    setLoadingTemplates(true);
+    setTemplateResults([]);
+    try {
+      const token = await getToken();
+      const res = await fetch(
+        `/api/templates?term=${encodeURIComponent(term)}&limit=12&page=1`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!res.ok) throw new Error("Search failed");
+      const data = await res.json();
+      setTemplateResults(data.items ?? []);
+    } catch {
+      toast.error("Could not search templates");
+    } finally {
+      setLoadingTemplates(false);
     }
   }
 
@@ -147,6 +173,7 @@ export default function CreatePage() {
               hashtags: [],
             }
           : selectedRec,
+        ...(selectedTemplateId != null ? { templateId: selectedTemplateId } : {}),
       };
 
       setGenerationStep("Analyzing your brand...");
@@ -155,7 +182,11 @@ export default function CreatePage() {
       setGenerationStep("Writing copy with AI...");
       await new Promise((r) => setTimeout(r, 600));
 
-      setGenerationStep("Generating background image...");
+      setGenerationStep(
+        selectedTemplateId != null
+          ? "Using your chosen style..."
+          : "Generating background image..."
+      );
 
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -243,6 +274,77 @@ export default function CreatePage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8 sm:py-10">
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <Search size={14} className="text-accent" />
+            <p className="font-mono text-[11px] uppercase tracking-widest text-text-muted">
+              Search poster style (optional)
+            </p>
+          </div>
+          <p className="text-[12px] text-text-secondary mb-3">
+            Search for a layout you like — we&apos;ll match the style and apply your brand and copy.
+          </p>
+          <div className="flex gap-2 flex-wrap mb-3">
+            <input
+              type="text"
+              value={templateSearch}
+              onChange={(e) => setTemplateSearch(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && searchTemplates()}
+              placeholder="e.g. birthday poster, sale promo, event..."
+              className="flex-1 min-w-[200px] rounded-lg border border-border-default bg-bg-surface px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
+            />
+            <button
+              type="button"
+              onClick={searchTemplates}
+              disabled={loadingTemplates}
+              className="px-4 py-2.5 rounded-lg border border-border-default bg-bg-surface text-sm font-medium text-text-primary hover:bg-bg-elevated disabled:opacity-50 flex items-center gap-2"
+            >
+              {loadingTemplates ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+              Search
+            </button>
+          </div>
+          {templateResults.length > 0 && (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+              {templateResults.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setSelectedTemplateId(selectedTemplateId === t.id ? null : t.id)}
+                  className={`
+                    relative aspect-square rounded-xl border-2 overflow-hidden bg-bg-elevated
+                    transition-all duration-150
+                    ${selectedTemplateId === t.id
+                      ? "border-accent ring-2 ring-accent/30"
+                      : "border-border-default hover:border-border-strong"}
+                  `}
+                >
+                  {t.thumbnail ? (
+                    <img
+                      src={t.thumbnail}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <ImageIcon size={24} className="text-text-muted" />
+                    </div>
+                  )}
+                  {selectedTemplateId === t.id && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                      <CheckCircle size={28} className="text-accent drop-shadow" />
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+          {selectedTemplateId != null && templateResults.length > 0 && (
+            <p className="mt-2 font-mono text-[11px] text-accent">
+              Style selected — clear by clicking it again, or leave it to use this style.
+            </p>
+          )}
+        </div>
+
         {brandKits.length > 1 && (
           <div className="mb-8">
             <p className="font-mono text-[11px] uppercase tracking-widest text-text-muted mb-3">
@@ -473,6 +575,14 @@ e.g. "Motivational Monday post for our followers"`}
                     : selectedRec?.topic}
                 </span>
               </div>
+              {selectedTemplateId != null && (
+                <div className="flex items-center gap-2">
+                  <ChevronRight size={12} className="text-text-muted" />
+                  <span className="font-mono text-xs text-text-secondary">
+                    Style: template selected (from search)
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         )}

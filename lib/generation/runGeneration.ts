@@ -3,7 +3,9 @@ import { getAdminDb } from "@/lib/firebase/admin";
 import { generateCopy } from "@/lib/generation/generateCopy";
 import { generateImagePrompt } from "@/lib/generation/generateImagePrompt";
 import { generateImage } from "@/lib/freepik/generateImage";
+import { imageToPrompt } from "@/lib/freepik/imageToPrompt";
 import { improvePrompt } from "@/lib/freepik/improvePrompt";
+import { downloadResource } from "@/lib/freepik/resources";
 import { compositePoster } from "@/lib/sharp/compositePoster";
 import { uploadBufferToCloudinary } from "@/lib/uploadToCloudinary";
 import type { BrandKit, CopyData, Recommendation } from "@/types/generation";
@@ -16,12 +18,14 @@ export interface RunGenerationResult {
 
 /**
  * Run full poster generation for a user (brand kit → copy → image → composite → upload → save).
+ * When templateId is provided: download template → image-to-prompt → improve prompt → generate → composite.
  * Used by both POST /api/generate (authenticated) and the cron job (scheduled generation).
  */
 export async function runGenerationForUser(
   uid: string,
   brandKitId: string,
-  recommendation?: Recommendation | null
+  recommendation?: Recommendation | null,
+  templateId?: string | number | null
 ): Promise<RunGenerationResult> {
   const db = getAdminDb();
 
@@ -57,16 +61,33 @@ export async function runGenerationForUser(
   };
 
   const copy: CopyData = await generateCopy(brandKit, null, recommendation ?? null);
-  let imagePrompt = await generateImagePrompt(brandKit, copy, null, recommendation ?? null);
 
-  if (process.env.USE_FREEPIK_IMPROVE_PROMPT === "true") {
-    try {
-      imagePrompt = await improvePrompt(imagePrompt, {
-        type: "image",
-        language: "en",
-      });
-    } catch (err) {
-      console.warn("[runGeneration] Improve Prompt failed, using original:", err);
+  let imagePrompt: string;
+
+  if (templateId != null && String(templateId).trim() !== "") {
+    // Template flow: download → image-to-prompt → merge with user copy → improve → generate
+    const { url: templateImageUrl } = await downloadResource(templateId, "jpg");
+    const extractedPrompt = await imageToPrompt(templateImageUrl);
+    const customizations = [
+      `Change main text/headline to: "${copy.headline}"`,
+      `CTA/button text: "${copy.cta}"`,
+      `Brand name: "${brandKit.brandName ?? ""}"`,
+      `Use brand colors: ${[brandKit.primaryColor, brandKit.secondaryColor, brandKit.accentColor].filter(Boolean).join(", ")}`,
+      "Keep the same layout, style, and composition. No logos or emblems in the image; the brand logo will be added separately.",
+    ].join(". ");
+    const mergedPrompt = `${extractedPrompt}. Customize for poster: ${customizations}`;
+    imagePrompt = await improvePrompt(mergedPrompt, { type: "image", language: "en" });
+  } else {
+    imagePrompt = await generateImagePrompt(brandKit, copy, null, recommendation ?? null);
+    if (process.env.USE_FREEPIK_IMPROVE_PROMPT === "true") {
+      try {
+        imagePrompt = await improvePrompt(imagePrompt, {
+          type: "image",
+          language: "en",
+        });
+      } catch (err) {
+        console.warn("[runGeneration] Improve Prompt failed, using original:", err);
+      }
     }
   }
 

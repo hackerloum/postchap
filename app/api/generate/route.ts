@@ -27,14 +27,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: { brandKitId?: string; recommendation?: Recommendation | null };
+  let body: {
+    brandKitId?: string;
+    recommendation?: Recommendation | null;
+    templateId?: string | number | null;
+  };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  const { brandKitId, recommendation } = body;
+  const { brandKitId, recommendation, templateId } = body;
 
   if (!brandKitId) {
     return NextResponse.json(
@@ -68,7 +72,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await runGenerationForUser(uid, brandKitId, recommendation ?? null);
+    const result = await runGenerationForUser(
+      uid,
+      brandKitId,
+      recommendation ?? null,
+      templateId ?? null
+    );
     return NextResponse.json({
       success: true,
       posterId: result.posterId,
