@@ -30,9 +30,9 @@ export default function DashboardLayout({
             <Image
               src="/artmasterwordmarklogo-03-03.webp"
               alt="Art Master"
-              width={180}
-              height={47}
-              className="h-9 w-auto sm:h-10 object-contain object-left"
+              width={200}
+              height={52}
+              className="h-6 w-auto sm:h-10 object-contain object-left"
             />
           </Link>
           <nav className="hidden md:flex items-center gap-1">
