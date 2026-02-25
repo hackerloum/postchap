@@ -219,25 +219,25 @@ export function PricingModal({
                     ) : showMobileOption ? (
                       <div className="space-y-2">
                         {showMobileInput && (
-                          <div className="flex gap-2">
+                          <div className="flex flex-col gap-2 min-w-0">
                             <input
                               type="tel"
                               placeholder="07XX XXX XXX"
                               value={mobilePhone}
                               onChange={(e) => setMobilePhone(e.target.value)}
-                              className="flex-1 rounded-lg border border-border-default bg-bg-base px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
+                              className="w-full min-w-0 rounded-lg border border-border-default bg-bg-base px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
                             />
                             <Button
                               variant="primary"
-                              size="sm"
+                              className="w-full"
                               disabled={!mobilePhone.trim() || loadingPlan !== null}
                               onClick={() => handleSelectPlan(plan.id, "mobile", mobilePhone.trim())}
                             >
-                              {loadingPlan === plan.id ? "Sending…" : "Send push"}
+                              {loadingPlan === plan.id ? "Requesting payment…" : "Pay with mobile money"}
                             </Button>
                           </div>
                         )}
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 min-w-0">
                           <Button
                             variant={isPro ? "primary" : "secondary"}
                             className="flex-1 gap-1.5"

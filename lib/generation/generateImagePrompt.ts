@@ -44,6 +44,8 @@ Seedream 4.5 has superior typography rendering. Your prompt must describe the CO
 
 6. ADD QUALITY KEYWORDS — "Professional", "high-end advertising quality", "premium feel", "production-ready", "commercial quality", "no watermarks".
 
+6b. NO LOGOS OR EMBLEMS IN THE IMAGE — The image must NOT contain any logo, logo mark, emblem, crest, or brand symbol. Do not describe or request a logo in the scene. Do not put brand marks on objects (notebooks, devices, products, etc.). The user's real logo will be added separately on top of the image. Only the background, main visual, and text (headline/CTA) should appear.
+
 7. DESCRIBE THE SUBJECT CLEARLY — What is the main visual element (product, person, scene, abstract) and style (photography, illustration, flat design).
 
 8. CRITICAL — TEXT ON POSTER: Only the exact headline, tagline, and CTA phrase (e.g. "Start Learning") must appear as visible text. NEVER include hex color codes (e.g. #d1700w), technical IDs, or variable names on the poster. When describing colors for the image, use color NAMES only (e.g. orange, gold, dark brown), never hex codes in quotes or as button text.
@@ -108,7 +110,7 @@ Visual subject: Describe the main visual (scene, product, or abstract) relevant 
 Style: ${brandKit.tone ?? "professional"}, ${recommendation?.visualMood ?? "clean"}.
 Background: Describe the background (e.g. gradient, photo, minimal).
 Lighting: e.g. studio lighting, warm ambient glow, soft shadows.
-Quality: professional, high-end advertising, clean layout, production-ready, no watermarks. Full-bleed: the main background must extend to all four edges with no separate bottom panels or colored bars.
+Quality: professional, high-end advertising, clean layout, production-ready, no watermarks. Do NOT include any logo, emblem, or brand mark in the image — the user's logo is added separately. No logos on objects (notebooks, tablets, etc.). Full-bleed: the main background must extend to all four edges with no separate bottom panels or colored bars.
 
 Additional context:
 - Industry: ${industry}. Country/market: ${country}.

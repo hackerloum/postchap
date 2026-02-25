@@ -208,7 +208,7 @@ async function submitMystic(prompt: string): Promise<string> {
     },
     body: JSON.stringify({
       prompt,
-      negative_prompt: "blurry, ugly, distorted, low quality",
+      negative_prompt: "blurry, ugly, distorted, low quality, logo, logos, watermark, emblem, brand mark, text on objects",
       aspect_ratio: "square_1_1",
       model: "realism",
       generative_upscaler: false,

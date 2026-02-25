@@ -81,30 +81,33 @@ export async function compositePoster({
 
   const compositeInputs: sharp.OverlayOptions[] = [];
 
-  if (imageHasText) {
-    // Seedream already rendered text — only add logo; no bottom strip to avoid font glyph issues (boxes/U's on server)
-    if (brandKit.logoUrl) {
-      try {
-        const logoBuffer = await downloadImage(brandKit.logoUrl);
-        if (logoBuffer) {
-          const logoResized = await sharp(logoBuffer)
-            .resize(80, 80, {
-              fit: "contain",
-              background: { r: 0, g: 0, b: 0, alpha: 0 },
-            })
-            .png()
-            .toBuffer();
-          compositeInputs.push({
-            input: logoResized,
-            top: SIZE - 110,
-            left: SIZE - PADDING - 80,
-            blend: "over",
-          });
-        }
-      } catch (err) {
-        console.warn("[sharp] Logo composite failed:", err);
+  // User's logo: always composite in top-left (prominent) so it's clearly their brand, not any logo in the AI-generated image.
+  const LOGO_SIZE = 112;
+  if (brandKit.logoUrl) {
+    try {
+      const logoBuffer = await downloadImage(brandKit.logoUrl);
+      if (logoBuffer) {
+        const logoResized = await sharp(logoBuffer)
+          .resize(LOGO_SIZE, LOGO_SIZE, {
+            fit: "contain",
+            background: { r: 0, g: 0, b: 0, alpha: 0 },
+          })
+          .png()
+          .toBuffer();
+        compositeInputs.push({
+          input: logoResized,
+          top: PADDING,
+          left: PADDING,
+          blend: "over",
+        });
       }
+    } catch (err) {
+      console.warn("[sharp] Logo composite failed:", err);
     }
+  }
+
+  if (imageHasText) {
+    // Seedream already rendered text — no extra overlay; logo already added above
 
     const finalBuffer = await sharp(bg)
       .composite(compositeInputs)
@@ -270,22 +273,23 @@ export async function compositePoster({
     { input: svgBuffer, top: 0, left: 0 },
   ];
 
+  // User's logo: top-left, prominent (same as imageHasText path)
+  const LOGO_SIZE_FULL = 112;
   if (brandKit.logoUrl) {
     try {
       const logoBuffer = await downloadImage(brandKit.logoUrl);
       if (logoBuffer) {
         const logoResized = await sharp(logoBuffer)
-          .resize(80, 80, {
+          .resize(LOGO_SIZE_FULL, LOGO_SIZE_FULL, {
             fit: "contain",
             background: { r: 0, g: 0, b: 0, alpha: 0 },
           })
           .png()
           .toBuffer();
-
         fullOverlayInputs.push({
           input: logoResized,
-          top: SIZE - 110,
-          left: SIZE - PADDING - 80,
+          top: PADDING,
+          left: PADDING,
           blend: "over",
         });
       }
