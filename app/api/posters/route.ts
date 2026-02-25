@@ -22,12 +22,14 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const { searchParams } = new URL(request.url);
+    const limit = Math.min(parseInt(searchParams.get("limit") ?? "50", 10) || 50, 50);
     const snap = await getAdminDb()
       .collection("users")
       .doc(uid)
       .collection("posters")
       .orderBy("createdAt", "desc")
-      .limit(50)
+      .limit(limit)
       .get();
 
     const posters = snap.docs.map((doc) => {

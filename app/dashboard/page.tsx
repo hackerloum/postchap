@@ -22,6 +22,8 @@ async function getBrandKits(uid: string) {
         secondaryColor: data.secondaryColor,
         accentColor: data.accentColor,
         brandLocation: data.brandLocation,
+        tone: data.tone,
+        platforms: Array.isArray(data.platforms) ? data.platforms : undefined,
         _createdAt: createdAt,
       };
     });
@@ -47,24 +49,8 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="px-4 py-8 sm:px-6 max-w-5xl mx-auto">
-      <div className="mb-8">
-        <h1 className="font-semibold text-2xl text-text-primary tracking-tight">
-          Good morning
-        </h1>
-        <p className="mt-1 font-mono text-xs text-text-muted">
-          {new Date().toLocaleDateString("en-GB", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          })}
-        </p>
-      </div>
-
-      <div className="space-y-8">
-        <DashboardContent initialKits={brandKits} />
-      </div>
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      <DashboardContent initialKits={brandKits} />
     </div>
   );
 }

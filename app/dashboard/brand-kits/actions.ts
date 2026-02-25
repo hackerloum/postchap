@@ -15,6 +15,8 @@ export type BrandKitItem = {
   accentColor?: string;
   logoUrl?: string;
   brandLocation?: { country?: string };
+  tone?: string;
+  platforms?: string[];
 };
 
 async function getUidFromCookieOrToken(clientToken?: string | null): Promise<string | null> {
@@ -55,6 +57,8 @@ export async function getBrandKitsAction(clientToken?: string | null): Promise<B
         accentColor: data.accentColor,
         logoUrl: data.logoUrl,
         brandLocation: data.brandLocation,
+        tone: data.tone,
+        platforms: Array.isArray(data.platforms) ? data.platforms : undefined,
         _createdAt: createdAt,
       };
     });

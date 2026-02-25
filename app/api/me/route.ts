@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 
     const now = new Date();
     const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
-    const [monthCountSnap, totalCountSnap, scheduleSnap] = await Promise.all([
+    const [monthCountSnap, totalCountSnap, scheduleSnap, lastPosterSnap] = await Promise.all([
       db
         .collection("users")
         .doc(uid)
@@ -48,6 +48,13 @@ export async function GET(request: NextRequest) {
         .get(),
       db.collection("users").doc(uid).collection("posters").count().get(),
       db.collection("schedules").doc(uid).get(),
+      db
+        .collection("users")
+        .doc(uid)
+        .collection("posters")
+        .orderBy("createdAt", "desc")
+        .limit(1)
+        .get(),
     ]);
 
     const postersThisMonth = monthCountSnap?.data()?.count ?? 0;
@@ -55,6 +62,15 @@ export async function GET(request: NextRequest) {
     const totalPosters = totalCountSnap?.data()?.count ?? 0;
     const scheduleDoc = scheduleSnap?.exists ? scheduleSnap.data() : null;
     const hasSchedule = !!(scheduleDoc?.enabled && scheduleDoc?.brandKitId);
+    const lastPoster = lastPosterSnap?.docs?.[0];
+    const lastGeneratedAt = lastPoster?.data()?.createdAt?.toMillis?.() ?? null;
+    const nextRunAtRaw = scheduleDoc?.nextRunAt;
+    const nextScheduledAt =
+      nextRunAtRaw != null && typeof nextRunAtRaw?.toMillis === "function"
+        ? nextRunAtRaw.toMillis()
+        : typeof nextRunAtRaw === "number"
+          ? nextRunAtRaw
+          : null;
 
     return NextResponse.json({
       uid: data.uid ?? uid,
@@ -71,6 +87,8 @@ export async function GET(request: NextRequest) {
         postersLimit: postersLimit === -1 ? null : postersLimit,
         totalPosters,
         hasSchedule,
+        lastGeneratedAt,
+        nextScheduledAt,
       },
     });
   } catch (error) {
