@@ -11,6 +11,8 @@ function CheckoutContent() {
   const searchParams = useSearchParams();
   const plan = searchParams.get("plan") ?? "";
   const billing = searchParams.get("billing") ?? "monthly";
+  const from = searchParams.get("from");
+  const backHref = from === "dashboard" ? "/dashboard/upgrade" : "/pricing";
   const [status, setStatus] = useState<"idle" | "loading" | "redirect" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -91,7 +93,7 @@ function CheckoutContent() {
             {errorMessage}
           </p>
           <Link
-            href="/pricing"
+            href={backHref}
             className="inline-flex items-center gap-2 font-semibold text-[14px] text-accent hover:underline"
           >
             <ArrowLeft size={14} />

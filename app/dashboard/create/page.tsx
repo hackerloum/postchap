@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sparkles,
@@ -9,6 +9,11 @@ import {
   CheckCircle,
   Loader2,
   ArrowLeft,
+  LayoutTemplate,
+  ImagePlus,
+  Upload,
+  Link2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getClientIdToken } from "@/lib/auth-client";
@@ -39,15 +44,315 @@ interface BrandKit {
   brandLocation?: { country?: string; city?: string; continent?: string };
 }
 
+type GenerateMode = "ai" | "template" | "inspiration";
+
+interface TemplateItem {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  aspectRatio: string;
+  preview: { bg: string; accent: string; layout: string };
+}
+
+const TEMPLATES: TemplateItem[] = [
+  { id: "promo-bold", name: "Bold Promotion", category: "Promotion", description: "High-contrast layout for sales and offers", aspectRatio: "1:1", preview: { bg: "#111", accent: "#E8FF47", layout: "bold" } },
+  { id: "editorial", name: "Editorial", category: "Brand", description: "Clean typographic layout, minimal visuals", aspectRatio: "1:1", preview: { bg: "#1a1a1a", accent: "#ffffff", layout: "editorial" } },
+  { id: "product-hero", name: "Product Hero", category: "Product", description: "Large visual with product-focused copy", aspectRatio: "1:1", preview: { bg: "#0d1117", accent: "#4D9EFF", layout: "hero" } },
+  { id: "announcement", name: "Announcement", category: "Occasion", description: "Centered layout for events and launches", aspectRatio: "1:1", preview: { bg: "#14100a", accent: "#FF8C42", layout: "centered" } },
+  { id: "minimal-quote", name: "Minimal Quote", category: "Engagement", description: "Text-forward, quote or statement layout", aspectRatio: "1:1", preview: { bg: "#0f0f0f", accent: "#9D4EDD", layout: "quote" } },
+  { id: "story-vertical", name: "Story Format", category: "Brand", description: "Vertical layout for Stories and TikTok", aspectRatio: "9:16", preview: { bg: "#0a0a0a", accent: "#E8FF47", layout: "story" } },
+];
+
+function TemplateSelector({
+  selectedTemplate,
+  onSelect,
+  brandKit,
+}: {
+  selectedTemplate: TemplateItem | null;
+  onSelect: (t: TemplateItem) => void;
+  brandKit: BrandKit | null;
+}) {
+  const categories = ["All", ...Array.from(new Set(TEMPLATES.map((t) => t.category)))];
+  const [activeCategory, setActiveCategory] = useState("All");
+  const filtered = activeCategory === "All" ? TEMPLATES : TEMPLATES.filter((t) => t.category === activeCategory);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2 flex-wrap">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            type="button"
+            onClick={() => setActiveCategory(cat)}
+            className={`font-mono text-[11px] px-3 py-1.5 rounded-full border transition-all duration-150 ${
+              activeCategory === cat ? "border-accent bg-accent/10 text-accent" : "border-border-default text-text-muted hover:border-border-strong"
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {filtered.map((template) => {
+          const isSelected = selectedTemplate?.id === template.id;
+          return (
+            <button
+              key={template.id}
+              type="button"
+              onClick={() => onSelect(template)}
+              className={`text-left rounded-xl border overflow-hidden transition-all duration-150 group ${
+                isSelected ? "border-accent ring-1 ring-accent/20" : "border-border-default hover:border-border-strong"
+              }`}
+            >
+              <div className="aspect-square relative overflow-hidden" style={{ background: template.preview.bg }}>
+                {template.preview.layout === "bold" && (
+                  <div className="absolute inset-0 p-3 flex flex-col justify-end">
+                    <div className="h-1 w-8 rounded mb-2" style={{ background: template.preview.accent }} />
+                    <div className="h-5 w-full rounded mb-1.5 bg-white/80" />
+                    <div className="h-3 w-3/4 rounded bg-white/40" />
+                    <div className="mt-3 h-7 w-20 rounded-lg" style={{ background: template.preview.accent }} />
+                  </div>
+                )}
+                {template.preview.layout === "editorial" && (
+                  <div className="absolute inset-0 p-4 flex flex-col justify-between">
+                    <div className="h-2 w-12 rounded bg-white/30" />
+                    <div className="space-y-2">
+                      <div className="h-6 w-4/5 rounded bg-white/80" />
+                      <div className="h-6 w-3/5 rounded bg-white/50" />
+                      <div className="h-3 w-full rounded bg-white/25 mt-3" />
+                      <div className="h-3 w-4/5 rounded bg-white/25" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-1 w-6 rounded" style={{ background: template.preview.accent }} />
+                      <div className="h-2 w-16 rounded bg-white/30" />
+                    </div>
+                  </div>
+                )}
+                {template.preview.layout === "hero" && (
+                  <div className="absolute inset-0">
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/80" />
+                    <div className="absolute bottom-3 left-3 right-3">
+                      <div className="h-4 w-3/4 rounded bg-white/90 mb-1.5" />
+                      <div className="h-3 w-1/2 rounded bg-white/50" />
+                    </div>
+                  </div>
+                )}
+                {template.preview.layout === "centered" && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4">
+                    <div className="w-8 h-8 rounded-full border-2" style={{ borderColor: template.preview.accent }} />
+                    <div className="h-4 w-3/4 rounded bg-white/80" />
+                    <div className="h-3 w-1/2 rounded bg-white/40" />
+                    <div className="h-6 w-20 rounded-full mt-2" style={{ background: template.preview.accent }} />
+                  </div>
+                )}
+                {template.preview.layout === "quote" && (
+                  <div className="absolute inset-0 flex flex-col justify-center p-5">
+                    <div className="text-[32px] font-serif leading-none mb-2" style={{ color: template.preview.accent, opacity: 0.3 }}>&quot;</div>
+                    <div className="space-y-1.5">
+                      <div className="h-3 w-full rounded bg-white/70" />
+                      <div className="h-3 w-4/5 rounded bg-white/70" />
+                      <div className="h-3 w-3/5 rounded bg-white/70" />
+                    </div>
+                    <div className="mt-4 h-2 w-12 rounded" style={{ background: template.preview.accent }} />
+                  </div>
+                )}
+                {template.preview.layout === "story" && (
+                  <div className="absolute inset-0 p-3 flex flex-col justify-between">
+                    <div className="h-2 w-16 rounded bg-white/30" />
+                    <div className="space-y-2">
+                      <div className="h-5 w-full rounded bg-white/80" />
+                      <div className="h-5 w-3/4 rounded bg-white/50" />
+                      <div className="h-6 w-24 rounded-lg mt-2" style={{ background: template.preview.accent }} />
+                    </div>
+                  </div>
+                )}
+                {isSelected && (
+                  <div className="absolute inset-0 bg-accent/10 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center">
+                      <CheckCircle size={16} className="text-black" />
+                    </div>
+                  </div>
+                )}
+                <div className="absolute top-2 right-2">
+                  <span className="font-mono text-[9px] text-white/60 bg-black/40 backdrop-blur-sm rounded px-1.5 py-0.5">{template.aspectRatio}</span>
+                </div>
+              </div>
+              <div className={`px-3 py-2.5 border-t ${isSelected ? "border-accent/20 bg-accent/5" : "border-border-subtle bg-bg-elevated"}`}>
+                <div className="flex items-center justify-between gap-1">
+                  <p className="font-semibold text-[12px] text-text-primary truncate">{template.name}</p>
+                  <span className="font-mono text-[9px] text-text-muted bg-bg-base border border-border-default rounded-full px-1.5 py-0.5 shrink-0">{template.category}</span>
+                </div>
+                <p className="font-mono text-[10px] text-text-muted mt-0.5 leading-relaxed line-clamp-1">{template.description}</p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function InspirationInput({
+  value,
+  onUrlChange,
+  onFileChange,
+  onSelect,
+}: {
+  value: string;
+  onUrlChange: (v: string) => void;
+  onFileChange: (f: File | null) => void;
+  onSelect: () => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+
+  function handleFile(file: File) {
+    onFileChange(file);
+    const url = URL.createObjectURL(file);
+    setPreview(url);
+    onSelect();
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-bg-surface border border-border-default rounded-2xl p-5">
+        <p className="font-semibold text-[14px] text-text-primary mb-1">Match a visual style</p>
+        <p className="font-mono text-[12px] text-text-muted leading-relaxed">
+          Upload a poster or paste a link. We&apos;ll analyze the composition, color mood, and layout — then apply that style to your brand and today&apos;s content.
+        </p>
+      </div>
+      <div className="bg-bg-surface border border-border-default rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-border-subtle">
+          <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">Upload image</p>
+        </div>
+        <div className="p-5">
+          {preview ? (
+            <div className="relative rounded-xl overflow-hidden border border-border-default">
+              <img src={preview} alt="Inspiration" className="w-full max-h-64 object-contain bg-bg-elevated" />
+              <button
+                type="button"
+                onClick={() => {
+                  setPreview(null);
+                  onFileChange(null);
+                  onSelect();
+                }}
+                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-bg-base/80 backdrop-blur border border-border-default flex items-center justify-center text-text-muted hover:text-text-primary transition-colors"
+              >
+                <X size={13} />
+              </button>
+              <div className="absolute bottom-2 left-2">
+                <div className="bg-success/20 border border-success/30 rounded-full px-2.5 py-1 flex items-center gap-1.5">
+                  <CheckCircle size={10} className="text-success" />
+                  <span className="font-mono text-[10px] text-success">Style will be analyzed</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOver(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file?.type.startsWith("image/")) handleFile(file);
+              }}
+              onClick={() => fileRef.current?.click()}
+              className={`flex flex-col items-center justify-center gap-3 py-10 rounded-xl border-2 border-dashed cursor-pointer transition-all duration-150 ${
+                dragOver ? "border-accent bg-accent/5" : "border-border-default hover:border-border-strong hover:bg-bg-elevated"
+              }`}
+            >
+              <div className={`w-10 h-10 rounded-xl border-2 border-dashed flex items-center justify-center transition-colors ${dragOver ? "border-accent" : "border-border-default"}`}>
+                <Upload size={18} className={dragOver ? "text-accent" : "text-text-muted"} />
+              </div>
+              <div className="text-center">
+                <p className="font-semibold text-[13px] text-text-primary">Drop image here</p>
+                <p className="font-mono text-[11px] text-text-muted mt-1">or click to browse · PNG, JPG, WEBP</p>
+              </div>
+            </div>
+          )}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFile(file);
+            }}
+          />
+        </div>
+      </div>
+      <div className="bg-bg-surface border border-border-default rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-border-subtle">
+          <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted">Or paste a URL</p>
+        </div>
+        <div className="p-5">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Link2 size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+              <input
+                type="url"
+                value={value}
+                onChange={(e) => {
+                  onUrlChange(e.target.value);
+                  if (e.target.value) onSelect();
+                }}
+                placeholder="https://example.com/poster.jpg"
+                className="w-full bg-bg-elevated border border-border-default rounded-xl pl-9 pr-4 py-3 text-[13px] text-text-primary placeholder:text-text-muted outline-none focus:border-accent transition-colors min-h-[44px]"
+              />
+            </div>
+            {value && (
+              <button
+                type="button"
+                onClick={() => onUrlChange("")}
+                className="w-11 h-11 rounded-xl bg-bg-elevated border border-border-default flex items-center justify-center text-text-muted hover:text-text-primary transition-colors"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          <p className="font-mono text-[10px] text-text-muted mt-2">Direct link to a poster image you want to match</p>
+        </div>
+      </div>
+      <div className="bg-bg-surface border border-border-default rounded-2xl p-5">
+        <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mb-3">What gets analyzed</p>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { label: "Color mood", desc: "Warm, cool, vibrant, muted" },
+            { label: "Composition", desc: "Layout, hierarchy, spacing" },
+            { label: "Visual style", desc: "Photo, illustration, minimal" },
+            { label: "Typography feel", desc: "Bold, elegant, playful" },
+          ].map((item) => (
+            <div key={item.label} className="flex items-start gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-accent mt-1.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-[12px] text-text-primary">{item.label}</p>
+                <p className="font-mono text-[10px] text-text-muted">{item.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CreatePage() {
   const router = useRouter();
 
+  const [mode, setMode] = useState<GenerateMode>("ai");
   const [brandKits, setBrandKits] = useState<BrandKit[]>([]);
   const [selectedKit, setSelectedKit] = useState<BrandKit | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [selectedRec, setSelectedRec] = useState<Recommendation | null>(null);
   const [customTopic, setCustomTopic] = useState("");
   const [useCustom, setUseCustom] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateItem | null>(null);
+  const [inspirationUrl, setInspirationUrl] = useState("");
+  const [inspirationFile, setInspirationFile] = useState<File | null>(null);
   const [loadingKits, setLoadingKits] = useState(true);
   const [loadingRecs, setLoadingRecs] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -62,6 +367,8 @@ export default function CreatePage() {
   const [platformFormatId, setPlatformFormatId] = useState<string>(PLATFORM_FORMATS[0].id);
   const [suggestedSearches, setSuggestedSearches] = useState<string[]>([]);
   const [loadingSuggestedSearches, setLoadingSuggestedSearches] = useState(false);
+  const [useTemplate, setUseTemplate] = useState(false);
+  const [useInspiration, setUseInspiration] = useState(false);
   const [inspirationImageUrl, setInspirationImageUrl] = useState("");
   const [inspirationPreview, setInspirationPreview] = useState<string | null>(null);
   const [uploadingInspiration, setUploadingInspiration] = useState(false);
@@ -235,43 +542,87 @@ export default function CreatePage() {
     }
   }
 
+  async function handleInspirationFile(file: File | null) {
+    setInspirationFile(file);
+    if (!file) {
+      setInspirationImageUrl("");
+      return;
+    }
+    setUploadingInspiration(true);
+    try {
+      const token = await getToken();
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/upload/inspiration", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { error?: string }).error || "Upload failed");
+      }
+      const data = (await res.json()) as { url?: string };
+      setInspirationImageUrl(data.url ?? "");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
+      setInspirationFile(null);
+    } finally {
+      setUploadingInspiration(false);
+    }
+  }
+
   async function handleGenerate() {
     if (!selectedKit) {
       toast.error("Please select a brand kit");
       return;
     }
-    if (!useCustom && !selectedRec) {
-      toast.error("Please select a content theme or write your own");
-      return;
+    if (mode === "ai") {
+      if (!selectedRec && !(useCustom && customTopic.trim())) {
+        toast.error("Select a recommendation or write a brief");
+        return;
+      }
     }
-    if (useCustom && !customTopic.trim()) {
-      toast.error("Please describe what you want to create");
-      return;
+    if (mode === "template") {
+      if (!selectedTemplate) {
+        toast.error("Select a template to continue");
+        return;
+      }
+    }
+    if (mode === "inspiration") {
+      const hasUrl = inspirationUrl.trim().length > 0;
+      const hasUpload = inspirationImageUrl.trim().length > 0;
+      if (!hasUrl && !hasUpload) {
+        toast.error("Upload an image or paste a URL");
+        return;
+      }
     }
 
     setGenerating(true);
-    // Yield so React can paint loading state before generation work runs
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     try {
       const token = await getToken();
 
+      const recommendationPayload =
+        mode === "ai"
+          ? useCustom
+            ? { theme: "Custom", topic: customTopic, description: customTopic, suggestedHeadline: "", suggestedCta: "", visualMood: "", hashtags: [] }
+            : selectedRec
+          : null;
+
+      const inspirationImageUrlValue =
+        mode === "inspiration" ? (inspirationUrl.trim() || inspirationImageUrl.trim() || null) : null;
+
       const payload = {
         brandKitId: selectedKit.id,
+        mode,
         platformFormatId,
-        recommendation: useCustom
-          ? {
-              theme: "Custom",
-              topic: customTopic,
-              description: customTopic,
-              suggestedHeadline: "",
-              suggestedCta: "",
-              visualMood: "",
-              hashtags: [],
-            }
-          : selectedRec,
-        ...(selectedTemplateId != null ? { templateId: selectedTemplateId } : {}),
-        ...(inspirationImageUrl.trim() ? { inspirationImageUrl: inspirationImageUrl.trim() } : {}),
+        recommendation: recommendationPayload,
+        customTopic: mode === "ai" && useCustom ? customTopic : null,
+        templateId: mode === "template" ? selectedTemplate?.id ?? null : null,
+        templateName: mode === "template" ? selectedTemplate?.name ?? null : null,
+        ...(inspirationImageUrlValue ? { inspirationImageUrl: inspirationImageUrlValue } : {}),
       };
 
       setGenerationStep("Analyzing your brand...");
@@ -281,9 +632,9 @@ export default function CreatePage() {
       await new Promise((r) => setTimeout(r, 600));
 
       setGenerationStep(
-        inspirationImageUrl.trim()
+        mode === "inspiration" && (inspirationUrl.trim() || inspirationImageUrl.trim())
           ? "Using your image as style reference..."
-          : selectedTemplateId != null
+          : mode === "template"
             ? "Using your chosen style..."
             : "Generating background image..."
       );
@@ -388,7 +739,7 @@ export default function CreatePage() {
         </div>
       )}
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-8 pb-6">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-8 pb-2">
         <div className="flex items-center justify-between">
           <div>
             <button
@@ -406,9 +757,34 @@ export default function CreatePage() {
             </p>
           </div>
         </div>
+        {/* Generation mode tabs — directly under header */}
+        <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mt-6 mb-2">
+          Generation mode
+        </p>
+        <div className="flex items-center gap-1 bg-bg-surface border border-border-default rounded-xl p-1 w-full max-w-md">
+          {(
+            [
+              { id: "ai" as GenerateMode, label: "AI Pick", icon: <Sparkles size={13} /> },
+              { id: "template" as GenerateMode, label: "Templates", icon: <LayoutTemplate size={13} /> },
+              { id: "inspiration" as GenerateMode, label: "Inspiration", icon: <ImagePlus size={13} /> },
+            ] as const
+          ).map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setMode(tab.id)}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-150 ${
+                mode === tab.id ? "bg-bg-elevated text-text-primary shadow-sm" : "text-text-muted hover:text-text-secondary"
+              }`}
+            >
+              <span className={mode === tab.id ? "text-accent" : "text-text-muted"}>{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 pb-24 grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-24 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           {/* 1. Platform selector */}
           <div className="bg-bg-surface border border-border-default rounded-2xl p-5">
@@ -443,6 +819,8 @@ export default function CreatePage() {
             </div>
           </div>
 
+          {mode === "ai" && (
+            <>
           {/* 2. AI Recommendations */}
           <div className="bg-bg-surface border border-border-default rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle">
@@ -581,6 +959,34 @@ export default function CreatePage() {
               </div>
             </div>
           </div>
+            </>
+          )}
+
+          {mode === "template" && (
+            <TemplateSelector
+              selectedTemplate={selectedTemplate}
+              onSelect={(t) => {
+                setSelectedTemplate(t);
+                setSelectedRec(null);
+                setUseCustom(false);
+                setUseTemplate(true);
+              }}
+              brandKit={selectedKit}
+            />
+          )}
+
+          {mode === "inspiration" && (
+            <InspirationInput
+              value={inspirationUrl}
+              onUrlChange={setInspirationUrl}
+              onFileChange={handleInspirationFile}
+              onSelect={() => {
+                setUseInspiration(true);
+                setSelectedRec(null);
+                setUseTemplate(false);
+              }}
+            />
+          )}
         </div>
 
         {/* Right sidebar */}
@@ -641,17 +1047,43 @@ export default function CreatePage() {
 
           {/* Desktop: selection summary + generate button */}
           <div className="hidden lg:block sticky top-6 space-y-3">
-            {(selectedRec || (useCustom && customTopic)) && (
+            {(mode === "ai" && (selectedRec || (useCustom && customTopic))) ||
+            (mode === "template" && selectedTemplate) ||
+            (mode === "inspiration" && (inspirationUrl.trim() || inspirationFile || inspirationImageUrl.trim())) ? (
               <div className="bg-bg-surface border border-border-default rounded-2xl p-4 space-y-2 animate-fade-up">
-                <p className="font-mono text-[10px] uppercase tracking-wider text-accent">Selected</p>
-                <p className="font-semibold text-[13px] text-text-primary leading-tight">
-                  {useCustom ? "Custom brief" : selectedRec?.theme}
+                <p className="font-mono text-[10px] uppercase tracking-wider text-accent">
+                  {mode === "ai" ? "AI recommendation" : mode === "template" ? "Template selected" : "Inspiration set"}
                 </p>
-                <p className="font-mono text-[11px] text-text-muted leading-relaxed line-clamp-2">
-                  {useCustom ? customTopic : selectedRec?.topic}
-                </p>
+                {mode === "ai" && selectedRec && (
+                  <>
+                    <p className="font-semibold text-[13px] text-text-primary leading-tight">{selectedRec.theme}</p>
+                    <p className="font-mono text-[11px] text-text-muted leading-relaxed line-clamp-2">{selectedRec.topic}</p>
+                  </>
+                )}
+                {mode === "ai" && useCustom && customTopic && (
+                  <>
+                    <p className="font-semibold text-[13px] text-text-primary leading-tight">Custom brief</p>
+                    <p className="font-mono text-[11px] text-text-muted leading-relaxed line-clamp-2">{customTopic}</p>
+                  </>
+                )}
+                {mode === "template" && selectedTemplate && (
+                  <>
+                    <p className="font-semibold text-[13px] text-text-primary leading-tight">{selectedTemplate.name}</p>
+                    <p className="font-mono text-[11px] text-text-muted">
+                      {selectedTemplate.category} · {selectedTemplate.aspectRatio}
+                    </p>
+                  </>
+                )}
+                {mode === "inspiration" && (inspirationUrl.trim() || inspirationFile || inspirationImageUrl.trim()) && (
+                  <>
+                    <p className="font-semibold text-[13px] text-text-primary leading-tight">Style reference set</p>
+                    <p className="font-mono text-[11px] text-text-muted">
+                      {inspirationFile ? inspirationFile.name : "URL provided"}
+                    </p>
+                  </>
+                )}
                 {selectedPlatform && (
-                  <div className="flex items-center gap-1.5 pt-1">
+                  <div className="flex items-center gap-1.5 pt-1 border-t border-border-subtle mt-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-accent" />
                     <span className="font-mono text-[10px] text-text-muted">
                       {selectedPlatform.label.replace(/\s*\([^)]*\)/g, "").trim()} · {platformDisplaySub[selectedPlatform.id] ?? ""}
@@ -659,14 +1091,16 @@ export default function CreatePage() {
                   </div>
                 )}
               </div>
-            )}
+            ) : null}
             <button
               type="button"
               onClick={handleGenerate}
               disabled={
                 generating ||
                 !selectedPlatform ||
-                (!selectedRec && !(useCustom && customTopic.trim()))
+                (mode === "ai" && !selectedRec && !(useCustom && customTopic.trim())) ||
+                (mode === "template" && !selectedTemplate) ||
+                (mode === "inspiration" && !inspirationUrl.trim() && !inspirationImageUrl.trim())
               }
               className="w-full bg-accent text-black font-semibold text-[14px] py-3.5 rounded-xl hover:bg-accent-dim transition-all duration-200 active:scale-[0.99] min-h-[52px] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
@@ -682,10 +1116,20 @@ export default function CreatePage() {
                 </>
               )}
             </button>
-            {!selectedRec && !(useCustom && customTopic) && (
-              <p className="font-mono text-[10px] text-text-muted text-center">Select a recommendation or write a brief</p>
+            {!(mode === "ai" && (selectedRec || (useCustom && customTopic))) &&
+              !(mode === "template" && selectedTemplate) &&
+              !(mode === "inspiration" && (inspirationUrl.trim() || inspirationImageUrl.trim())) && (
+              <p className="font-mono text-[10px] text-text-muted text-center">
+                {mode === "ai"
+                  ? "Select a recommendation or write a brief"
+                  : mode === "template"
+                    ? "Select a template"
+                    : "Upload an image or paste a URL"}
+              </p>
             )}
-            {(selectedRec || (useCustom && customTopic)) && (
+            {((mode === "ai" && (selectedRec || (useCustom && customTopic))) ||
+              (mode === "template" && selectedTemplate) ||
+              (mode === "inspiration" && (inspirationUrl.trim() || inspirationImageUrl.trim()))) && (
               <p className="font-mono text-[10px] text-text-muted text-center">Takes 30–60 seconds</p>
             )}
           </div>
@@ -700,7 +1144,9 @@ export default function CreatePage() {
           disabled={
             generating ||
             !selectedPlatform ||
-            (!selectedRec && !(useCustom && customTopic.trim()))
+            (mode === "ai" && !selectedRec && !(useCustom && customTopic.trim())) ||
+            (mode === "template" && !selectedTemplate) ||
+            (mode === "inspiration" && !inspirationUrl.trim() && !inspirationImageUrl.trim())
           }
           className="w-full bg-accent text-black font-semibold text-[15px] py-4 rounded-xl hover:bg-accent-dim transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[56px]"
         >

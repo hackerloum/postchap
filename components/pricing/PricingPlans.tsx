@@ -399,7 +399,7 @@ export function PricingPlans({
                     href={
                       price === 0
                         ? "/signup"
-                        : `/checkout?plan=${plan.id}&billing=${billing}`
+                        : `/checkout?plan=${plan.id}&billing=${billing}${context === "dashboard" ? "&from=dashboard" : ""}`
                     }
                     className="flex items-center justify-center gap-2 bg-accent text-black font-semibold text-[14px] py-3.5 rounded-xl hover:bg-accent-dim transition-all active:scale-[0.99] min-h-[52px]"
                   >
@@ -411,7 +411,7 @@ export function PricingPlans({
                     href={
                       price === 0
                         ? "/signup"
-                        : `/checkout?plan=${plan.id}&billing=${billing}`
+                        : `/checkout?plan=${plan.id}&billing=${billing}${context === "dashboard" ? "&from=dashboard" : ""}`
                     }
                     className="flex items-center justify-center gap-2 bg-bg-elevated border border-border-default text-text-primary font-semibold text-[14px] py-3.5 rounded-xl hover:border-border-strong hover:bg-bg-base transition-all min-h-[52px]"
                   >

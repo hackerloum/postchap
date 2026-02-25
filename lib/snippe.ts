@@ -16,6 +16,7 @@ export interface SnippeCustomer {
   state?: string;
   postcode?: string;
   country?: string;
+  phone_number?: string;
 }
 
 export interface CreateCardPaymentParams {
@@ -24,6 +25,8 @@ export interface CreateCardPaymentParams {
   redirect_url: string;
   cancel_url: string;
   customer: SnippeCustomer;
+  /** Required by Snippe for card payments. Use profile phone or placeholder. */
+  phone_number: string;
   webhook_url: string;
   metadata?: Record<string, string>;
   idempotencyKey: string;
@@ -68,6 +71,7 @@ export async function createCardPayment(
         redirect_url: params.redirect_url,
         cancel_url: params.cancel_url,
       },
+      phone_number: params.phone_number.replace(/\D/g, ""),
       customer: {
         firstname: params.customer.firstname,
         lastname: params.customer.lastname,

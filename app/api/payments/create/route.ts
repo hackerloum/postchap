@@ -132,12 +132,26 @@ export async function POST(request: NextRequest) {
       );
       paymentData = { reference: res.reference };
     } else {
+      const profilePhone = (userData.phoneNumber as string) ?? "";
+      const cardPhone = (body.phone_number ?? profilePhone).trim().replace(/\D/g, "");
+      let phone_number: string;
+      if (cardPhone.length >= 9) {
+        phone_number =
+          countryCode === "TZ"
+            ? (cardPhone.startsWith("255") ? cardPhone : cardPhone.replace(/^0/, "255"))
+            : cardPhone.startsWith("1") && cardPhone.length >= 11
+              ? cardPhone
+              : `1${cardPhone}`;
+      } else {
+        phone_number = countryCode === "TZ" ? "255000000000" : "10000000000";
+      }
       paymentData = await createCardPayment(
         {
           amount: currency === "USD" ? amount : amount,
           currency,
           redirect_url: redirectUrl,
           cancel_url: cancelUrl,
+          phone_number,
           customer: {
             ...customer,
             address: "N/A",
