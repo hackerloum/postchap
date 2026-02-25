@@ -13,9 +13,11 @@ import {
   Loader2,
   Search,
   Image as ImageIcon,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getClientIdToken } from "@/lib/auth-client";
+import { PLATFORM_FORMATS } from "@/lib/generation/platformFormats";
 
 interface Recommendation {
   id: string;
@@ -55,7 +57,16 @@ export default function CreatePage() {
   const [templateSearch, setTemplateSearch] = useState("");
   const [templateResults, setTemplateResults] = useState<{ id: number | string; title?: string; thumbnail?: string }[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [loadingMoreTemplates, setLoadingMoreTemplates] = useState(false);
+  const [templatePage, setTemplatePage] = useState(1);
+  const [templateTotal, setTemplateTotal] = useState<number | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | string | null>(null);
+  const [platformFormatId, setPlatformFormatId] = useState<string>(PLATFORM_FORMATS[0].id);
+  const [suggestedSearches, setSuggestedSearches] = useState<string[]>([]);
+  const [loadingSuggestedSearches, setLoadingSuggestedSearches] = useState(false);
+  const [inspirationImageUrl, setInspirationImageUrl] = useState("");
+  const [inspirationPreview, setInspirationPreview] = useState<string | null>(null);
+  const [uploadingInspiration, setUploadingInspiration] = useState(false);
 
   useEffect(() => {
     loadBrandKits();
@@ -64,6 +75,14 @@ export default function CreatePage() {
   useEffect(() => {
     if (selectedKit) {
       loadRecommendations(selectedKit.id);
+    }
+  }, [selectedKit?.id]);
+
+  useEffect(() => {
+    if (selectedKit?.id) {
+      loadSuggestedSearches(selectedKit.id);
+    } else {
+      setSuggestedSearches([]);
     }
   }, [selectedKit?.id]);
 
@@ -93,23 +112,101 @@ export default function CreatePage() {
     }
   }
 
+  const TEMPLATE_PAGE_SIZE = 24;
+
   async function searchTemplates() {
     const term = templateSearch.trim() || "social media poster";
     setLoadingTemplates(true);
     setTemplateResults([]);
+    setTemplatePage(1);
+    setTemplateTotal(null);
     try {
       const token = await getToken();
       const res = await fetch(
-        `/api/templates?term=${encodeURIComponent(term)}&limit=12&page=1`,
+        `/api/templates?term=${encodeURIComponent(term)}&limit=${TEMPLATE_PAGE_SIZE}&page=1`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!res.ok) throw new Error("Search failed");
       const data = await res.json();
       setTemplateResults(data.items ?? []);
+      setTemplateTotal(data.total ?? null);
     } catch {
       toast.error("Could not search templates");
     } finally {
       setLoadingTemplates(false);
+    }
+  }
+
+  async function loadSuggestedSearches(brandKitId: string) {
+    setLoadingSuggestedSearches(true);
+    setSuggestedSearches([]);
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/templates/suggest-search", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ brandKitId }),
+      });
+      if (!res.ok) throw new Error("Suggestions failed");
+      const data = await res.json();
+      setSuggestedSearches(Array.isArray(data.suggestions) ? data.suggestions : []);
+    } catch {
+      setSuggestedSearches([]);
+    } finally {
+      setLoadingSuggestedSearches(false);
+    }
+  }
+
+  function applySuggestedSearch(phrase: string) {
+    setTemplateSearch(phrase);
+    setTemplateResults([]);
+    setTemplatePage(1);
+    setTemplateTotal(null);
+    const run = async () => {
+      setLoadingTemplates(true);
+      try {
+        const token = await getToken();
+        const res = await fetch(
+          `/api/templates?term=${encodeURIComponent(phrase)}&limit=24&page=1`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (!res.ok) throw new Error("Search failed");
+        const data = await res.json();
+        setTemplateResults(data.items ?? []);
+        setTemplateTotal(data.total ?? null);
+      } catch {
+        toast.error("Could not search templates");
+      } finally {
+        setLoadingTemplates(false);
+      }
+    };
+    run();
+  }
+
+  async function loadMoreTemplates() {
+    const term = templateSearch.trim() || "social media poster";
+    const nextPage = templatePage + 1;
+    setLoadingMoreTemplates(true);
+    try {
+      const token = await getToken();
+      const res = await fetch(
+        `/api/templates?term=${encodeURIComponent(term)}&limit=${TEMPLATE_PAGE_SIZE}&page=${nextPage}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!res.ok) throw new Error("Load more failed");
+      const data = await res.json();
+      const newItems = data.items ?? [];
+      setTemplateResults((prev) => [...prev, ...newItems]);
+      setTemplatePage(nextPage);
+      setTemplateTotal(data.total ?? null);
+      if (newItems.length === 0) toast.info("No more templates for this search.");
+    } catch {
+      toast.error("Could not load more templates");
+    } finally {
+      setLoadingMoreTemplates(false);
     }
   }
 
@@ -163,7 +260,7 @@ export default function CreatePage() {
 
       const payload = {
         brandKitId: selectedKit.id,
-        posterSize: "1080x1080",
+        platformFormatId,
         recommendation: useCustom
           ? {
               theme: "Custom",
@@ -176,6 +273,7 @@ export default function CreatePage() {
             }
           : selectedRec,
         ...(selectedTemplateId != null ? { templateId: selectedTemplateId } : {}),
+        ...(inspirationImageUrl.trim() ? { inspirationImageUrl: inspirationImageUrl.trim() } : {}),
       };
 
       setGenerationStep("Analyzing your brand...");
@@ -185,9 +283,11 @@ export default function CreatePage() {
       await new Promise((r) => setTimeout(r, 600));
 
       setGenerationStep(
-        selectedTemplateId != null
-          ? "Using your chosen style..."
-          : "Generating background image..."
+        inspirationImageUrl.trim()
+          ? "Using your image as style reference..."
+          : selectedTemplateId != null
+            ? "Using your chosen style..."
+            : "Generating background image..."
       );
 
       const res = await fetch("/api/generate", {
@@ -286,6 +386,33 @@ export default function CreatePage() {
           <p className="text-[12px] text-text-secondary mb-3">
             Search for a layout you like — we&apos;ll match the style and apply your brand and copy.
           </p>
+          {selectedKit && (
+            <div className="mb-3">
+              <p className="font-mono text-[11px] uppercase tracking-widest text-text-muted mb-2">
+                Suggested for {selectedKit.brandName}
+              </p>
+              {loadingSuggestedSearches ? (
+                <div className="flex items-center gap-2 text-text-muted text-sm">
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>Finding template ideas for your brand...</span>
+                </div>
+              ) : suggestedSearches.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {suggestedSearches.map((phrase) => (
+                    <button
+                      key={phrase}
+                      type="button"
+                      onClick={() => applySuggestedSearch(phrase)}
+                      disabled={loadingTemplates}
+                      className="px-3 py-1.5 rounded-lg border border-border-default bg-bg-surface text-sm text-text-secondary hover:bg-bg-elevated hover:border-accent/50 hover:text-text-primary transition-colors disabled:opacity-50"
+                    >
+                      {phrase}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          )}
           <div className="flex gap-2 flex-wrap mb-3">
             <input
               type="text"
@@ -306,48 +433,76 @@ export default function CreatePage() {
             </button>
           </div>
           {templateResults.length > 0 && (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-              {templateResults.map((t) => {
-                const isSelected = selectedTemplateId != null && String(t.id) === String(selectedTemplateId);
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setSelectedTemplateId(isSelected ? null : t.id)}
-                    className={`
-                      relative aspect-square rounded-xl border-2 overflow-hidden bg-bg-elevated
-                      transition-all duration-150
-                      ${isSelected
-                        ? "border-accent ring-2 ring-accent/30"
-                        : "border-border-default hover:border-border-strong"}
-                    `}
-                  >
-                    {t.thumbnail ? (
-                      <img
-                        src={t.thumbnail}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <ImageIcon size={24} className="text-text-muted" />
-                      </div>
-                    )}
-                    {isSelected && (
-                      <>
-                        <div className="absolute inset-0 bg-accent/25" />
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-                          <CheckCircle size={32} className="text-accent drop-shadow-lg" strokeWidth={2.5} />
-                          <span className="font-mono text-[10px] font-semibold text-white drop-shadow-lg uppercase tracking-wider">
-                            Selected
-                          </span>
+            <>
+              <p className="text-[12px] text-text-muted mb-2">
+                Click any style to select it. First result not right? Scroll down and pick another, or load more.
+              </p>
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                {templateResults.map((t) => {
+                  const isSelected = selectedTemplateId != null && String(t.id) === String(selectedTemplateId);
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => {
+                      if (isSelected) setSelectedTemplateId(null);
+                      else {
+                        setSelectedTemplateId(t.id);
+                        setInspirationImageUrl("");
+                        setInspirationPreview(null);
+                      }
+                    }}
+                      className={`
+                        relative aspect-square rounded-xl border-2 overflow-hidden bg-bg-elevated
+                        transition-all duration-150
+                        ${isSelected
+                          ? "border-accent ring-2 ring-accent/30"
+                          : "border-border-default hover:border-border-strong"}
+                      `}
+                    >
+                      {t.thumbnail ? (
+                        <img
+                          src={t.thumbnail}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <ImageIcon size={24} className="text-text-muted" />
                         </div>
-                      </>
+                      )}
+                      {isSelected && (
+                        <>
+                          <div className="absolute inset-0 bg-accent/25" />
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+                            <CheckCircle size={32} className="text-accent drop-shadow-lg" strokeWidth={2.5} />
+                            <span className="font-mono text-[10px] font-semibold text-white drop-shadow-lg uppercase tracking-wider">
+                              Selected
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              {templateResults.length > 0 && (templateTotal == null || templateResults.length < templateTotal) && (
+                <div className="mt-3 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={loadMoreTemplates}
+                    disabled={loadingMoreTemplates}
+                    className="px-4 py-2 rounded-lg border border-border-default bg-bg-surface text-sm font-medium text-text-secondary hover:bg-bg-elevated hover:border-border-strong disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {loadingMoreTemplates ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <>Load more styles</>
                     )}
                   </button>
-                );
-              })}
-            </div>
+                </div>
+              )}
+            </>
           )}
           {selectedTemplateId != null && (
             <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-accent/50 bg-accent/10 px-4 py-3">
@@ -364,6 +519,136 @@ export default function CreatePage() {
               </button>
             </div>
           )}
+
+          <div className="mt-8 pt-6 border-t border-border-subtle">
+            <div className="flex items-center gap-2 mb-2">
+              <ImageIcon size={14} className="text-accent" />
+              <p className="font-mono text-[11px] uppercase tracking-widest text-text-muted">
+                Or use an image as inspiration
+              </p>
+            </div>
+            <p className="text-[12px] text-text-secondary mb-3">
+              Paste a link to a poster you like, or upload an image. We&apos;ll match its layout and style with your brand colors and copy.
+            </p>
+            <div className="flex flex-wrap gap-2 items-start">
+              <input
+                type="url"
+                value={inspirationImageUrl}
+                onChange={(e) => {
+                  setInspirationImageUrl(e.target.value);
+                  if (e.target.value.trim()) setInspirationPreview(e.target.value.trim());
+                  else setInspirationPreview(null);
+                  if (e.target.value.trim()) setSelectedTemplateId(null);
+                }}
+                placeholder="https://example.com/poster-image.jpg"
+                className="flex-1 min-w-[200px] rounded-lg border border-border-default bg-bg-surface px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
+              />
+              <label className="px-4 py-2.5 rounded-lg border border-border-default bg-bg-surface text-sm font-medium text-text-primary hover:bg-bg-elevated cursor-pointer flex items-center gap-2 disabled:opacity-50">
+                <Upload size={14} />
+                Upload image
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!file) return;
+                    setUploadingInspiration(true);
+                    try {
+                      const token = await getToken();
+                      const form = new FormData();
+                      form.append("file", file);
+                      const res = await fetch("/api/upload/inspiration", {
+                        method: "POST",
+                        headers: { Authorization: `Bearer ${token}` },
+                        body: form,
+                      });
+                      if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        throw new Error((err as { error?: string }).error || "Upload failed");
+                      }
+                      const data = await res.json() as { url?: string };
+                      const url = data?.url ?? "";
+                      setInspirationImageUrl(url);
+                      setInspirationPreview(url);
+                      setSelectedTemplateId(null);
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : "Upload failed");
+                    } finally {
+                      setUploadingInspiration(false);
+                    }
+                  }}
+                />
+              </label>
+            </div>
+            {uploadingInspiration && (
+              <p className="mt-2 text-[12px] text-text-muted flex items-center gap-2">
+                <Loader2 size={14} className="animate-spin" />
+                Uploading...
+              </p>
+            )}
+            {inspirationImageUrl.trim() && (
+              <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-accent/50 bg-accent/10 px-4 py-3">
+                {inspirationPreview && (
+                  <img
+                    src={inspirationPreview}
+                    alt="Inspiration"
+                    className="w-16 h-16 rounded-lg object-cover border border-border-default"
+                    onError={() => setInspirationPreview(null)}
+                  />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-text-primary">
+                    Inspiration image set — we&apos;ll use its layout and style with your brand and copy.
+                  </p>
+                  <p className="font-mono text-[11px] text-text-muted truncate mt-0.5">
+                    {inspirationImageUrl}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInspirationImageUrl("");
+                    setInspirationPreview(null);
+                  }}
+                  className="font-mono text-[11px] text-text-muted hover:text-text-primary underline"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="mb-8">
+          <p className="font-mono text-[11px] uppercase tracking-widest text-text-muted mb-2">
+            Where will you share?
+          </p>
+          <p className="text-[12px] text-text-secondary mb-3">
+            Pick a platform to get the right size for that feed.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {PLATFORM_FORMATS.map((f) => {
+              const isSelected = platformFormatId === f.id;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setPlatformFormatId(f.id)}
+                  className={`
+                    px-3 py-2 rounded-lg border text-left transition-all duration-150
+                    ${isSelected
+                      ? "border-accent bg-accent/10 text-text-primary"
+                      : "border-border-default bg-bg-surface text-text-secondary hover:border-border-strong"}
+                  `}
+                >
+                  <span className="block font-medium text-sm">{f.label}</span>
+                  <span className="font-mono text-[10px] text-text-muted">{f.width} × {f.height}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {brandKits.length > 1 && (

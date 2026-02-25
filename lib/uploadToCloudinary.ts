@@ -65,3 +65,28 @@ export async function uploadLogoToCloudinary(
       .end(fileBuffer);
   });
 }
+
+/** Upload an inspiration image (user reference for poster style). Returns public URL for image-to-prompt. */
+export async function uploadInspirationToCloudinary(
+  fileBuffer: Buffer,
+  uid: string
+): Promise<string> {
+  const cloudinary = getCloudinary();
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader
+      .upload_stream(
+        {
+          folder: `artmaster/inspiration/${uid}`,
+          public_id: `insp_${Date.now()}`,
+          resource_type: "image",
+          transformation: [{ quality: "auto", fetch_format: "auto" }],
+        },
+        (error, result) => {
+          if (error) reject(new Error(error.message));
+          else if (!result?.secure_url) reject(new Error("No URL"));
+          else resolve(result.secure_url);
+        }
+      )
+      .end(fileBuffer);
+  });
+}

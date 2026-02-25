@@ -31,6 +31,8 @@ export async function POST(request: NextRequest) {
     brandKitId?: string;
     recommendation?: Recommendation | null;
     templateId?: string | number | null;
+    platformFormatId?: string | null;
+    inspirationImageUrl?: string | null;
   };
   try {
     body = await request.json();
@@ -38,7 +40,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  const { brandKitId, recommendation, templateId } = body;
+  const { brandKitId, recommendation, templateId, platformFormatId, inspirationImageUrl } = body;
 
   if (!brandKitId) {
     return NextResponse.json(
@@ -76,7 +78,9 @@ export async function POST(request: NextRequest) {
       uid,
       brandKitId,
       recommendation ?? null,
-      templateId ?? null
+      templateId ?? null,
+      platformFormatId ?? null,
+      inspirationImageUrl ?? null
     );
     return NextResponse.json({
       success: true,

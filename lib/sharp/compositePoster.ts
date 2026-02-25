@@ -23,6 +23,9 @@ interface CompositeInput {
   copy: CopyData;
   /** When true (Seedream), image already has text — only add logo + watermark */
   imageHasText?: boolean;
+  /** Output dimensions (default 1080×1080) */
+  width?: number;
+  height?: number;
 }
 
 function wrapText(text: string, maxChars: number): string[] {
@@ -61,27 +64,35 @@ async function downloadImage(url: string): Promise<Buffer | null> {
   }
 }
 
+const BASE = 1080;
+const PADDING_BASE = 64;
+
 export async function compositePoster({
   backgroundBuffer,
   brandKit,
   copy,
   imageHasText = true,
+  width: inputW,
+  height: inputH,
 }: CompositeInput): Promise<Buffer> {
-  const SIZE = 1080;
-  const PADDING = 64;
+  const W = inputW ?? BASE;
+  const H = inputH ?? BASE;
+  const scaleX = W / BASE;
+  const scaleY = H / BASE;
+  const scale = Math.min(scaleX, scaleY);
+  const PADDING = Math.round(PADDING_BASE * scale);
 
   const primary = brandKit.primaryColor || "#E8FF47";
   const secondary = brandKit.secondaryColor || "#111111";
   const accent = brandKit.accentColor || "#FFFFFF";
 
   const bg = await sharp(backgroundBuffer)
-    .resize(SIZE, SIZE, { fit: "cover", position: "top" })
+    .resize(W, H, { fit: "cover", position: "top" })
     .png()
     .toBuffer();
 
   const compositeInputs: sharp.OverlayOptions[] = [];
 
-  // User's logo: always composite in top-left (prominent) so it's clearly their brand, not any logo in the AI-generated image.
   const LOGO_SIZE = 112;
   if (brandKit.logoUrl) {
     try {
@@ -135,15 +146,24 @@ export async function compositePoster({
   const bl1 = escapeXml(bodyLines[0] || "");
   const bl2 = escapeXml(bodyLines[1] || "");
 
-  const panelY = 620;
-  const panelHeight = SIZE - panelY;
+  const panelY = Math.round(620 * scaleY);
+  const panelHeight = H - panelY;
 
-  const subheadY = panelY + 80 + (hl2 ? 140 : 90);
-  const bodyY1 = panelY + 80 + (hl2 ? 185 : 140);
-  const bodyY2 = panelY + 80 + (hl2 ? 210 : 165);
+  const subheadY = panelY + Math.round(80 * scaleY) + (hl2 ? Math.round(140 * scaleY) : Math.round(90 * scaleY));
+  const bodyY1 = panelY + Math.round(80 * scaleY) + (hl2 ? Math.round(185 * scaleY) : Math.round(140 * scaleY));
+  const bodyY2 = panelY + Math.round(80 * scaleY) + (hl2 ? Math.round(210 * scaleY) : Math.round(165 * scaleY));
+
+  const topBarH = Math.round(120 * scaleY);
+  const hl1Size = Math.round((hl2 ? 64 : 72) * scale);
+  const hl2Size = Math.round(64 * scale);
+  const subSize = Math.round(22 * scale);
+  const bodySize = Math.round(18 * scale);
+  const ctaY = H - Math.round(130 * scaleY);
+  const ctaH = Math.round(48 * scaleY);
+  const hashtagY = H - Math.round(30 * scaleY);
 
   const svg = `
-<svg width="${SIZE}" height="${SIZE}"
+<svg width="${W}" height="${H}"
      xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="panelGrad" x1="0" y1="0" x2="0" y2="1">
@@ -158,36 +178,36 @@ export async function compositePoster({
     </linearGradient>
   </defs>
 
-  <rect x="0" y="0" width="${SIZE}" height="120"
+  <rect x="0" y="0" width="${W}" height="${topBarH}"
         fill="url(#topGrad)" />
 
   <text
     x="${PADDING}"
-    y="56"
+    y="${Math.round(56 * scaleY)}"
     font-family="Arial, Helvetica, sans-serif"
     font-weight="700"
-    font-size="22"
+    font-size="${Math.round(22 * scale)}"
     letter-spacing="3"
     fill="${primary}"
   >${brandName.toUpperCase()}</text>
 
-  <circle cx="${PADDING + brandName.length * 13 + 8}" cy="50"
-          r="4" fill="${primary}" opacity="0.6" />
+  <circle cx="${PADDING + brandName.length * Math.round(13 * scale) + Math.round(8 * scale)}" cy="${Math.round(50 * scaleY)}"
+          r="${Math.round(4 * scale)}" fill="${primary}" opacity="0.6" />
 
-  <rect x="0" y="${panelY}" width="${SIZE}"
+  <rect x="0" y="${panelY}" width="${W}"
         height="${panelHeight + 10}"
         fill="url(#panelGrad)" />
 
-  <rect x="${PADDING}" y="${panelY + 40}"
-        width="48" height="4"
-        rx="2" fill="${primary}" />
+  <rect x="${PADDING}" y="${panelY + Math.round(40 * scaleY)}"
+        width="${Math.round(48 * scale)}" height="${Math.round(4 * scale)}"
+        rx="${Math.round(2 * scale)}" fill="${primary}" />
 
   <text
     x="${PADDING}"
-    y="${panelY + 80}"
+    y="${panelY + Math.round(80 * scaleY)}"
     font-family="Arial, Helvetica, sans-serif"
     font-weight="900"
-    font-size="${hl2 ? "64" : "72"}"
+    font-size="${hl1Size}"
     fill="#FFFFFF"
     letter-spacing="-1"
   >${hl1}</text>
@@ -195,10 +215,10 @@ export async function compositePoster({
   ${hl2 ? `
   <text
     x="${PADDING}"
-    y="${panelY + 150}"
+    y="${panelY + Math.round(150 * scaleY)}"
     font-family="Arial, Helvetica, sans-serif"
     font-weight="900"
-    font-size="64"
+    font-size="${hl2Size}"
     fill="${primary}"
     letter-spacing="-1"
   >${hl2}</text>
@@ -210,7 +230,7 @@ export async function compositePoster({
     y="${subheadY}"
     font-family="Arial, Helvetica, sans-serif"
     font-weight="400"
-    font-size="22"
+    font-size="${subSize}"
     fill="rgba(255,255,255,0.75)"
     letter-spacing="0.3"
   >${subheadline}</text>
@@ -221,7 +241,7 @@ export async function compositePoster({
     x="${PADDING}"
     y="${bodyY1}"
     font-family="Arial, Helvetica, sans-serif"
-    font-size="18"
+    font-size="${bodySize}"
     fill="rgba(255,255,255,0.6)"
     letter-spacing="0.2"
   >${bl1}</text>
@@ -231,25 +251,25 @@ export async function compositePoster({
     x="${PADDING}"
     y="${bodyY2}"
     font-family="Arial, Helvetica, sans-serif"
-    font-size="18"
+    font-size="${bodySize}"
     fill="rgba(255,255,255,0.6)"
   >${bl2}</text>
   ` : ""}
 
   <rect
     x="${PADDING}"
-    y="${SIZE - 130}"
-    width="${Math.min(cta.length * 14 + 48, SIZE - PADDING * 2)}"
-    height="48"
-    rx="8"
+    y="${ctaY}"
+    width="${Math.min(cta.length * Math.round(14 * scale) + Math.round(48 * scale), W - PADDING * 2)}"
+    height="${ctaH}"
+    rx="${Math.round(8 * scale)}"
     fill="${primary}"
   />
   <text
-    x="${PADDING + 24}"
-    y="${SIZE - 106}"
+    x="${PADDING + Math.round(24 * scale)}"
+    y="${ctaY + Math.round(ctaH / 2)}"
     font-family="Arial, Helvetica, sans-serif"
     font-weight="700"
-    font-size="18"
+    font-size="${Math.round(18 * scale)}"
     fill="${secondary}"
     dominant-baseline="middle"
   >${cta}</text>
@@ -257,9 +277,9 @@ export async function compositePoster({
   ${hashtags ? `
   <text
     x="${PADDING}"
-    y="${SIZE - 30}"
+    y="${hashtagY}"
     font-family="Arial, Helvetica, sans-serif"
-    font-size="14"
+    font-size="${Math.round(14 * scale)}"
     fill="${primary}"
     opacity="0.5"
     letter-spacing="0.5"
@@ -273,14 +293,12 @@ export async function compositePoster({
     { input: svgBuffer, top: 0, left: 0 },
   ];
 
-  // User's logo: top-left, prominent (same as imageHasText path)
-  const LOGO_SIZE_FULL = 112;
   if (brandKit.logoUrl) {
     try {
       const logoBuffer = await downloadImage(brandKit.logoUrl);
       if (logoBuffer) {
         const logoResized = await sharp(logoBuffer)
-          .resize(LOGO_SIZE_FULL, LOGO_SIZE_FULL, {
+          .resize(LOGO_SIZE, LOGO_SIZE, {
             fit: "contain",
             background: { r: 0, g: 0, b: 0, alpha: 0 },
           })

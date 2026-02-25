@@ -83,13 +83,14 @@ async function downloadBuffer(url: string): Promise<Buffer> {
   return Buffer.from(await res.arrayBuffer());
 }
 
-async function submitSeedream(prompt: string): Promise<string> {
+async function submitSeedream(prompt: string, aspectRatio = "square_1_1"): Promise<string> {
   console.log("[Seedream] Submitting task...");
   console.log("[Seedream] Prompt:", prompt.slice(0, 200));
+  console.log("[Seedream] Aspect ratio:", aspectRatio);
 
   const body = {
     prompt,
-    aspect_ratio: "square_1_1",
+    aspect_ratio: aspectRatio,
     enable_safety_checker: true,
   };
 
@@ -196,7 +197,7 @@ async function pollSeedream(taskId: string): Promise<string> {
   throw new Error("Image generation failed");
 }
 
-async function submitMystic(prompt: string): Promise<string> {
+async function submitMystic(prompt: string, aspectRatio = "square_1_1"): Promise<string> {
   console.log("[Mystic] Submitting fallback task...");
 
   const res = await fetch(MYSTIC_BASE, {
@@ -209,7 +210,7 @@ async function submitMystic(prompt: string): Promise<string> {
     body: JSON.stringify({
       prompt,
       negative_prompt: "blurry, ugly, distorted, low quality, logo, logos, watermark, emblem, brand mark, text on objects",
-      aspect_ratio: "square_1_1",
+      aspect_ratio: aspectRatio,
       model: "realism",
       generative_upscaler: false,
     }),
@@ -299,7 +300,7 @@ async function pollMystic(taskId: string): Promise<string> {
 
 export type ImageGenResult = { buffer: Buffer; imageHasText: boolean };
 
-export async function generateImage(prompt: string): Promise<ImageGenResult> {
+export async function generateImage(prompt: string, aspectRatio = "square_1_1"): Promise<ImageGenResult> {
   if (!FREEPIK_KEY) {
     console.error("[ImageGen] Image service not configured");
     throw new Error("Image generation is not available. Please try again later.");
@@ -307,7 +308,7 @@ export async function generateImage(prompt: string): Promise<ImageGenResult> {
 
   try {
     console.log("[ImageGen] Primary provider...");
-    const taskId = await submitSeedream(prompt);
+    const taskId = await submitSeedream(prompt, aspectRatio);
     const url = await pollSeedream(taskId);
     const buffer = await downloadBuffer(url);
     console.log("[ImageGen] Success:", buffer.length, "bytes");
@@ -317,7 +318,7 @@ export async function generateImage(prompt: string): Promise<ImageGenResult> {
 
     try {
       console.log("[ImageGen] Fallback provider...");
-      const taskId = await submitMystic(prompt);
+      const taskId = await submitMystic(prompt, aspectRatio);
       const url = await pollMystic(taskId);
       const buffer = await downloadBuffer(url);
       console.log("[ImageGen] Fallback success:", buffer.length, "bytes");

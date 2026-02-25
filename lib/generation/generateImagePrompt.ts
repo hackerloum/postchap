@@ -48,7 +48,7 @@ Seedream 4.5 has superior typography rendering. Your prompt must describe the CO
 
 7. DESCRIBE THE SUBJECT CLEARLY — What is the main visual element (product, person, scene, abstract) and style (photography, illustration, flat design).
 
-8. CRITICAL — TEXT ON POSTER: Only the exact headline, tagline, and CTA phrase (e.g. "Start Learning") must appear as visible text. NEVER include hex color codes (e.g. #d1700w), technical IDs, or variable names on the poster. When describing colors for the image, use color NAMES only (e.g. orange, gold, dark brown), never hex codes in quotes or as button text.
+8. CRITICAL — TEXT ON POSTER: Only the exact headline, tagline, and CTA phrase (e.g. "Start Learning") must appear as visible text. NEVER include hex color codes (e.g. #dc6f09), technical IDs, or variable names on the poster. When describing colors for the image, use color NAMES only (e.g. orange, gold, dark brown), never hex codes in quotes or as button text. Do not include any platform name, product name, or service name (e.g. Chuo AI, Artmaster) — only the user's brand name may appear.
 
 9. FULL-BLEED BACKGROUND: The main image (photo, illustration, or gradient) must fill the entire poster from edge to edge. Do not describe separate colored bars, panels, or strips at the bottom. No orange/white/brown rectangular blocks below the main image. The background is one continuous visual that extends to all edges.
 
