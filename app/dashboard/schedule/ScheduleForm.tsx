@@ -177,11 +177,17 @@ export function ScheduleForm() {
   return (
     <>
       <div className="mb-8">
+        <Link
+          href="/dashboard"
+          className="font-mono text-[11px] text-text-muted hover:text-text-secondary transition-colors flex items-center gap-1 mb-3 inline-flex"
+        >
+          ← Back to dashboard
+        </Link>
         <h1 className="font-semibold text-[20px] text-text-primary tracking-tight">
           Schedule
         </h1>
         <p className="font-mono text-[12px] text-text-muted mt-1">
-          Automatically generate a poster every day at your chosen time
+          Set time, timezone, and brand kit — we&apos;ll generate a poster every day at that time.
         </p>
       </div>
 
