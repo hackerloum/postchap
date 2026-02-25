@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth } from "@/lib/firebase/admin";
+import { getUserPlan } from "@/lib/user-plan";
 import { listResources } from "@/lib/freepik/resources";
 
 async function verifyAuth(request: NextRequest): Promise<string> {
@@ -15,15 +16,18 @@ async function verifyAuth(request: NextRequest): Promise<string> {
 
 /**
  * GET /api/templates?term=birthday+poster&page=1&limit=20&order=relevance
+ * Template results are filtered by plan: Free = freemium only, Pro/Business = all (including premium).
  * Optional: filters[content_type][psd]=1, filters[orientation][portrait]=1
- * Returns Freepik template search results for the template picker.
  */
 export async function GET(request: NextRequest) {
+  let uid: string;
   try {
-    await verifyAuth(request);
+    uid = await verifyAuth(request);
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const plan = await getUserPlan(uid);
 
   const { searchParams } = new URL(request.url);
   const term = searchParams.get("term")?.trim() ?? "social media poster";
@@ -32,6 +36,10 @@ export async function GET(request: NextRequest) {
   const order = (searchParams.get("order") === "recent" ? "recent" : "relevance") as "relevance" | "recent";
 
   const filters: Record<string, Record<string, number | string>> = {};
+  if (plan === "free") {
+    filters.license = { freemium: 1 };
+  }
+  // Pro and Business: no license filter — they get premium assets too
   const contentType = searchParams.get("filters[content_type][psd]");
   if (contentType !== null && contentType !== undefined) {
     filters.content_type = { psd: contentType === "1" ? 1 : 0 };

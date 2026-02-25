@@ -110,6 +110,20 @@ export async function downloadResource(
   const text = await res.text();
   if (!res.ok) {
     console.warn("[Freepik resources] Download failed:", res.status, text.slice(0, 300));
+    if (res.status === 403) {
+      let msg = "This template is for Premium subscribers only. Please choose another template or generate without a template.";
+      try {
+        const errBody = JSON.parse(text) as { message?: string };
+        if (typeof errBody?.message === "string" && /premium|restricted/i.test(errBody.message)) {
+          msg = errBody.message;
+        }
+      } catch {
+        // use default msg
+      }
+      const err = new Error(msg) as Error & { code?: string };
+      err.code = "FREEPIK_PREMIUM";
+      throw err;
+    }
     throw new Error("Template download failed");
   }
 

@@ -87,10 +87,16 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[generate]", error);
     const message = error instanceof Error ? error.message : String(error);
-    const status = message === "Brand kit not found" ? 404 : 500;
-    return NextResponse.json(
-      { error: status === 404 ? "Brand kit not found" : "Generation failed. Please try again." },
-      { status }
-    );
+    const code = error && typeof error === "object" && "code" in error ? (error as { code?: string }).code : undefined;
+    let status = 500;
+    let errorMessage = "Generation failed. Please try again.";
+    if (message === "Brand kit not found") {
+      status = 404;
+      errorMessage = "Brand kit not found";
+    } else if (code === "FREEPIK_PREMIUM" || /premium|restricted/i.test(message)) {
+      status = 400;
+      errorMessage = message;
+    }
+    return NextResponse.json({ error: errorMessage }, { status });
   }
 }
