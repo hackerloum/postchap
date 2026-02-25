@@ -1,5 +1,7 @@
 import { cookies } from "next/headers";
 import { getAdminDb } from "@/lib/firebase/admin";
+import { getPlanLimits } from "@/lib/plans";
+import { getUserPlan } from "@/lib/user-plan";
 import { BrandKitsList } from "./BrandKitsList";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +41,7 @@ async function getBrandKits(uid: string) {
 
 export default async function BrandKitsPage() {
   let brandKits: Awaited<ReturnType<typeof getBrandKits>> = [];
+  let brandKitLimit = 1;
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("__session")?.value;
@@ -46,6 +49,8 @@ export default async function BrandKitsPage() {
       const { getAdminAuth } = await import("@/lib/firebase/admin");
       const decoded = await getAdminAuth().verifyIdToken(token);
       brandKits = await getBrandKits(decoded.uid);
+      const plan = await getUserPlan(decoded.uid);
+      brandKitLimit = getPlanLimits(plan).brandKits;
     }
   } catch {
     brandKits = [];
@@ -54,7 +59,7 @@ export default async function BrandKitsPage() {
   return (
     <div className="min-h-screen bg-bg-base">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-        <BrandKitsList initialKits={brandKits} />
+        <BrandKitsList initialKits={brandKits} brandKitLimit={brandKitLimit} />
       </div>
     </div>
   );

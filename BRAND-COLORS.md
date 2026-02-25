@@ -13,6 +13,7 @@ Design tokens and brand colors used across the app.
 
 ---
 
+
 ## Backgrounds
 
 | Token | Hex | Usage | Tailwind |
@@ -31,6 +32,7 @@ Design tokens and brand colors used across the app.
 | **text-primary** | `#fafafa` | Headings, primary body text | `text-text-primary` |
 | **text-secondary** | `#a1a1aa` | Secondary copy, descriptions | `text-text-secondary` |
 | **text-muted** | `#71717a` | Captions, hints, labels | `text-text-muted` |
+
 
 ---
 

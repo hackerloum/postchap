@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { getAuthClient } from "@/lib/firebase/client";
 import { getClientIdToken, refreshSessionCookie } from "@/lib/auth-client";
+import { getPlanLimits } from "@/lib/plans";
 import {
   getBrandKitsAction,
   deleteBrandKitAction,
@@ -22,7 +23,7 @@ import {
   type BrandKitItem,
 } from "./actions";
 
-type Props = { initialKits: BrandKitItem[] };
+type Props = { initialKits: BrandKitItem[]; brandKitLimit?: number };
 
 function BrandKitCard({
   kit,
@@ -229,13 +230,14 @@ function BrandKitCard({
   );
 }
 
-export function BrandKitsList({ initialKits }: Props) {
+export function BrandKitsList({ initialKits, brandKitLimit = 1 }: Props) {
   const router = useRouter();
   const [brandKits, setBrandKits] = useState<BrandKitItem[]>(initialKits);
   const [loading, setLoading] = useState(initialKits.length === 0);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<BrandKitItem | null>(null);
   const authChecked = useRef(false);
+  const canCreateMore = brandKitLimit === -1 || brandKits.length < brandKitLimit;
 
   useEffect(() => {
     if (initialKits.length > 0) {
@@ -279,8 +281,24 @@ export function BrandKitsList({ initialKits }: Props) {
     };
   }, [initialKits.length]);
 
-  function handleCreateNew() {
-    router.push("/onboarding");
+  async function handleCreateNew() {
+    const token = await getClientIdToken();
+    const [kits, meRes] = await Promise.all([
+      getBrandKitsAction(token ?? undefined),
+      fetch("/api/me", { headers: token ? { Authorization: `Bearer ${token}` } : {} }),
+    ]);
+    const plan = meRes.ok ? ((await meRes.json()) as { plan?: string })?.plan ?? "free" : "free";
+    const limit = getPlanLimits(plan).brandKits;
+    const allowed = limit === -1 || kits.length < limit;
+    if (!allowed) {
+      router.push("/dashboard/upgrade");
+      return;
+    }
+    if (kits.length === 0) {
+      router.push("/onboarding");
+    } else {
+      router.push("/dashboard/brand-kits/new");
+    }
   }
 
   function handleEdit(kit: BrandKitItem) {
@@ -333,14 +351,23 @@ export function BrandKitsList({ initialKits }: Props) {
             {loading ? "0" : brandKits.length} kit{(loading ? 0 : brandKits.length) !== 1 ? "s" : ""} · Define your brand identity for poster generation
           </p>
         </div>
-        <button
-          type="button"
-          onClick={handleCreateNew}
-          className="inline-flex items-center gap-2 bg-accent text-black font-semibold text-[13px] px-4 py-2.5 rounded-lg hover:bg-accent-dim transition-colors min-h-[40px]"
-        >
-          <Plus size={14} />
-          New brand kit
-        </button>
+        {canCreateMore ? (
+          <button
+            type="button"
+            onClick={handleCreateNew}
+            className="inline-flex items-center gap-2 bg-accent text-black font-semibold text-[13px] px-4 py-2.5 rounded-lg hover:bg-accent-dim transition-colors min-h-[40px]"
+          >
+            <Plus size={14} />
+            New brand kit
+          </button>
+        ) : (
+          <Link
+            href="/dashboard/upgrade"
+            className="inline-flex items-center gap-2 bg-bg-elevated border border-border-default text-text-secondary font-semibold text-[13px] px-4 py-2.5 rounded-lg hover:border-accent/40 hover:text-accent transition-colors min-h-[40px]"
+          >
+            Upgrade to add more
+          </Link>
+        )}
       </div>
 
       {loading ? (
@@ -405,18 +432,35 @@ export function BrandKitsList({ initialKits }: Props) {
               busyId={busyId}
             />
           ))}
-          <button
-            type="button"
-            onClick={handleCreateNew}
-            className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border-default hover:border-accent/40 hover:bg-accent/3 transition-all duration-200 min-h-[280px] group"
-          >
-            <div className="w-10 h-10 rounded-xl border-2 border-dashed border-border-default group-hover:border-accent/40 flex items-center justify-center transition-colors">
-              <Plus size={18} className="text-text-muted group-hover:text-accent transition-colors" />
-            </div>
-            <p className="font-mono text-[11px] text-text-muted group-hover:text-text-secondary transition-colors">
-              New brand kit
-            </p>
-          </button>
+          {canCreateMore ? (
+            <button
+              type="button"
+              onClick={handleCreateNew}
+              className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border-default hover:border-accent/40 hover:bg-accent/3 transition-all duration-200 min-h-[280px] group"
+            >
+              <div className="w-10 h-10 rounded-xl border-2 border-dashed border-border-default group-hover:border-accent/40 flex items-center justify-center transition-colors">
+                <Plus size={18} className="text-text-muted group-hover:text-accent transition-colors" />
+              </div>
+              <p className="font-mono text-[11px] text-text-muted group-hover:text-text-secondary transition-colors">
+                New brand kit
+              </p>
+            </button>
+          ) : (
+            <Link
+              href="/dashboard/upgrade"
+              className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border-default hover:border-accent/30 hover:bg-accent/5 transition-all duration-200 min-h-[280px] group"
+            >
+              <p className="font-semibold text-[13px] text-text-primary">
+                Free plan: 1 brand kit
+              </p>
+              <p className="font-mono text-[11px] text-text-muted text-center px-4">
+                Upgrade to add more brand kits
+              </p>
+              <span className="text-accent font-mono text-[11px] group-hover:underline">
+                Upgrade plan →
+              </span>
+            </Link>
+          )}
         </div>
       )}
 

@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
+import { getPlanLimits } from "@/lib/plans";
+import { getUserPlan } from "@/lib/user-plan";
 
 export type BrandKitItem = {
   id: string;
@@ -102,6 +104,23 @@ export async function duplicateBrandKitAction(
   const uid = await getUidFromCookieOrToken(clientToken);
   if (!uid) return { success: false, error: "Unauthorized" };
   try {
+    const plan = await getUserPlan(uid);
+    const limits = getPlanLimits(plan);
+    if (limits.brandKits !== -1) {
+      const countSnap = await getAdminDb()
+        .collection("users")
+        .doc(uid)
+        .collection("brand_kits")
+        .count()
+        .get();
+      const count = countSnap.data().count;
+      if (count >= limits.brandKits) {
+        return {
+          success: false,
+          error: "Brand kit limit reached for your plan. Upgrade to create more.",
+        };
+      }
+    }
     const snap = await getAdminDb()
       .collection("users")
       .doc(uid)
