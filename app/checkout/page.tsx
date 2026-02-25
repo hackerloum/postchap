@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { Suspense, useEffect, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2, ArrowLeft } from "lucide-react";
 
 const VALID_PLANS = ["free", "pro", "business"];
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const searchParams = useSearchParams();
   const plan = searchParams.get("plan") ?? "";
   const billing = searchParams.get("billing") ?? "monthly";
@@ -116,5 +116,26 @@ export default function CheckoutPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+function CheckoutFallback() {
+  return (
+    <div className="min-h-screen bg-bg-base flex flex-col items-center justify-center px-4">
+      <div className="flex flex-col items-center gap-6">
+        <Loader2 size={32} className="text-accent animate-spin" />
+        <p className="font-semibold text-[16px] text-text-primary">
+          Loading...
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<CheckoutFallback />}>
+      <CheckoutContent />
+    </Suspense>
   );
 }
