@@ -150,66 +150,17 @@ export default function Home() {
             ))}
           </div>
 
-          {/* Poster mockup */}
-          <div className="relative mt-20 max-w-3xl mx-auto px-4 w-full">
-            <div className="absolute left-4 right-4 top-4 rounded-2xl border border-border-default bg-bg-elevated h-64 sm:h-80 -rotate-2 opacity-40" />
-            <div className="absolute left-4 right-4 top-2 rounded-2xl border border-border-default bg-bg-elevated h-64 sm:h-80 rotate-1 opacity-60" />
-            <div className="relative rounded-2xl border border-border-strong bg-bg-elevated overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-success" />
-                  <span className="font-mono text-[11px] text-text-muted">
-                    Generated today · 08:00 AM EAT
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="h-5 px-2 rounded-full bg-accent/10 border border-accent/20 flex items-center">
-                    <span className="font-mono text-[9px] text-accent">
-                      APPROVED
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div
-                className="aspect-[16/7] relative overflow-hidden"
-                style={{
-                  background: "linear-gradient(135deg, #0d1117 0%, #161b22 100%)",
-                }}
-              >
-                <div
-                  className="absolute top-0 right-0 w-64 h-64 rounded-full opacity-10 -translate-y-1/2 translate-x-1/2"
-                  style={{
-                    background:
-                      "radial-gradient(circle, #E8FF47, transparent)",
-                  }}
-                />
-                <div
-                  className="absolute bottom-0 left-0 w-48 h-48 rounded-full opacity-5 translate-y-1/2 -translate-x-1/4"
-                  style={{
-                    background:
-                      "radial-gradient(circle, #4D9EFF, transparent)",
-                  }}
-                />
-                <div className="absolute inset-0 p-8 flex flex-col justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-                      <div className="w-4 h-4 bg-black rounded-[3px]" />
-                    </div>
-                    <div className="h-2 w-24 rounded-full bg-white/20" />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="h-7 w-2/3 rounded-lg bg-white/70" />
-                    <div className="h-3 w-4/5 rounded bg-white/30" />
-                    <div className="h-3 w-3/5 rounded bg-white/30" />
-                    <div className="mt-4 flex items-center gap-3">
-                      <div className="h-9 w-32 rounded-full bg-accent flex items-center justify-center">
-                        <div className="h-2 w-16 rounded bg-black/50" />
-                      </div>
-                      <div className="h-9 w-24 rounded-full border border-white/20" />
-                    </div>
-                  </div>
-                </div>
-              </div>
+          {/* Dashboard mockup */}
+          <div className="relative mt-20 max-w-5xl mx-auto px-4 w-full">
+            <div className="rounded-2xl border border-border-strong bg-bg-elevated overflow-hidden shadow-2xl shadow-black/30">
+              <Image
+                src="/herodashboard.png"
+                alt="Art Master dashboard — overview, posters, brand kit, and quick actions"
+                width={1200}
+                height={800}
+                className="w-full h-auto object-contain"
+                priority
+              />
             </div>
           </div>
         </div>
