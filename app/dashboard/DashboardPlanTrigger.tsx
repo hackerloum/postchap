@@ -10,12 +10,15 @@ export function DashboardPlanTrigger() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
 
+  const [countryCode, setCountryCode] = useState<string | null>(null);
+
   const fetchPlan = useCallback(async () => {
     try {
       const res = await fetch("/api/me");
       if (res.ok) {
         const data = await res.json();
         setPlan((data.plan as PlanId) ?? "free");
+        setCountryCode(data.countryCode ?? null);
       }
     } catch {
       // keep default free
@@ -42,6 +45,7 @@ export function DashboardPlanTrigger() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         currentPlan={plan}
+        countryCode={countryCode}
         onPlanSelected={fetchPlan}
       />
     </>

@@ -18,6 +18,8 @@ export interface PlanInfo {
   priceLabel: string;
   /** Monthly price in USD (0 for free). */
   priceMonthly: number;
+  /** Price in TZS (smallest unit) for Snippe. Required for paid plans. */
+  priceTzs?: number;
   limits: PlanLimits;
 }
 
@@ -39,6 +41,7 @@ export const PLANS: PlanInfo[] = [
     name: "Pro",
     priceLabel: "$12/mo",
     priceMonthly: 12,
+    priceTzs: 30_000, // TZS per month (adjust for your rate)
     limits: {
       brandKits: 5,
       postersPerMonth: 50,
@@ -51,6 +54,7 @@ export const PLANS: PlanInfo[] = [
     name: "Business",
     priceLabel: "$24/mo",
     priceMonthly: 24,
+    priceTzs: 60_000, // TZS per month (adjust for your rate)
     limits: {
       brandKits: -1, // unlimited
       postersPerMonth: -1,

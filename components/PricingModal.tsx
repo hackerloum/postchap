@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
-import { Check, X } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
+import { Check, X, Smartphone, CreditCard } from "lucide-react";
 import { PLANS, type PlanId } from "@/lib/plans";
+import { getPlanPriceForCountry } from "@/lib/pricing";
 import { Button } from "@/components/ui/Button";
 
 interface PricingModalProps {
   open: boolean;
   onClose: () => void;
   currentPlan: PlanId;
+  countryCode?: string | null;
   onPlanSelected?: () => void;
 }
 
@@ -16,6 +19,7 @@ export function PricingModal({
   open,
   onClose,
   currentPlan,
+  countryCode = null,
   onPlanSelected,
 }: PricingModalProps) {
   const handleEscape = useCallback(
@@ -35,34 +39,71 @@ export function PricingModal({
     };
   }, [open, handleEscape]);
 
-  async function handleSelectPlan(planId: PlanId) {
+  const [loadingPlan, setLoadingPlan] = useState<PlanId | null>(null);
+  const [selectedPlanForMobile, setSelectedPlanForMobile] = useState<PlanId | null>(null);
+  const [mobilePhone, setMobilePhone] = useState("");
+
+  async function handleSelectPlan(planId: PlanId, method: "card" | "mobile" = "card", phone?: string) {
     if (planId === currentPlan) {
       onClose();
       return;
     }
+    setLoadingPlan(planId);
     try {
-      const res = await fetch("/api/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: planId }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to update plan");
+      if (planId === "free") {
+        const res = await fetch("/api/me", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plan: "free" }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error ?? "Failed to update plan");
+        }
+        onPlanSelected?.();
+        onClose();
+        return;
       }
-      onPlanSelected?.();
-      onClose();
+      const body: { planId: string; paymentMethod: "card" | "mobile"; phone_number?: string } = {
+        planId,
+        paymentMethod: method,
+      };
+      if (method === "mobile" && phone) body.phone_number = phone;
+      const res = await fetch("/api/payments/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error ?? "Payment could not be started");
+      }
+      if (data.payment_url) {
+        window.location.href = data.payment_url;
+        return;
+      }
+      if (data.message) {
+        alert(data.message);
+        onPlanSelected?.();
+        onClose();
+        return;
+      }
+      if (method === "card") throw new Error("No payment URL returned");
     } catch (err) {
       console.error(err);
-      alert(err instanceof Error ? err.message : "Failed to update plan");
+      alert(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setLoadingPlan(null);
+      setSelectedPlanForMobile(null);
+      setMobilePhone("");
     }
   }
 
   if (!open) return null;
 
-  return (
+  const modalContent = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="pricing-modal-title"
@@ -98,10 +139,9 @@ export function PricingModal({
                   : `${limits.postersPerMonth} / month`;
               const isCurrent = currentPlan === plan.id;
               const isPro = plan.id === "pro";
-              const [priceMain, priceSub] =
-                plan.priceMonthly === 0
-                  ? ["Free", ""]
-                  : plan.priceLabel.split("/");
+              const priceInfo = getPlanPriceForCountry(plan.id, countryCode);
+              const showMobileOption = plan.id !== "free" && priceInfo.mobileMoney;
+              const showMobileInput = selectedPlanForMobile === plan.id;
 
               return (
                 <div
@@ -123,12 +163,10 @@ export function PricingModal({
                     </h3>
                     <div className="flex items-baseline gap-1 mb-5">
                       <span className="text-[28px] font-semibold text-text-primary tracking-tight tabular-nums">
-                        {priceMain}
+                        {priceInfo.label.replace(/\/mo$/, "").trim()}
                       </span>
-                      {priceSub && (
-                        <span className="text-[13px] font-medium text-text-muted">
-                          /{priceSub}
-                        </span>
+                      {plan.id !== "free" && (
+                        <span className="text-[13px] font-medium text-text-muted">/mo</span>
                       )}
                     </div>
                     <div className="h-px bg-border-default mb-5" />
@@ -165,14 +203,72 @@ export function PricingModal({
                         {limits.aiRecommendationsFull ? "(full)" : "(limited)"}
                       </li>
                     </ul>
-                    <Button
-                      variant={isPro ? "primary" : "secondary"}
-                      className="w-full"
-                      disabled={isCurrent}
-                      onClick={() => handleSelectPlan(plan.id)}
-                    >
-                      {isCurrent ? "Current plan" : plan.id === "free" ? "Select Free" : "Select"}
-                    </Button>
+                    {isCurrent ? (
+                      <Button variant="secondary" className="w-full" disabled>
+                        Current plan
+                      </Button>
+                    ) : plan.id === "free" ? (
+                      <Button
+                        variant="secondary"
+                        className="w-full"
+                        disabled={loadingPlan !== null}
+                        onClick={() => handleSelectPlan("free")}
+                      >
+                        Select Free
+                      </Button>
+                    ) : showMobileOption ? (
+                      <div className="space-y-2">
+                        {showMobileInput && (
+                          <div className="flex gap-2">
+                            <input
+                              type="tel"
+                              placeholder="07XX XXX XXX"
+                              value={mobilePhone}
+                              onChange={(e) => setMobilePhone(e.target.value)}
+                              className="flex-1 rounded-lg border border-border-default bg-bg-base px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
+                            />
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              disabled={!mobilePhone.trim() || loadingPlan !== null}
+                              onClick={() => handleSelectPlan(plan.id, "mobile", mobilePhone.trim())}
+                            >
+                              {loadingPlan === plan.id ? "Sending…" : "Send push"}
+                            </Button>
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          <Button
+                            variant={isPro ? "primary" : "secondary"}
+                            className="flex-1 gap-1.5"
+                            disabled={loadingPlan !== null}
+                            onClick={() => setSelectedPlanForMobile(showMobileInput ? null : plan.id)}
+                          >
+                            <Smartphone size={14} />
+                            Mobile money
+                          </Button>
+                          <Button
+                            variant={isPro ? "primary" : "secondary"}
+                            className="flex-1 gap-1.5"
+                            disabled={loadingPlan !== null}
+                            onClick={() => handleSelectPlan(plan.id, "card")}
+                          >
+                            <CreditCard size={14} />
+                            Card
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <Button
+                        variant={isPro ? "primary" : "secondary"}
+                        className="w-full gap-1.5"
+                        disabled={loadingPlan !== null}
+                        onClick={() => handleSelectPlan(plan.id, "card")}
+                      >
+                        <CreditCard size={14} />
+                        {loadingPlan === plan.id ? "Redirecting…" : "Pay with card"}
+                      </Button>
+                    )}
                   </div>
                 </div>
               );
@@ -182,4 +278,7 @@ export function PricingModal({
       </div>
     </div>
   );
+
+  if (typeof document === "undefined") return null;
+  return createPortal(modalContent, document.body);
 }

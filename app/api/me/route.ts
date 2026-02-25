@@ -38,6 +38,9 @@ export async function GET(request: NextRequest) {
       displayName: data.displayName ?? "",
       hasOnboarded: data.hasOnboarded ?? false,
       plan,
+      country: data.country ?? null,
+      countryCode: data.countryCode ?? null,
+      currency: data.currency ?? null,
     });
   } catch (error) {
     console.error("[me GET]", error);
@@ -69,6 +72,12 @@ export async function PATCH(request: NextRequest) {
       { status: 400 }
     );
   }
+  if (body.plan === "pro" || body.plan === "business") {
+    return NextResponse.json(
+      { error: "Use checkout to upgrade. Select a paid plan from the Plan button." },
+      { status: 400 }
+    );
+  }
 
   const updates: Record<string, unknown> = {
     updatedAt: FieldValue.serverTimestamp(),
@@ -92,6 +101,9 @@ export async function PATCH(request: NextRequest) {
       displayName: data.displayName ?? "",
       hasOnboarded: data.hasOnboarded ?? false,
       plan: (data.plan as string) ?? "free",
+      country: data.country ?? null,
+      countryCode: data.countryCode ?? null,
+      currency: data.currency ?? null,
     });
   } catch (error) {
     console.error("[me PATCH]", error);

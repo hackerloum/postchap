@@ -96,8 +96,15 @@ export async function POST(request: NextRequest) {
         updatedAt: FieldValue.serverTimestamp(),
       });
 
+    const brandLocation = (body.brandLocation as { country?: string; countryCode?: string; currency?: string }) ?? {};
     await db.collection("users").doc(uid).set(
-      { hasOnboarded: true, updatedAt: FieldValue.serverTimestamp() },
+      {
+        hasOnboarded: true,
+        updatedAt: FieldValue.serverTimestamp(),
+        country: brandLocation.country ?? null,
+        countryCode: brandLocation.countryCode ?? null,
+        currency: brandLocation.currency ?? null,
+      },
       { merge: true }
     );
 
