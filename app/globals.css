@@ -66,10 +66,16 @@
 .animate-marquee {
   animation: marquee 30s linear infinite;
   width: max-content;
+  will-change: transform;
 }
 
 .animate-marquee:hover {
   animation-play-state: paused;
+}
+
+/* Isolate trust/marquee section so it doesn't block INP */
+.trust-section-contain {
+  contain: layout paint;
 }
 
 :root {

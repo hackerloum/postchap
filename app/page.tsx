@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
   Zap,
@@ -12,6 +13,7 @@ import {
   Check,
 } from "lucide-react";
 import { CookiePreferencesLink } from "@/components/CookiePreferencesLink";
+import { TrustBarSection } from "@/app/TrustBarSection";
 import { PLANS } from "@/lib/plans";
 
 export default function Home() {
@@ -20,20 +22,16 @@ export default function Home() {
       {/* Section 1 — Nav */}
       <header className="sticky top-0 left-0 right-0 h-14 z-50 bg-bg-base/80 backdrop-blur-xl border-b border-border-subtle">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-full">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-accent rounded-[4px] flex items-center justify-center">
-                <div className="w-3 h-3 bg-black rounded-[2px]" />
-              </div>
-              <span className="font-semibold text-[15px] text-text-primary tracking-tight">
-                ArtMaster
-              </span>
-            </div>
-            <div className="h-4 w-px bg-border-default hidden sm:block" />
-            <span className="font-mono text-[10px] text-text-muted tracking-widest hidden sm:block">
-              PLATFORM
-            </span>
-          </div>
+          <Link href="/" className="flex items-center flex-shrink-0">
+            <Image
+              src="/artmasterwordmarklogo-03-03.webp"
+              alt="Art Master"
+              width={200}
+              height={52}
+              className="h-6 w-auto sm:h-10 object-contain object-left"
+              priority
+            />
+          </Link>
 
           <nav className="hidden md:flex items-center gap-6">
             {["Features", "How it works", "Pricing"].map((item) => (
@@ -208,54 +206,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Section 3 — Trust bar (marquee) */}
-      <section className="bg-bg-surface py-16 overflow-hidden">
-        <p className="font-mono text-[11px] text-text-muted text-center tracking-[0.2em] mb-10">
-          TRUSTED BY BUSINESSES ACROSS AFRICA AND BEYOND
-        </p>
-        <div className="relative">
-          <div
-            className="absolute left-0 top-0 bottom-0 w-32 z-10 pointer-events-none"
-            style={{
-              background: "linear-gradient(to right, var(--color-bg-surface, #080808), transparent)",
-            }}
-          />
-          <div
-            className="absolute right-0 top-0 bottom-0 w-32 z-10 pointer-events-none"
-            style={{
-              background: "linear-gradient(to left, var(--color-bg-surface, #080808), transparent)",
-            }}
-          />
-          <div className="flex gap-16 animate-marquee">
-            {[...Array(2)].map((_, setIndex) => (
-              <div key={setIndex} className="flex items-center gap-16 shrink-0">
-                {[
-                  { name: "KILIMO", sub: "AgriTech" },
-                  { name: "NEXUS", sub: "Finance" },
-                  { name: "URBANHAUS", sub: "Real Estate" },
-                  { name: "MERIDIAN", sub: "Healthcare" },
-                  { name: "APEX", sub: "Retail" },
-                  { name: "SOLARIS", sub: "Technology" },
-                  { name: "HARBOR", sub: "Logistics" },
-                  { name: "CREST", sub: "Education" },
-                ].map((brand) => (
-                  <div
-                    key={`${setIndex}-${brand.name}`}
-                    className="flex flex-col items-center gap-1 shrink-0 group"
-                  >
-                    <span className="font-bold text-[18px] tracking-[0.15em] text-text-muted/40 group-hover:text-text-muted/70 transition-colors duration-300 select-none">
-                      {brand.name}
-                    </span>
-                    <span className="font-mono text-[9px] tracking-[0.2em] text-text-muted/25 group-hover:text-text-muted/50 transition-colors duration-300">
-                      {brand.sub}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Section 3 — Trust bar (marquee); deferred + contained to avoid INP block */}
+      <TrustBarSection />
 
       {/* Section 4 — How it works (editorial timeline) */}
       <section id="how-it-works" className="bg-bg-base py-28 px-4 sm:px-6">
@@ -573,16 +525,14 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 py-16 border-b border-border-subtle/40">
             <div className="lg:col-span-2">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-6 h-6 bg-accent rounded-[4px] flex items-center justify-center">
-                  <div className="w-3 h-3 bg-black rounded-[2px]" />
-                </div>
-                <span className="font-semibold text-[15px] text-text-primary">
-                  ArtMaster
-                </span>
-                <span className="font-mono text-[10px] text-text-muted tracking-widest">
-                  PLATFORM
-                </span>
+              <div className="mb-4">
+                <Image
+                  src="/artmasterwordmarklogo-03-03.webp"
+                  alt="Art Master Platform"
+                  width={240}
+                  height={63}
+                  className="h-10 w-auto sm:h-20 object-contain object-left"
+                />
               </div>
               <p className="text-[14px] text-text-secondary leading-relaxed max-w-xs mb-6">
                 Automated social media poster generation for African businesses

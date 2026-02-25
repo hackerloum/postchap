@@ -60,6 +60,7 @@ export async function GET(request: NextRequest) {
       uid: data.uid ?? uid,
       email: data.email ?? "",
       displayName: data.displayName ?? "",
+      phoneNumber: data.phoneNumber ?? null,
       hasOnboarded: data.hasOnboarded ?? false,
       plan,
       country: data.country ?? null,
@@ -89,7 +90,14 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: { plan?: string };
+  let body: {
+    plan?: string;
+    displayName?: string;
+    phoneNumber?: string;
+    country?: string;
+    countryCode?: string;
+    currency?: string;
+  };
   try {
     body = await request.json();
   } catch {
@@ -112,9 +120,12 @@ export async function PATCH(request: NextRequest) {
   const updates: Record<string, unknown> = {
     updatedAt: FieldValue.serverTimestamp(),
   };
-  if (body.plan !== undefined) {
-    updates.plan = body.plan;
-  }
+  if (body.plan !== undefined) updates.plan = body.plan;
+  if (body.displayName !== undefined) updates.displayName = String(body.displayName).trim() || "";
+  if (body.phoneNumber !== undefined) updates.phoneNumber = body.phoneNumber == null ? null : String(body.phoneNumber).trim() || null;
+  if (body.country !== undefined) updates.country = body.country == null ? null : String(body.country).trim() || null;
+  if (body.countryCode !== undefined) updates.countryCode = body.countryCode == null ? null : String(body.countryCode).trim().toUpperCase().slice(0, 2) || null;
+  if (body.currency !== undefined) updates.currency = body.currency == null ? null : String(body.currency).trim() || null;
 
   if (Object.keys(updates).length <= 1) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
@@ -129,6 +140,7 @@ export async function PATCH(request: NextRequest) {
       uid: data.uid ?? uid,
       email: data.email ?? "",
       displayName: data.displayName ?? "",
+      phoneNumber: data.phoneNumber ?? null,
       hasOnboarded: data.hasOnboarded ?? false,
       plan: (data.plan as string) ?? "free",
       country: data.country ?? null,

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { LayoutDashboard, Sparkles, Image, Palette, CalendarClock } from "lucide-react";
+import { LayoutDashboard, Sparkles, Image, Palette, CalendarClock, User } from "lucide-react";
 import { SessionRefresher } from "./SessionRefresher";
 import { CookiePreferencesLink } from "@/components/CookiePreferencesLink";
 import { DashboardPlanTrigger } from "./DashboardPlanTrigger";
@@ -17,6 +17,7 @@ export default function DashboardLayout({
     { label: "My Posters", href: "/dashboard/posters", icon: <Image size={14} /> },
     { label: "Brand Kits", href: "/dashboard/brand-kits", icon: <Palette size={14} /> },
     { label: "Schedule", href: "/dashboard/schedule", icon: <CalendarClock size={14} /> },
+    { label: "Profile", href: "/dashboard/profile", icon: <User size={14} /> },
   ];
 
   return (

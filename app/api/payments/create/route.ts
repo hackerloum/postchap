@@ -81,10 +81,11 @@ export async function POST(request: NextRequest) {
     );
   }
   if (paymentMethod === "mobile") {
-    const phone = (body.phone_number ?? "").trim().replace(/\D/g, "");
+    const profilePhone = (userData.phoneNumber as string) ?? "";
+    const phone = (body.phone_number ?? profilePhone).trim().replace(/\D/g, "");
     if (phone.length < 9) {
       return NextResponse.json(
-        { error: "Valid phone number is required for mobile money." },
+        { error: "Valid phone number is required for mobile money. Add your phone in Profile (dashboard) or enter it when paying." },
         { status: 400 }
       );
     }
@@ -114,12 +115,14 @@ export async function POST(request: NextRequest) {
   let paymentData: { reference: string; payment_url?: string };
   try {
     if (paymentMethod === "mobile" && isTanzania(countryCode)) {
-      const phone = (body.phone_number ?? "").trim().replace(/\D/g, "").replace(/^0/, "255");
+      const profilePhone = (userData.phoneNumber as string) ?? "";
+      const phoneRaw = (body.phone_number ?? profilePhone).trim().replace(/\D/g, "").replace(/^0/, "255");
+      const phone = phoneRaw.startsWith("255") ? phoneRaw : `255${phoneRaw}`;
       const res = await createMobilePayment(
         {
           amount,
           currency,
-          phone_number: phone.startsWith("255") ? phone : `255${phone}`,
+          phone_number: phone,
           customer,
           webhook_url: webhookUrl,
           metadata: { user_id: uid, plan_id: planId },

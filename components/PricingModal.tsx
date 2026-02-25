@@ -12,6 +12,8 @@ interface PricingModalProps {
   onClose: () => void;
   currentPlan: PlanId;
   countryCode?: string | null;
+  /** Pre-fill mobile money input from profile */
+  profilePhoneNumber?: string | null;
   onPlanSelected?: () => void;
 }
 
@@ -20,6 +22,7 @@ export function PricingModal({
   onClose,
   currentPlan,
   countryCode = null,
+  profilePhoneNumber = null,
   onPlanSelected,
 }: PricingModalProps) {
   const handleEscape = useCallback(
@@ -42,6 +45,11 @@ export function PricingModal({
   const [loadingPlan, setLoadingPlan] = useState<PlanId | null>(null);
   const [selectedPlanForMobile, setSelectedPlanForMobile] = useState<PlanId | null>(null);
   const [mobilePhone, setMobilePhone] = useState("");
+  const [paymentMessageDialog, setPaymentMessageDialog] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open && profilePhoneNumber) setMobilePhone(profilePhoneNumber);
+  }, [open, profilePhoneNumber]);
 
   async function handleSelectPlan(planId: PlanId, method: "card" | "mobile" = "card", phone?: string) {
     if (planId === currentPlan) {
@@ -83,7 +91,7 @@ export function PricingModal({
         return;
       }
       if (data.message) {
-        alert(data.message);
+        setPaymentMessageDialog(data.message);
         onPlanSelected?.();
         onClose();
         return;
@@ -91,7 +99,7 @@ export function PricingModal({
       if (method === "card") throw new Error("No payment URL returned");
     } catch (err) {
       console.error(err);
-      alert(err instanceof Error ? err.message : "Something went wrong");
+      setPaymentMessageDialog(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoadingPlan(null);
       setSelectedPlanForMobile(null);
@@ -284,6 +292,43 @@ export function PricingModal({
     </div>
   );
 
+  const notificationDialog =
+    paymentMessageDialog && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            className="fixed inset-0 z-[101] flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="payment-notification-title"
+          >
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setPaymentMessageDialog(null)}
+              aria-hidden="true"
+            />
+            <div className="relative z-10 w-full max-w-sm rounded-2xl border border-border-default bg-bg-base shadow-xl p-6">
+              <h3 id="payment-notification-title" className="font-semibold text-base text-text-primary mb-2">
+                Payment
+              </h3>
+              <p className="text-sm text-text-secondary mb-6">{paymentMessageDialog}</p>
+              <Button
+                variant="primary"
+                className="w-full"
+                onClick={() => setPaymentMessageDialog(null)}
+              >
+                OK
+              </Button>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
+
   if (typeof document === "undefined") return null;
-  return createPortal(modalContent, document.body);
+  return (
+    <>
+      {createPortal(modalContent, document.body)}
+      {notificationDialog}
+    </>
+  );
 }
