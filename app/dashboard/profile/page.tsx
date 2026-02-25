@@ -85,6 +85,7 @@ export default function ProfilePage() {
     e.preventDefault();
     setMessage(null);
     setSaving(true);
+    await new Promise((resolve) => setTimeout(resolve, 0));
     try {
       const token = await getClientIdToken();
       const res = await fetch("/api/me", {

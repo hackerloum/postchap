@@ -55,6 +55,7 @@ export default function SignupPage() {
       return;
     }
     setLoading(true);
+    await new Promise((resolve) => setTimeout(resolve, 0));
     try {
       const cred = await createUserWithEmailAndPassword(getAuthClient(), email, password);
       await updateProfile(cred.user, { displayName: name });
@@ -71,6 +72,7 @@ export default function SignupPage() {
   async function handleGoogleSignup() {
     setError("");
     setGoogleLoad(true);
+    await new Promise((resolve) => setTimeout(resolve, 0));
     try {
       const provider = new GoogleAuthProvider();
       const cred = await signInWithPopup(getAuthClient(), provider);

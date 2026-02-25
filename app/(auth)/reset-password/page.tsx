@@ -17,6 +17,7 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
+    await new Promise((resolve) => setTimeout(resolve, 0));
     try {
       await sendPasswordResetEmail(getAuthClient(), email);
       setSent(true);
