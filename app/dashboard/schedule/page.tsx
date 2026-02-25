@@ -9,7 +9,7 @@ export default async function SchedulePage() {
           <span>←</span> Back to dashboard
         </Link>
         <h1 className="font-semibold text-2xl text-text-primary tracking-tight">Schedule</h1>
-        <p className="mt-1 font-mono text-xs text-text-muted">Set time, timezone, and brand kit — we’ll generate a poster every day at that time.</p>
+        <p className="mt-1 font-mono text-xs text-text-muted" title="We'll create 1 poster at your chosen time each day. Enable notifications to get a reminder when it's ready.">Set time, timezone, and brand kit — we’ll generate a poster every day at that time.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { getAuthClient } from "@/lib/firebase/client";
 import { getClientIdToken } from "@/lib/auth-client";
-import { Download, ExternalLink, Loader2, ImageIcon } from "lucide-react";
+import { Download, ExternalLink, Loader2, ImageIcon, Copy } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -28,6 +28,7 @@ function PostersPageContent() {
   const [posters, setPosters] = useState<Poster[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Poster | null>(null);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const newRef = useRef<HTMLDivElement>(null);
   const noUserTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -123,6 +124,39 @@ function PostersPageContent() {
       toast.success("Downloaded");
     } catch {
       toast.error("Download failed");
+    }
+  }
+
+  async function handleDuplicate(posterId: string) {
+    const token = await getClientIdToken();
+    if (!token) {
+      toast.error("Please sign in to duplicate");
+      return;
+    }
+    setDuplicatingId(posterId);
+    try {
+      const res = await fetch(`/api/posters/${posterId}/duplicate`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data?.error ?? "Duplicate failed");
+        return;
+      }
+      const newId = data.posterId;
+      toast.success("Poster duplicated");
+      const listRes = await fetch("/api/posters", { headers: { Authorization: `Bearer ${token}` } });
+      const listData = await listRes.json();
+      const list = listData.posters ?? [];
+      setPosters(list);
+      const added = list.find((p: Poster) => p.id === newId);
+      if (added) setSelected(added);
+    } catch {
+      toast.error("Duplicate failed");
+    } finally {
+      setDuplicatingId(null);
     }
   }
 
@@ -289,7 +323,7 @@ function PostersPageContent() {
                   </div>
 
                   {selected.imageUrl && (
-                    <div className="flex gap-2 mt-4">
+                    <div className="flex flex-wrap gap-2 mt-4">
                       <button
                         type="button"
                         onClick={() => handleDownload(selected.id)}
@@ -297,6 +331,16 @@ function PostersPageContent() {
                       >
                         <Download size={16} />
                         Download
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDuplicate(selected.id)}
+                        disabled={duplicatingId === selected.id}
+                        className="inline-flex items-center justify-center gap-2 bg-bg-surface border border-border-default text-text-primary text-sm font-medium px-4 py-3 rounded-xl hover:border-border-strong transition-colors min-h-[48px] disabled:opacity-50"
+                        title="Duplicate &amp; edit (copy appears in list)"
+                      >
+                        {duplicatingId === selected.id ? <Loader2 size={16} className="animate-spin" /> : <Copy size={16} />}
+                        Duplicate
                       </button>
                       <button
                         type="button"

@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { CreditCard } from "lucide-react";
 import { PricingModal } from "@/components/PricingModal";
 import type { PlanId } from "@/lib/plans";
 
 export function DashboardPlanTrigger() {
+  const searchParams = useSearchParams();
   const [plan, setPlan] = useState<PlanId>("free");
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -30,6 +32,15 @@ export function DashboardPlanTrigger() {
   useEffect(() => {
     fetchPlan();
   }, [fetchPlan]);
+
+  useEffect(() => {
+    if (searchParams.get("plan") === "open") {
+      setModalOpen(true);
+      const u = new URL(window.location.href);
+      u.searchParams.delete("plan");
+      window.history.replaceState({}, "", u.pathname + u.search);
+    }
+  }, [searchParams]);
 
   return (
     <>

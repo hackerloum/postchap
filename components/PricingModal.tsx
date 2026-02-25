@@ -169,6 +169,11 @@ export function PricingModal({
                         <span className="text-[13px] font-medium text-text-muted">/mo</span>
                       )}
                     </div>
+                    {plan.id !== "free" && plan.priceYearlyUSD != null && (
+                      <p className="text-[12px] text-text-muted mb-4" title="Pay yearly and save 2 months. Billed annually.">
+                        or ${plan.priceYearlyUSD}/year — save 2 months
+                      </p>
+                    )}
                     <div className="h-px bg-border-default mb-5" />
                     <ul className="space-y-3.5 mb-6 flex-1">
                       <li className="flex items-center gap-3 text-[14px] text-text-secondary">
@@ -177,7 +182,7 @@ export function PricingModal({
                         </span>
                         {brandKitsLabel} brand kit{limits.brandKits !== 1 ? "s" : ""}
                       </li>
-                      <li className="flex items-center gap-3 text-[14px] text-text-secondary">
+                      <li className="flex items-center gap-3 text-[14px] text-text-secondary" title="Maximum number of posters you can generate per calendar month. Resets on the 1st.">
                         <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/15">
                           <Check size={12} className="text-accent" />
                         </span>

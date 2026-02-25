@@ -2,18 +2,29 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { getAuthClient } from "@/lib/firebase/client";
 import { getClientIdToken, refreshSessionCookie } from "@/lib/auth-client";
 import { getBrandKitsAction, type BrandKitItem } from "./brand-kits/actions";
 import { BrandAnalysisCard } from "./BrandAnalysisCard";
-import { Sparkles, Image, Palette, CalendarClock } from "lucide-react";
+import { Sparkles, Image, Palette, CalendarClock, Check, Circle, Megaphone } from "lucide-react";
+
+type Usage = {
+  postersThisMonth: number;
+  postersLimit: number | null;
+  totalPosters: number;
+  hasSchedule: boolean;
+};
+
+type Me = { plan: string; usage: Usage } | null;
 
 type Props = { initialKits: BrandKitItem[] };
 
 export function DashboardContent({ initialKits }: Props) {
   const pathname = usePathname();
+  const router = useRouter();
   const [kits, setKits] = useState<BrandKitItem[]>(initialKits);
+  const [me, setMe] = useState<Me>(null);
   const [loading, setLoading] = useState(true);
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -83,6 +94,33 @@ export function DashboardContent({ initialKits }: Props) {
 
   const hasBrandKits = kits.length > 0;
 
+  useEffect(() => {
+    if (!hasBrandKits) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await refreshSessionCookie();
+        const token = await getClientIdToken();
+        const res = await fetch("/api/me", { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+        if (!cancelled && res.ok) {
+          const data = await res.json();
+          if (data.usage) setMe({ plan: data.plan ?? "free", usage: data.usage });
+        }
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [hasBrandKits]);
+  const usage = me?.usage;
+  const plan = me?.plan ?? "free";
+  const checklistCompleteProfile = hasBrandKits;
+  const checklistFirstPoster = (usage?.totalPosters ?? 0) > 0;
+  const checklistSchedule = usage?.hasSchedule ?? false;
+  const checklistAllDone = checklistCompleteProfile && checklistFirstPoster && checklistSchedule;
+
   return (
     <>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -139,6 +177,78 @@ export function DashboardContent({ initialKits }: Props) {
         </div>
       ) : (
         <>
+          {usage && (
+            <div className="bg-bg-surface border border-border-default rounded-2xl p-4 flex flex-row items-center justify-between gap-4">
+              <div>
+                <p className="font-semibold text-sm text-text-primary">Posters this month</p>
+                <p className="font-mono text-xs text-text-muted mt-0.5">
+                  {usage.postersLimit == null
+                    ? `${usage.postersThisMonth} created (unlimited)`
+                    : `${usage.postersThisMonth} / ${usage.postersLimit} used`}
+                </p>
+              </div>
+              {plan === "free" && usage.postersLimit != null && (
+                <Link
+                  href="/dashboard?plan=open"
+                  className="font-mono text-xs font-medium text-accent hover:underline whitespace-nowrap"
+                >
+                  Upgrade →
+                </Link>
+              )}
+            </div>
+          )}
+
+          {!checklistAllDone && (
+            <div className="bg-bg-surface border border-border-default rounded-2xl p-4">
+              <h3 className="font-semibold text-sm text-text-primary mb-3 flex items-center gap-2">
+                <Megaphone size={16} className="text-accent" />
+                Get started
+              </h3>
+              <ul className="space-y-2">
+                <li className="flex items-center gap-2 font-mono text-xs">
+                  {checklistCompleteProfile ? (
+                    <Check size={14} className="text-success shrink-0" />
+                  ) : (
+                    <Circle size={14} className="text-text-muted shrink-0" />
+                  )}
+                  <span className={checklistCompleteProfile ? "text-text-muted" : "text-text-primary"}>
+                    Complete profile (brand kit)
+                  </span>
+                </li>
+                <li className="flex items-center gap-2 font-mono text-xs">
+                  {checklistFirstPoster ? (
+                    <Check size={14} className="text-success shrink-0" />
+                  ) : (
+                    <Circle size={14} className="text-text-muted shrink-0" />
+                  )}
+                  <span className={checklistFirstPoster ? "text-text-muted" : "text-text-primary"}>
+                    Create first poster
+                  </span>
+                  {!checklistFirstPoster && (
+                    <Link href="/dashboard/create" className="text-accent hover:underline ml-1">
+                      Do it →
+                    </Link>
+                  )}
+                </li>
+                <li className="flex items-center gap-2 font-mono text-xs">
+                  {checklistSchedule ? (
+                    <Check size={14} className="text-success shrink-0" />
+                  ) : (
+                    <Circle size={14} className="text-text-muted shrink-0" />
+                  )}
+                  <span className={checklistSchedule ? "text-text-muted" : "text-text-primary"}>
+                    Set schedule
+                  </span>
+                  {!checklistSchedule && (
+                    <Link href="/dashboard/schedule" className="text-accent hover:underline ml-1">
+                      Set up →
+                    </Link>
+                  )}
+                </li>
+              </ul>
+            </div>
+          )}
+
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base text-text-primary">Your brand kits</h2>
@@ -196,6 +306,11 @@ export function DashboardContent({ initialKits }: Props) {
             <Link
               href="/dashboard/create"
               prefetch={false}
+              onClick={(e) => {
+                if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+                e.preventDefault();
+                setTimeout(() => router.push("/dashboard/create"), 0);
+              }}
               className="inline-flex items-center gap-2 bg-accent text-black font-semibold text-sm px-5 py-2.5 rounded-lg hover:bg-accent-dim transition-colors whitespace-nowrap min-h-[44px]"
             >
               Generate now →

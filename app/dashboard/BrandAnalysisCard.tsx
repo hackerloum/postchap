@@ -108,7 +108,7 @@ export function BrandAnalysisCard({ kits }: Props) {
           <span className="font-semibold text-sm text-text-primary">AI Brand Analysis</span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="font-mono text-[11px] text-text-muted uppercase tracking-widest">
+          <label className="font-mono text-[11px] text-text-muted uppercase tracking-widest" title="AI analyzes your brand and suggests themes, headlines, and best times to post. Use these recommendations when creating posters.">
             Brand
           </label>
           <select

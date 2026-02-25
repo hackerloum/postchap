@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { LayoutDashboard, Sparkles, Image, Palette, CalendarClock } from "lucide-react";
 import { SessionRefresher } from "./SessionRefresher";
 import { CookiePreferencesLink } from "@/components/CookiePreferencesLink";
 import { DashboardPlanTrigger } from "./DashboardPlanTrigger";
+import { WhatsNewTrigger } from "./WhatsNewTrigger";
 
 export default function DashboardLayout({
   children,
@@ -41,7 +43,10 @@ export default function DashboardLayout({
           </nav>
         </div>
         <div className="flex items-center gap-4">
-          <DashboardPlanTrigger />
+          <WhatsNewTrigger />
+          <Suspense fallback={<span className="font-mono text-[11px] text-text-muted">Plan…</span>}>
+            <DashboardPlanTrigger />
+          </Suspense>
           <CookiePreferencesLink className="font-mono text-[11px] text-text-muted hover:text-text-primary transition-colors hidden sm:block">
             Cookie preferences
           </CookiePreferencesLink>

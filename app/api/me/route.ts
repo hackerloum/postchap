@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { getPlanLimits } from "@/lib/plans";
 import { isValidPlanId } from "@/lib/plans";
 
 async function getUid(request: NextRequest): Promise<string> {
@@ -23,7 +24,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const userSnap = await getAdminDb().collection("users").doc(uid).get();
+    const db = getAdminDb();
+    const userSnap = await db.collection("users").doc(uid).get();
     if (!userSnap.exists) {
       return NextResponse.json(
         { error: "User not found" },
@@ -32,6 +34,28 @@ export async function GET(request: NextRequest) {
     }
     const data = userSnap.data()!;
     const plan = (data.plan as string) ?? "free";
+    const limits = getPlanLimits(plan);
+
+    const now = new Date();
+    const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
+    const [monthCountSnap, totalCountSnap, scheduleSnap] = await Promise.all([
+      db
+        .collection("users")
+        .doc(uid)
+        .collection("posters")
+        .where("createdAt", ">=", Timestamp.fromDate(startOfMonth))
+        .count()
+        .get(),
+      db.collection("users").doc(uid).collection("posters").count().get(),
+      db.collection("schedules").doc(uid).get(),
+    ]);
+
+    const postersThisMonth = monthCountSnap?.data()?.count ?? 0;
+    const postersLimit = limits.postersPerMonth;
+    const totalPosters = totalCountSnap?.data()?.count ?? 0;
+    const scheduleDoc = scheduleSnap?.exists ? scheduleSnap.data() : null;
+    const hasSchedule = !!(scheduleDoc?.enabled && scheduleDoc?.brandKitId);
+
     return NextResponse.json({
       uid: data.uid ?? uid,
       email: data.email ?? "",
@@ -41,6 +65,12 @@ export async function GET(request: NextRequest) {
       country: data.country ?? null,
       countryCode: data.countryCode ?? null,
       currency: data.currency ?? null,
+      usage: {
+        postersThisMonth,
+        postersLimit: postersLimit === -1 ? null : postersLimit,
+        totalPosters,
+        hasSchedule,
+      },
     });
   } catch (error) {
     console.error("[me GET]", error);
