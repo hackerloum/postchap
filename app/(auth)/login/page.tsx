@@ -44,6 +44,8 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
+    // Yield so React can paint loading state before Firebase/auth work runs
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     try {
       const cred = await signInWithEmailAndPassword(getAuthClient(), email, password);
@@ -64,6 +66,8 @@ export default function LoginPage() {
   async function handleGoogleLogin() {
     setError("");
     setGoogleLoad(true);
+    // Yield so React can paint loading state before Firebase/auth work runs
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     try {
       const provider = new GoogleAuthProvider();

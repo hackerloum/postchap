@@ -31,12 +31,30 @@ function extractImprovedPrompt(data: unknown): string | null {
   if (!data || typeof data !== "object") return null;
   const d = data as Record<string, unknown>;
   const inner = d?.data as Record<string, unknown> | null | undefined;
-  const text =
-    (inner?.generated as string) ??
-    (inner?.prompt as string) ??
-    (d?.generated as string) ??
-    (d?.prompt as string);
-  return typeof text === "string" && text.length > 0 ? text : null;
+  const candidates = [
+    inner?.generated,
+    inner?.prompt,
+    inner?.result,
+    inner?.output,
+    inner?.improved_prompt,
+    inner?.generated_prompt,
+    inner?.text,
+    d?.generated,
+    d?.prompt,
+    d?.result,
+    d?.output,
+    d?.improved_prompt,
+    d?.text,
+  ];
+  for (const c of candidates) {
+    if (typeof c === "string" && c.trim().length > 0) return c.trim();
+  }
+  if (inner && typeof inner === "object") {
+    for (const v of Object.values(inner)) {
+      if (typeof v === "string" && v.trim().length > 0) return v.trim();
+    }
+  }
+  return null;
 }
 
 /**
@@ -133,8 +151,8 @@ export async function improvePrompt(
         console.log("[ImprovePrompt] Enhanced:", improved.slice(0, 120));
         return improved;
       }
-      console.warn("[ImprovePrompt] Completed but no text in response");
-      throw new Error("Prompt enhancement failed");
+      console.warn("[ImprovePrompt] Completed but no text in response, using original prompt");
+      return prompt;
     }
 
     if (

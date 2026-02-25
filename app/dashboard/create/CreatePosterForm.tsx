@@ -42,6 +42,9 @@ export function CreatePosterForm({ brandKits: initialKits }: { brandKits: BrandK
   async function handleGenerate() {
     if (loading || kits.length === 0) return;
     setLoading(true);
+    // Yield so React can paint loading state before generation work runs
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
     try {
       const token = await getClientIdToken();
       const controller = new AbortController();

@@ -155,6 +155,8 @@ export default function CreatePage() {
     }
 
     setGenerating(true);
+    // Yield so React can paint loading state before generation work runs
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     try {
       const token = await getToken();
