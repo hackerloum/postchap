@@ -108,3 +108,12 @@ body {
 body {
   min-height: 100vh;
 }
+
+/* Hide scrollbars on panels (e.g. posters list/preview/copy) */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

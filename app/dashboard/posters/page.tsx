@@ -4,7 +4,16 @@ import { Suspense, useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { getAuthClient } from "@/lib/firebase/client";
 import { getClientIdToken } from "@/lib/auth-client";
-import { Download, ExternalLink, Loader2, ImageIcon, Copy } from "lucide-react";
+import {
+  Download,
+  ExternalLink,
+  Loader2,
+  Image as ImageIcon,
+  Copy,
+  Plus,
+  CheckCircle,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -17,8 +26,60 @@ interface Poster {
   cta: string;
   hashtags: string[];
   theme: string;
+  topic?: string;
   status: string;
   createdAt: number | null;
+}
+
+function CopyRow({
+  label,
+  value,
+  multiline = false,
+}: {
+  label: string;
+  value?: string;
+  multiline?: boolean;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  if (!value) return null;
+
+  function handleCopy() {
+    navigator.clipboard.writeText(value!);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+
+  return (
+    <div className="group py-3 border-b border-border-subtle/50">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
+          {label}
+        </span>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="opacity-0 group-hover:opacity-100 transition-opacity font-mono text-[10px] text-text-muted hover:text-accent flex items-center gap-1"
+        >
+          {copied ? (
+            <>
+              <CheckCircle size={9} className="text-success" />
+              Copied
+            </>
+          ) : (
+            <>
+              <Copy size={9} /> Copy
+            </>
+          )}
+        </button>
+      </div>
+      <p
+        className={`text-[13px] text-text-primary leading-relaxed ${multiline ? "whitespace-pre-line" : "truncate"}`}
+      >
+        {value}
+      </p>
+    </div>
+  );
 }
 
 function PostersPageContent() {
@@ -29,7 +90,8 @@ function PostersPageContent() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Poster | null>(null);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
-  const newRef = useRef<HTMLDivElement>(null);
+  const [mobileTab, setMobileTab] = useState<"List" | "Preview" | "Copy">("List");
+  const newRef = useRef<HTMLButtonElement>(null);
   const noUserTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -197,6 +259,11 @@ function PostersPageContent() {
     });
   }
 
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard");
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-bg-base flex items-center justify-center">
@@ -205,68 +272,70 @@ function PostersPageContent() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-bg-base">
-      <header className="h-14 border-b border-border-subtle flex items-center justify-between px-4 sm:px-6 sticky top-0 bg-bg-base/95 backdrop-blur z-10">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/dashboard"
-            className="font-mono text-xs text-text-muted hover:text-text-primary transition-colors"
-          >
-            ← Dashboard
-          </Link>
-          <span className="text-border-default">·</span>
-          <h1 className="font-semibold text-sm text-text-primary">
-            My Posters
-          </h1>
-          <span className="font-mono text-[11px] text-text-muted bg-bg-surface border border-border-default rounded-full px-2 py-0.5">
-            {posters.length}
-          </span>
-        </div>
-        <Link
-          href="/dashboard/create"
-          className="inline-flex items-center gap-1.5 bg-accent text-black font-semibold text-xs px-3 py-2 rounded-lg hover:bg-accent-dim transition-colors"
-        >
-          + Generate
-        </Link>
-      </header>
+  const tabs = ["List", "Preview", "Copy"] as const;
 
-      {posters.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-32 px-4 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-bg-surface border border-border-default flex items-center justify-center mb-4">
-            <ImageIcon size={24} className="text-text-muted" />
-          </div>
-          <h2 className="font-semibold text-lg text-text-primary mb-2">
-            No posters yet
-          </h2>
-          <p className="font-mono text-xs text-text-muted mb-6">
-            Generate your first poster to get started
-          </p>
-          <Link
-            href="/dashboard/create"
-            className="bg-accent text-black font-semibold text-sm px-6 py-3 rounded-lg hover:bg-accent-dim transition-colors min-h-[44px] inline-flex items-center"
+  return (
+    <div className="flex flex-col h-[calc(100vh-48px)] overflow-hidden bg-bg-base">
+      {/* Mobile tabs */}
+      <div className="flex lg:hidden border-b border-border-subtle shrink-0">
+        {tabs.map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setMobileTab(tab)}
+            className={`flex-1 py-3 font-mono text-[11px] uppercase tracking-wider transition-colors ${
+              mobileTab === tab
+                ? "text-text-primary border-b-2 border-accent"
+                : "text-text-muted"
+            }`}
           >
-            Generate first poster →
-          </Link>
-        </div>
-      ) : (
-        <div className="flex flex-col lg:flex-row min-h-[calc(100vh-56px)]">
-          <div className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-border-subtle overflow-y-auto lg:max-h-[calc(100vh-56px)]">
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* LEFT — poster list */}
+        <aside
+          className={`
+            w-[240px] shrink-0 bg-bg-surface border-r border-border-subtle
+            flex flex-col overflow-hidden
+            ${mobileTab !== "List" ? "hidden lg:flex" : ""}
+          `}
+        >
+          <div className="flex items-center justify-between px-4 h-12 border-b border-border-subtle shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-[13px] text-text-primary">
+                Posters
+              </span>
+              <span className="font-mono text-[10px] text-text-muted bg-bg-elevated border border-border-default rounded-full px-2 py-0.5">
+                {posters.length}
+              </span>
+            </div>
+            <Link
+              href="/dashboard/create"
+              className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center hover:bg-accent-dim transition-colors"
+            >
+              <Plus size={14} className="text-black" />
+            </Link>
+          </div>
+          <div className="flex-1 overflow-y-auto scrollbar-hide">
             {posters.map((poster) => (
-              <div
+              <button
                 key={poster.id}
                 ref={poster.id === newPosterId ? newRef : null}
-                onClick={() => setSelected(poster)}
-                className={`
-                  flex items-center gap-3 p-4 cursor-pointer
-                  border-b border-border-subtle
-                  transition-colors duration-150
-                  ${selected?.id === poster.id
-                    ? "bg-bg-elevated border-l-2 border-l-accent"
-                    : "hover:bg-bg-surface border-l-2 border-l-transparent"}
-                `}
+                type="button"
+                onClick={() => {
+                  setSelected(poster);
+                  setMobileTab("Preview");
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-bg-elevated transition-colors border-b border-border-subtle/40 text-left border-l-2 ${
+                  selected?.id === poster.id
+                    ? "bg-bg-elevated border-l-accent"
+                    : "border-l-transparent"
+                }`}
               >
-                <div className="w-14 h-14 rounded-lg overflow-hidden bg-bg-elevated border border-border-default shrink-0 relative">
+                <div className="w-10 h-10 rounded-lg overflow-hidden bg-bg-elevated shrink-0 relative">
                   {poster.imageUrl ? (
                     <img
                       src={poster.imageUrl}
@@ -278,149 +347,227 @@ function PostersPageContent() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <ImageIcon size={16} className="text-text-muted" />
+                      <ImageIcon size={14} className="text-text-muted" />
                     </div>
                   )}
                   {poster.id === newPosterId && (
-                    <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-accent" />
+                    <div className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-accent" />
                   )}
                 </div>
-
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-xs text-text-primary truncate leading-tight">
+                  <p className="font-semibold text-[12px] text-text-primary truncate leading-tight">
                     {poster.headline}
                   </p>
-                  <p className="font-mono text-[10px] text-text-muted mt-0.5">
+                  <p className="font-mono text-[10px] text-text-muted truncate mt-0.5">
                     {poster.theme || "General"}
                   </p>
-                  <p className="font-mono text-[10px] text-text-muted">
+                  <p className="font-mono text-[10px] text-text-muted/60 mt-0.5">
                     {formatDate(poster.createdAt)}
                   </p>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
+        </aside>
 
-          {selected && (
-            <div className="flex-1 flex flex-col lg:max-h-[calc(100vh-56px)] overflow-y-auto">
-              <div className="p-6 flex flex-col items-center">
-                <div className="w-full max-w-md">
-                  <div className="aspect-square w-full rounded-2xl overflow-hidden bg-bg-surface border border-border-default shadow-2xl">
-                    {selected.imageUrl ? (
-                      <img
-                        src={selected.imageUrl}
-                        alt={selected.headline}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center gap-2">
-                        <ImageIcon size={32} className="text-text-muted" />
-                        <p className="font-mono text-xs text-text-muted">
-                          Image not available
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {selected.imageUrl && (
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      <button
-                        type="button"
-                        onClick={() => handleDownload(selected.id)}
-                        className="flex-1 inline-flex items-center justify-center gap-2 bg-accent text-black font-semibold text-sm py-3 rounded-xl hover:bg-accent-dim transition-colors min-h-[48px]"
-                      >
-                        <Download size={16} />
-                        Download
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDuplicate(selected.id)}
-                        disabled={duplicatingId === selected.id}
-                        className="inline-flex items-center justify-center gap-2 bg-bg-surface border border-border-default text-text-primary text-sm font-medium px-4 py-3 rounded-xl hover:border-border-strong transition-colors min-h-[48px] disabled:opacity-50"
-                        title="Duplicate &amp; edit (copy appears in list)"
-                      >
-                        {duplicatingId === selected.id ? <Loader2 size={16} className="animate-spin" /> : <Copy size={16} />}
-                        Duplicate
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenInNewTab(selected.id)}
-                        className="inline-flex items-center justify-center gap-2 bg-bg-surface border border-border-default text-text-primary text-sm font-medium px-4 py-3 rounded-xl hover:border-border-strong transition-colors min-h-[48px]"
-                      >
-                        <ExternalLink size={16} />
-                      </button>
-                    </div>
-                  )}
-                </div>
+        {/* CENTER — preview */}
+        <section
+          className={`
+            flex-1 flex flex-col overflow-hidden bg-bg-base
+            ${mobileTab !== "Preview" ? "hidden lg:flex" : ""}
+          `}
+        >
+          {posters.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-bg-surface border border-border-default flex items-center justify-center">
+                <ImageIcon size={20} className="text-text-muted" />
               </div>
-
-              <div className="px-6 pb-8 space-y-4 max-w-md mx-auto w-full">
-                <div className="bg-bg-surface border border-border-default rounded-xl p-4">
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-2">
-                    Headline
-                  </p>
-                  <p className="font-semibold text-base text-text-primary">
-                    {selected.headline}
-                  </p>
-                </div>
-
-                {selected.subheadline && (
-                  <div className="bg-bg-surface border border-border-default rounded-xl p-4">
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-2">
-                      Subheadline
-                    </p>
-                    <p className="text-sm text-text-secondary">
-                      {selected.subheadline}
-                    </p>
-                  </div>
-                )}
-
-                {selected.body && (
-                  <div className="bg-bg-surface border border-border-default rounded-xl p-4">
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-2">
-                      Body copy
-                    </p>
-                    <p className="text-sm text-text-secondary leading-relaxed whitespace-pre-line">
-                      {selected.body}
-                    </p>
-                  </div>
-                )}
-
-                {selected.cta && (
-                  <div className="bg-bg-surface border border-border-default rounded-xl p-4">
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-2">
-                      Call to action
-                    </p>
-                    <div className="inline-flex items-center bg-accent/10 border border-accent/20 rounded-lg px-3 py-1.5">
-                      <span className="font-semibold text-sm text-accent">
-                        {selected.cta}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {selected.hashtags?.length > 0 && (
-                  <div className="bg-bg-surface border border-border-default rounded-xl p-4">
-                    <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-2">
-                      Hashtags
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {selected.hashtags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="font-mono text-[11px] text-accent bg-accent/5 border border-accent/20 rounded-full px-2 py-0.5"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <div>
+                <p className="font-semibold text-[15px] text-text-primary mb-1">
+                  No posters yet
+                </p>
+                <p className="font-mono text-[12px] text-text-muted mb-5">
+                  Generate your first poster to see it here
+                </p>
+                <Link
+                  href="/dashboard/create"
+                  className="bg-accent text-black font-semibold text-[13px] px-5 py-2.5 rounded-lg hover:bg-accent-dim transition-colors inline-flex items-center gap-2"
+                >
+                  <Sparkles size={14} />
+                  Generate poster
+                </Link>
               </div>
             </div>
+          ) : (
+            <>
+              <div className="h-12 border-b border-border-subtle flex items-center justify-between px-5 shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="font-semibold text-[13px] text-text-primary truncate max-w-xs">
+                    {selected?.headline}
+                  </span>
+                  {selected?.theme && (
+                    <span className="font-mono text-[10px] text-text-muted bg-bg-surface border border-border-default rounded-full px-2 py-0.5 shrink-0">
+                      {selected.theme}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => selected && handleDuplicate(selected.id)}
+                    disabled={!selected || duplicatingId === selected?.id}
+                    className="flex items-center gap-1.5 bg-bg-surface border border-border-default text-text-secondary font-medium text-[12px] px-3 py-1.5 rounded-lg hover:border-border-strong hover:text-text-primary transition-all min-h-[32px] disabled:opacity-50"
+                  >
+                    {duplicatingId === selected?.id ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <Copy size={12} />
+                    )}
+                    Duplicate
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => selected && handleOpenInNewTab(selected.id)}
+                    disabled={!selected}
+                    className="flex items-center gap-1.5 bg-bg-surface border border-border-default text-text-secondary font-medium text-[12px] px-3 py-1.5 rounded-lg hover:border-border-strong hover:text-text-primary transition-all min-h-[32px] disabled:opacity-50"
+                  >
+                    <ExternalLink size={12} />
+                    Open
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => selected && handleDownload(selected.id)}
+                    disabled={!selected}
+                    className="flex items-center gap-1.5 bg-accent text-black font-semibold text-[12px] px-3 py-1.5 rounded-lg hover:bg-accent-dim transition-all min-h-[32px] disabled:opacity-50"
+                  >
+                    <Download size={12} />
+                    Download
+                  </button>
+                </div>
+              </div>
+              <div
+                className="flex-1 overflow-auto scrollbar-hide flex items-center justify-center p-8"
+                style={{
+                  backgroundImage: "radial-gradient(circle, #1a1a1a 1px, transparent 1px)",
+                  backgroundSize: "20px 20px",
+                }}
+              >
+                {selected?.imageUrl ? (
+                  <div className="relative shadow-2xl rounded-xl overflow-hidden max-w-sm w-full">
+                    <img
+                      src={selected.imageUrl}
+                      alt={selected.headline}
+                      className="w-full h-auto block"
+                    />
+                    <div className="absolute bottom-3 right-3">
+                      <div className="bg-black/60 backdrop-blur-sm rounded-full px-2.5 py-1 border border-white/10">
+                        <span className="font-mono text-[9px] text-white/70">
+                          1080 × 1080
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-3">
+                    <ImageIcon size={32} className="text-text-muted" />
+                    <p className="font-mono text-[12px] text-text-muted">
+                      Select a poster to preview
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
           )}
-        </div>
-      )}
+        </section>
+
+        {/* RIGHT — copy details */}
+        <aside
+          className={`
+            w-80 shrink-0 bg-bg-surface border-l border-border-subtle
+            flex flex-col overflow-hidden
+            ${mobileTab !== "Copy" ? "hidden lg:flex" : ""}
+          `}
+        >
+          <div className="h-12 border-b border-border-subtle flex items-center px-4 shrink-0">
+            <span className="font-mono text-[11px] uppercase tracking-[0.15em] text-text-muted">
+              Copy details
+            </span>
+          </div>
+          <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-1">
+            <CopyRow label="Headline" value={selected?.headline} />
+            <CopyRow label="Subheadline" value={selected?.subheadline} />
+            <CopyRow label="Body" value={selected?.body} multiline />
+
+            {selected?.cta && (
+              <div className="pt-2">
+                <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mb-2">
+                  Call to action
+                </p>
+                <div className="inline-flex items-center bg-accent/10 border border-accent/20 rounded-lg px-3 py-1.5">
+                  <span className="font-semibold text-[13px] text-accent">
+                    {selected.cta}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {selected?.hashtags && selected.hashtags.length > 0 && (
+              <div className="pt-2">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
+                    Hashtags
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(selected.hashtags.join(" "))}
+                    className="font-mono text-[10px] text-text-muted hover:text-text-secondary transition-colors flex items-center gap-1"
+                  >
+                    <Copy size={9} />
+                    Copy all
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {selected.hashtags.map((tag) => (
+                    <span
+                      key={tag}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => copyToClipboard(tag)}
+                      onKeyDown={(e) => e.key === "Enter" && copyToClipboard(tag)}
+                      className="font-mono text-[10px] text-text-muted bg-bg-elevated border border-border-default rounded-full px-2 py-0.5 hover:border-border-strong transition-colors cursor-pointer"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="pt-4 mt-2 border-t border-border-subtle space-y-2">
+              {[
+                { label: "Theme", value: selected?.theme },
+                { label: "Topic", value: selected?.topic },
+                { label: "Created", value: formatDate(selected?.createdAt ?? null) },
+                { label: "Status", value: selected?.status },
+              ]
+                .filter((r) => r.value)
+                .map((row) => (
+                  <div
+                    key={row.label}
+                    className="flex items-start justify-between gap-3"
+                  >
+                    <span className="font-mono text-[10px] text-text-muted shrink-0">
+                      {row.label}
+                    </span>
+                    <span className="font-mono text-[10px] text-text-secondary text-right leading-relaxed">
+                      {row.value}
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }
