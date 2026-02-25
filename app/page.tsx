@@ -34,15 +34,24 @@ export default function Home() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">
-            {["Features", "How it works", "Pricing"].map((item) => (
-              <a
-                key={item}
-                href={`#${item.toLowerCase().replace(" ", "-")}`}
-                className="font-mono text-[12px] text-text-muted hover:text-text-primary transition-colors"
-              >
-                {item}
-              </a>
-            ))}
+            <a
+              href="#features"
+              className="font-mono text-[12px] text-text-muted hover:text-text-primary transition-colors"
+            >
+              Features
+            </a>
+            <a
+              href="#how-it-works"
+              className="font-mono text-[12px] text-text-muted hover:text-text-primary transition-colors"
+            >
+              How it works
+            </a>
+            <Link
+              href="/pricing"
+              className="font-mono text-[12px] text-text-muted hover:text-text-primary transition-colors"
+            >
+              Pricing
+            </Link>
           </nav>
 
           <div className="flex items-center gap-2">
@@ -553,7 +562,7 @@ export default function Home() {
                 {[
                   { label: "Features", href: "#features" },
                   { label: "How it works", href: "#how-it-works" },
-                  { label: "Pricing", href: "#pricing" },
+                  { label: "Pricing", href: "/pricing" },
                   { label: "Sign up", href: "/signup" },
                   { label: "Sign in", href: "/login" },
                 ].map((link) => (

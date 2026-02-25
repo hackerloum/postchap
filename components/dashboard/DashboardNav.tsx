@@ -122,7 +122,7 @@ export function DashboardNav() {
               </span>
             </div>
             <Link
-              href="/pricing"
+              href="/dashboard/upgrade"
               className="hidden sm:inline-flex items-center gap-1.5 bg-accent/10 border border-accent/20 text-accent font-semibold text-[12px] px-3 py-1.5 rounded-lg hover:bg-accent/15 transition-colors"
             >
               <Zap size={11} />

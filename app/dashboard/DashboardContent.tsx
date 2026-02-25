@@ -286,7 +286,7 @@ export function DashboardContent({ initialKits }: Props) {
             </div>
           </div>
           <Link
-            href="/pricing"
+            href="/dashboard/upgrade"
             className="bg-accent text-black font-semibold text-[12px] px-4 py-2 rounded-lg hover:bg-accent-dim transition-colors whitespace-nowrap"
           >
             Upgrade →
