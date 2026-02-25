@@ -121,7 +121,11 @@ export async function downloadResource(
   }
 
   const root = data as Record<string, unknown>;
-  const inner = (root?.data ?? root) as Record<string, unknown>;
+  const rawData = root?.data ?? root;
+  // Freepik can return data as single object or as array of one item
+  const inner = Array.isArray(rawData) && rawData.length > 0
+    ? (rawData[0] as Record<string, unknown>)
+    : (rawData as Record<string, unknown>);
   const fileUrl = inner?.url as string | undefined;
   const signedUrl = inner?.signed_url as string | undefined;
   const filename = inner?.filename as string | undefined;
