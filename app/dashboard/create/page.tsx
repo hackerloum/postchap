@@ -305,43 +305,62 @@ export default function CreatePage() {
           </div>
           {templateResults.length > 0 && (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-              {templateResults.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setSelectedTemplateId(selectedTemplateId === t.id ? null : t.id)}
-                  className={`
-                    relative aspect-square rounded-xl border-2 overflow-hidden bg-bg-elevated
-                    transition-all duration-150
-                    ${selectedTemplateId === t.id
-                      ? "border-accent ring-2 ring-accent/30"
-                      : "border-border-default hover:border-border-strong"}
-                  `}
-                >
-                  {t.thumbnail ? (
-                    <img
-                      src={t.thumbnail}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <ImageIcon size={24} className="text-text-muted" />
-                    </div>
-                  )}
-                  {selectedTemplateId === t.id && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                      <CheckCircle size={28} className="text-accent drop-shadow" />
-                    </div>
-                  )}
-                </button>
-              ))}
+              {templateResults.map((t) => {
+                const isSelected = selectedTemplateId != null && String(t.id) === String(selectedTemplateId);
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setSelectedTemplateId(isSelected ? null : t.id)}
+                    className={`
+                      relative aspect-square rounded-xl border-2 overflow-hidden bg-bg-elevated
+                      transition-all duration-150
+                      ${isSelected
+                        ? "border-accent ring-2 ring-accent/30"
+                        : "border-border-default hover:border-border-strong"}
+                    `}
+                  >
+                    {t.thumbnail ? (
+                      <img
+                        src={t.thumbnail}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ImageIcon size={24} className="text-text-muted" />
+                      </div>
+                    )}
+                    {isSelected && (
+                      <>
+                        <div className="absolute inset-0 bg-accent/25" />
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+                          <CheckCircle size={32} className="text-accent drop-shadow-lg" strokeWidth={2.5} />
+                          <span className="font-mono text-[10px] font-semibold text-white drop-shadow-lg uppercase tracking-wider">
+                            Selected
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
-          {selectedTemplateId != null && templateResults.length > 0 && (
-            <p className="mt-2 font-mono text-[11px] text-accent">
-              Style selected — clear by clicking it again, or leave it to use this style.
-            </p>
+          {selectedTemplateId != null && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-accent/50 bg-accent/10 px-4 py-3">
+              <CheckCircle size={18} className="text-accent shrink-0" />
+              <p className="text-sm font-medium text-text-primary">
+                Template style selected — when you click &quot;Generate poster&quot;, we&apos;ll use this style with your brand and copy.
+              </p>
+              <button
+                type="button"
+                onClick={() => setSelectedTemplateId(null)}
+                className="ml-auto font-mono text-[11px] text-text-muted hover:text-text-primary underline"
+              >
+                Clear selection
+              </button>
+            </div>
           )}
         </div>
 
