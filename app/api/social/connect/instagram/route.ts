@@ -24,11 +24,11 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Build Meta OAuth URL
+  // Build Meta OAuth URL — using Business Login scopes
   const params = new URLSearchParams({
     client_id: APP_ID,
     redirect_uri: REDIRECT_URI,
-    scope: "instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement",
+    scope: "instagram_basic,instagram_content_publish",
     response_type: "code",
     state: Buffer.from(token.slice(0, 32)).toString("base64"), // CSRF protection
   });
