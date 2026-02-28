@@ -148,7 +148,7 @@ function SettingsContent() {
           )}
 
           {/* Info banner when not connected */}
-          {!loading && !instagram?.connected && (
+              {!loading && !instagram?.connected && (
             <div className="px-5 pb-5">
               <div className="bg-bg-elevated border border-border-subtle rounded-xl p-3 flex items-start gap-2.5">
                 <AlertCircle size={13} className="text-text-muted mt-0.5 shrink-0" />
@@ -156,11 +156,35 @@ function SettingsContent() {
                   Connect your Instagram Business account to auto-post your generated posters.
                   You need an Instagram{" "}
                   <span className="text-text-secondary">Business or Creator</span>{" "}
-                  account linked to a Facebook Page.
+                  account.
                 </p>
               </div>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Legal */}
+      <section className="mt-10">
+        <h2 className="font-semibold text-[14px] text-text-primary mb-4">
+          Legal
+        </h2>
+        <div className="bg-bg-surface border border-border-default rounded-2xl overflow-hidden divide-y divide-border-subtle">
+          {[
+            { label: "Privacy Policy", href: "/privacy" },
+            { label: "Terms of Service", href: "/terms" },
+            { label: "Data Deletion", href: "/data-deletion" },
+          ].map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className="flex items-center justify-between px-5 py-3.5 hover:bg-bg-elevated transition-colors"
+            >
+              <span className="font-mono text-[13px] text-text-secondary">{item.label}</span>
+              <span className="font-mono text-[11px] text-text-muted">→</span>
+            </a>
+          ))}
+        </div>
         </div>
       </section>
     </div>

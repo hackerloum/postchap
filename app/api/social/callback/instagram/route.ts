@@ -5,8 +5,9 @@ import { FieldValue } from "firebase-admin/firestore";
 const APP_ID = process.env.FACEBOOK_APP_ID!;
 const APP_SECRET = (process.env.INSTAGRAM_APP_SECRET ?? process.env.FACEBOOK_APP_SECRET)!;
 const APP_URL = "https://artmasterpro.com";
+const REDIRECT_URI = "https://artmasterpro.com/api/social/callback/instagram";
 
-// In-memory set to prevent double-processing the same code (Vercel can invoke twice)
+// Prevent double-processing the same code (Vercel can invoke route handlers twice)
 const usedCodes = new Set<string>();
 
 export const dynamic = "force-dynamic";
@@ -16,29 +17,20 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const error = searchParams.get("error");
   const errorReason = searchParams.get("error_reason");
-  const errorDescription = searchParams.get("error_description");
 
   if (error || !code) {
-    console.error("[Instagram callback] OAuth error:", { error, errorReason, errorDescription });
     const status = errorReason === "user_denied" ? "cancelled" : "error";
-    return NextResponse.redirect(
-      new URL(`/dashboard/settings?instagram=${status}`, APP_URL)
-    );
+    return NextResponse.redirect(new URL(`/dashboard/settings?instagram=${status}`, APP_URL));
   }
 
-  // Prevent double-processing (Vercel/Next.js can invoke route handlers twice)
   if (usedCodes.has(code)) {
-    console.warn("[Instagram callback] Code already used, ignoring duplicate request");
     return NextResponse.redirect(new URL("/dashboard/settings?instagram=connected", APP_URL));
   }
   usedCodes.add(code);
   setTimeout(() => usedCodes.delete(code), 60_000);
 
-  // Verify session
   const token = request.cookies.get("__session")?.value;
-  if (!token) {
-    return NextResponse.redirect(new URL("/login", APP_URL));
-  }
+  if (!token) return NextResponse.redirect(new URL("/login", APP_URL));
 
   let uid: string;
   try {
@@ -49,20 +41,12 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const cleanRedirectUri = "https://artmasterpro.com/api/social/callback/instagram";
-    console.log("[Instagram callback] Using redirect URI:", cleanRedirectUri);
-    console.log("[Instagram callback] Using APP_ID:", APP_ID);
-    console.log("[Instagram callback] Code length:", code.length);
-
-    // Step 1: Exchange code — form-urlencoded (required by Instagram)
-    console.log("[Instagram callback] Code preview:", code.slice(0, 20) + "...");
-    console.log("[Instagram callback] Secret length:", APP_SECRET?.length);
-
+    // Step 1: Exchange code for short-lived token
     const formBody = new FormData();
     formBody.append("client_id", APP_ID);
     formBody.append("client_secret", APP_SECRET);
     formBody.append("grant_type", "authorization_code");
-    formBody.append("redirect_uri", cleanRedirectUri);
+    formBody.append("redirect_uri", REDIRECT_URI);
     formBody.append("code", code);
 
     const tokenRes = await fetch("https://api.instagram.com/oauth/access_token", {
@@ -72,37 +56,25 @@ export async function GET(request: NextRequest) {
     const tokenData = await tokenRes.json() as {
       access_token?: string;
       user_id?: number;
-      error?: { message: string };
       error_type?: string;
       error_message?: string;
     };
 
-    console.log("[Instagram callback] Token response:", JSON.stringify(tokenData));
-
     if (!tokenData.access_token) {
-      console.error("[Instagram callback] Token exchange failed:", tokenData);
-      return NextResponse.redirect(
-        new URL("/dashboard/settings?instagram=error", APP_URL)
-      );
+      console.error("[Instagram callback] Token exchange failed:", tokenData.error_message);
+      return NextResponse.redirect(new URL("/dashboard/settings?instagram=error", APP_URL));
     }
 
     const shortToken = tokenData.access_token;
     const igUserId = tokenData.user_id;
 
     // Step 2: Exchange for long-lived token (60 days)
-    const longTokenParams = new URLSearchParams({
-      grant_type: "ig_exchange_token",
-      client_secret: APP_SECRET,
-      access_token: shortToken,
-    });
-
     const longTokenRes = await fetch(
-      `https://graph.instagram.com/access_token?${longTokenParams.toString()}`
+      `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${APP_SECRET}&access_token=${shortToken}`
     );
     const longTokenData = await longTokenRes.json() as {
       access_token?: string;
       expires_in?: number;
-      error?: { message: string };
     };
 
     const accessToken = longTokenData.access_token ?? shortToken;
@@ -128,7 +100,7 @@ export async function GET(request: NextRequest) {
         instagram: {
           connected: true,
           accessToken,
-          pageAccessToken: accessToken, // Instagram Business Login uses same token for publishing
+          pageAccessToken: accessToken,
           accountId: instagramAccountId,
           username: instagramUsername,
           connectedAt: FieldValue.serverTimestamp(),
@@ -138,13 +110,9 @@ export async function GET(request: NextRequest) {
       { merge: true }
     );
 
-    return NextResponse.redirect(
-      new URL("/dashboard/settings?instagram=connected", APP_URL)
-    );
+    return NextResponse.redirect(new URL("/dashboard/settings?instagram=connected", APP_URL));
   } catch (err) {
-    console.error("[Instagram callback] Error:", err);
-    return NextResponse.redirect(
-      new URL("/dashboard/settings?instagram=error", APP_URL)
-    );
+    console.error("[Instagram callback] Unexpected error:", err);
+    return NextResponse.redirect(new URL("/dashboard/settings?instagram=error", APP_URL));
   }
 }
