@@ -15,6 +15,7 @@ import {
   Upload,
   Link2,
   X,
+  Instagram,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getClientIdToken } from "@/lib/auth-client";
@@ -358,6 +359,9 @@ export default function CreatePage() {
   const [loadingRecs, setLoadingRecs] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generationStep, setGenerationStep] = useState("");
+  const [generatedPoster, setGeneratedPoster] = useState<{ posterId: string; imageUrl: string } | null>(null);
+  const [instagramConnected, setInstagramConnected] = useState(false);
+  const [postingToInstagram, setPostingToInstagram] = useState(false);
   const [templateSearch, setTemplateSearch] = useState("");
   const [templateResults, setTemplateResults] = useState<{ id: number | string; title?: string; thumbnail?: string }[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
@@ -439,13 +443,18 @@ export default function CreatePage() {
   async function loadBrandKits() {
     try {
       const token = await getToken();
-      const res = await fetch("/api/brand-kits", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
+      const [kitsRes, meRes] = await Promise.all([
+        fetch("/api/brand-kits", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("/api/me", { credentials: "same-origin" }),
+      ]);
+      const data = await kitsRes.json();
       const kits = (data.kits || []) as BrandKit[];
       setBrandKits(kits);
       if (kits.length > 0) setSelectedKit(kits[0]);
+      if (meRes.ok) {
+        const meData = await meRes.json();
+        setInstagramConnected(meData.instagram?.connected === true);
+      }
     } catch {
       toast.error("Failed to load brand kits");
     } finally {
@@ -697,9 +706,13 @@ export default function CreatePage() {
         throw new Error((err as { error?: string }).error || "Generation failed");
       }
 
-      const data = (await res.json()) as { posterId?: string };
+      const data = (await res.json()) as { posterId?: string; imageUrl?: string };
       toast.success("Poster generated successfully!");
-      router.push(`/dashboard/posters?new=${data.posterId ?? ""}`);
+      if (instagramConnected && data.posterId && data.imageUrl) {
+        setGeneratedPoster({ posterId: data.posterId, imageUrl: data.imageUrl });
+      } else {
+        router.push(`/dashboard/posters?new=${data.posterId ?? ""}`);
+      }
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Generation failed"
@@ -764,6 +777,72 @@ export default function CreatePage() {
 
   return (
     <div className="min-h-screen bg-bg-base">
+      {/* Post to Instagram success overlay */}
+      {generatedPoster && (
+        <div className="fixed inset-0 bg-bg-base/95 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-6 px-4">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#f09433] to-[#bc1888] flex items-center justify-center">
+            <Instagram size={28} className="text-white" />
+          </div>
+          <div className="text-center space-y-2 max-w-sm">
+            <p className="font-semibold text-[18px] text-text-primary">Poster ready!</p>
+            <p className="font-mono text-[12px] text-text-muted leading-relaxed">
+              Post it to Instagram now or view it in your posters library.
+            </p>
+          </div>
+          {generatedPoster.imageUrl && (
+            <img
+              src={generatedPoster.imageUrl}
+              alt="Generated poster"
+              className="w-40 h-40 object-cover rounded-xl border border-border-default shadow-xl"
+            />
+          )}
+          <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
+            <button
+              type="button"
+              disabled={postingToInstagram}
+              onClick={async () => {
+                setPostingToInstagram(true);
+                try {
+                  const res = await fetch("/api/social/instagram/post", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "same-origin",
+                    body: JSON.stringify({
+                      posterId: generatedPoster.posterId,
+                      imageUrl: generatedPoster.imageUrl,
+                      caption: "",
+                    }),
+                  });
+                  const d = await res.json().catch(() => ({}));
+                  if (!res.ok) throw new Error(d?.error ?? "Failed to post");
+                  toast.success(`Posted to @${d.username ?? "Instagram"}!`);
+                  router.push(`/dashboard/posters?new=${generatedPoster.posterId}`);
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Failed to post to Instagram");
+                } finally {
+                  setPostingToInstagram(false);
+                }
+              }}
+              className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-[#f09433] to-[#bc1888] text-white font-semibold text-[14px] py-3.5 rounded-xl hover:opacity-90 transition-all disabled:opacity-50 min-h-[52px]"
+            >
+              {postingToInstagram ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Instagram size={16} />
+              )}
+              Post to Instagram
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push(`/dashboard/posters?new=${generatedPoster.posterId}`)}
+              className="flex-1 flex items-center justify-center gap-2 bg-bg-elevated border border-border-default text-text-primary font-semibold text-[14px] py-3.5 rounded-xl hover:border-border-strong transition-all min-h-[52px]"
+            >
+              View poster
+            </button>
+          </div>
+        </div>
+      )}
+
       {generating && (
         <div className="fixed inset-0 bg-bg-base/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-6">
           <Image

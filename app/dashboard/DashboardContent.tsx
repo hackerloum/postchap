@@ -10,7 +10,7 @@ import { BrandIntelligenceSection } from "./BrandIntelligenceSection";
 import { RecentPosters } from "@/components/dashboard/RecentPosters";
 import { BrandKitCard } from "@/components/dashboard/BrandKitCard";
 import { QuickActions } from "@/components/dashboard/QuickActions";
-import { Sparkles, Zap, Palette } from "lucide-react";
+import { Sparkles, Zap, Palette, Instagram } from "lucide-react";
 
 type Usage = {
   postersThisMonth: number;
@@ -21,7 +21,7 @@ type Usage = {
   nextScheduledAt?: number | null;
 };
 
-type Me = { uid: string; displayName: string; plan: string; usage: Usage } | null;
+type Me = { uid: string; displayName: string; plan: string; usage: Usage; instagramConnected?: boolean } | null;
 
 type Props = { initialKits: BrandKitItem[] };
 
@@ -137,6 +137,7 @@ export function DashboardContent({ initialKits }: Props) {
             uid: data.uid ?? "",
             displayName: data.displayName ?? data.email?.split("@")[0] ?? "there",
             plan: data.plan ?? "free",
+            instagramConnected: data.instagram?.connected === true,
             usage: {
               postersThisMonth: usage.postersThisMonth ?? 0,
               postersLimit: usage.postersLimit ?? null,
@@ -290,6 +291,28 @@ export function DashboardContent({ initialKits }: Props) {
             className="bg-accent text-black font-semibold text-[12px] px-4 py-2 rounded-lg hover:bg-accent-dim transition-colors whitespace-nowrap"
           >
             Upgrade →
+          </Link>
+        </div>
+      )}
+
+      {me !== null && !me.instagramConnected && (
+        <div className="flex items-center justify-between bg-bg-surface border border-border-default rounded-xl p-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#f09433] to-[#bc1888] flex items-center justify-center shrink-0">
+              <Instagram size={14} className="text-white" />
+            </div>
+            <div>
+              <p className="font-semibold text-[13px] text-text-primary">Connect Instagram</p>
+              <p className="font-mono text-[11px] text-text-muted">
+                Auto-post your generated posters to Instagram
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard/settings"
+            className="bg-bg-elevated border border-border-default text-text-primary font-semibold text-[12px] px-4 py-2 rounded-lg hover:border-border-strong transition-colors whitespace-nowrap shrink-0"
+          >
+            Connect →
           </Link>
         </div>
       )}
