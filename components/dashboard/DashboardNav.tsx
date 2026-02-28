@@ -13,6 +13,7 @@ import {
   Zap,
   LogOut,
   User,
+  Settings,
 } from "lucide-react";
 import { getAuthClient } from "@/lib/firebase/client";
 
@@ -22,6 +23,7 @@ const TOP_NAV_ITEMS = [
   { label: "Posters", href: "/dashboard/posters", icon: <Images size={13} /> },
   { label: "Brand Kits", href: "/dashboard/brand-kits", icon: <Palette size={13} /> },
   { label: "Schedule", href: "/dashboard/schedule", icon: <CalendarClock size={13} /> },
+  { label: "Settings", href: "/dashboard/settings", icon: <Settings size={13} /> },
 ];
 
 const BOTTOM_NAV_ITEMS = [

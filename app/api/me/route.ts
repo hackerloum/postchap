@@ -72,6 +72,15 @@ export async function GET(request: NextRequest) {
           ? nextRunAtRaw
           : null;
 
+    const igRaw = data.instagram as Record<string, unknown> | undefined;
+    const instagram = igRaw
+      ? {
+          connected: igRaw.connected === true,
+          username: (igRaw.username as string) ?? null,
+          connectedAt: (igRaw.connectedAt as { toMillis?: () => number })?.toMillis?.() ?? null,
+        }
+      : null;
+
     return NextResponse.json({
       uid: data.uid ?? uid,
       email: data.email ?? "",
@@ -82,6 +91,7 @@ export async function GET(request: NextRequest) {
       country: data.country ?? null,
       countryCode: data.countryCode ?? null,
       currency: data.currency ?? null,
+      instagram,
       usage: {
         postersThisMonth,
         postersLimit: postersLimit === -1 ? null : postersLimit,

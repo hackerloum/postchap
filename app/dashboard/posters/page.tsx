@@ -13,6 +13,7 @@ import {
   Plus,
   CheckCircle,
   Sparkles,
+  Instagram,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -91,6 +92,8 @@ function PostersPageContent() {
   const [selected, setSelected] = useState<Poster | null>(null);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<"List" | "Preview" | "Copy">("List");
+  const [instagramConnected, setInstagramConnected] = useState(false);
+  const [postingToInstagram, setPostingToInstagram] = useState(false);
   const newRef = useRef<HTMLButtonElement>(null);
   const noUserTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -116,6 +119,13 @@ function PostersPageContent() {
       unsubscribe();
       if (noUserTimeoutRef.current) clearTimeout(noUserTimeoutRef.current);
     };
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/me", { credentials: "same-origin" })
+      .then((r) => r.ok && r.json())
+      .then((d) => d?.instagram?.connected && setInstagramConnected(true))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -244,6 +254,44 @@ function PostersPageContent() {
       setTimeout(() => URL.revokeObjectURL(url), 5000);
     } catch {
       toast.error("Failed to open");
+    }
+  }
+
+  async function handlePostToInstagram(poster: Poster) {
+    if (!poster.imageUrl) {
+      toast.error("No image found for this poster");
+      return;
+    }
+    setPostingToInstagram(true);
+    try {
+      const caption = [
+        poster.headline,
+        poster.body,
+        poster.hashtags?.join(" ") ?? "",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+
+      const res = await fetch("/api/social/instagram/post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          posterId: poster.id,
+          imageUrl: poster.imageUrl,
+          caption,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data?.error ?? "Failed to post to Instagram");
+        return;
+      }
+      toast.success(`Posted to @${data.username ?? "Instagram"} successfully!`);
+    } catch {
+      toast.error("Failed to post to Instagram");
+    } finally {
+      setPostingToInstagram(false);
     }
   }
 
@@ -434,6 +482,21 @@ function PostersPageContent() {
                     <ExternalLink size={12} />
                     Open
                   </button>
+                  {instagramConnected && (
+                    <button
+                      type="button"
+                      onClick={() => selected && handlePostToInstagram(selected)}
+                      disabled={!selected || postingToInstagram}
+                      className="flex items-center gap-1.5 bg-gradient-to-r from-[#f09433] to-[#bc1888] text-white font-semibold text-[12px] px-3 py-1.5 rounded-lg hover:opacity-90 transition-all min-h-[32px] disabled:opacity-50"
+                    >
+                      {postingToInstagram ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <Instagram size={12} />
+                      )}
+                      Post
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => selected && handleDownload(selected.id)}

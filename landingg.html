@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArtMaster Platform — Social Media on Autopilot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --accent: #E8FF47;
+    --accent-dim: #d4eb3a;
+    --bg-base: #080808;
+    --bg-surface: #101010;
+    --bg-elevated: #181818;
+    --border-subtle: rgba(255,255,255,0.06);
+    --border-default: rgba(255,255,255,0.1);
+    --border-strong: rgba(255,255,255,0.18);
+    --text-primary: #F2F2F0;
+    --text-secondary: #A8A89E;
+    --text-muted: #666660;
+    --success: #4ade80;
+    --radius: 14px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: 'DM Mono', monospace;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE TEXTURE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     NAV
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 56px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    background: rgba(8,8,8,0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border-subtle);
+    transition: background 0.3s;
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .nav-logo-mark {
+    width: 28px; height: 28px;
+    background: var(--accent);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .nav-logo-mark span {
+    display: block;
+    width: 14px; height: 14px;
+    background: #000;
+    border-radius: 3px;
+  }
+
+  .nav-logo-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+  }
+
+  .nav-logo-text strong {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+  }
+
+  .nav-logo-text small {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 8px;
+    transition: color 0.15s, background 0.15s;
+    letter-spacing: 0.02em;
+  }
+
+  .nav-links a:hover { color: var(--text-primary); background: var(--bg-elevated); }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-ghost {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 7px 14px;
+    border-radius: 9px;
+    text-decoration: none;
+    transition: color 0.15s, background 0.15s;
+    letter-spacing: 0.02em;
+  }
+  .btn-ghost:hover { color: var(--text-primary); background: var(--bg-elevated); }
+
+  .btn-primary {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #000;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+    padding: 8px 18px;
+    border-radius: 9px;
+    text-decoration: none;
+    transition: background 0.15s, transform 0.1s;
+    display: flex; align-items: center; gap: 6px;
+    letter-spacing: -0.1px;
+  }
+  .btn-primary:hover { background: var(--accent-dim); }
+  .btn-primary:active { transform: scale(0.98); }
+
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     HERO
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Radial glow */
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 700px; height: 500px;
+    background: radial-gradient(ellipse, rgba(232,255,71,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* Dot grid */
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 30%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 30%, transparent 100%);
+    pointer-events: none;
+  }
+
+  .hero-inner {
+    position: relative;
+    z-index: 1;
+    max-width: 820px;
+    margin: 0 auto;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--border-default);
+    background: var(--bg-surface);
+    border-radius: 100px;
+    padding: 6px 14px 6px 8px;
+    margin-bottom: 32px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .hero-badge-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.85); }
+  }
+
+  .hero-badge span {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .hero-headline {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(48px, 8vw, 88px);
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    color: var(--text-primary);
+    margin-bottom: 24px;
+    animation: fadeUp 0.7s 0.1s ease both;
+  }
+
+  .hero-headline em {
+    font-style: normal;
+    color: var(--accent);
+    position: relative;
+  }
+
+  .hero-headline em::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0.4;
+    border-radius: 2px;
+  }
+
+  .hero-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    max-width: 480px;
+    margin: 0 auto 40px;
+    animation: fadeUp 0.7s 0.2s ease both;
+  }
+
+  .hero-ctas {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 60px;
+    animation: fadeUp 0.7s 0.3s ease both;
+  }
+
+  .cta-primary {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: #000;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+    padding: 14px 28px;
+    border-radius: 12px;
+    text-decoration: none;
+    display: flex; align-items: center; gap: 8px;
+    transition: all 0.15s;
+    letter-spacing: -0.2px;
+  }
+  .cta-primary:hover { background: var(--accent-dim); transform: translateY(-1px); box-shadow: 0 8px 32px rgba(232,255,71,0.2); }
+  .cta-primary:active { transform: scale(0.98) translateY(0); }
+
+  .cta-primary svg { transition: transform 0.2s; }
+  .cta-primary:hover svg { transform: translateX(3px); }
+
+  .cta-secondary {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--text-secondary);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    cursor: pointer;
+    padding: 14px 24px;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: all 0.15s;
+    letter-spacing: 0.02em;
+  }
+  .cta-secondary:hover { color: var(--text-primary); border-color: var(--border-strong); background: var(--bg-elevated); }
+
+  /* Hero stats */
+  .hero-stats {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    animation: fadeUp 0.7s 0.4s ease both;
+    margin-bottom: 72px;
+  }
+
+  .stat-divider { width: 1px; height: 28px; background: var(--border-subtle); }
+
+  .stat-item { text-align: center; }
+
+  .stat-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+    display: block;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: block;
+    margin-top: 2px;
+  }
+
+  /* ── HERO PRODUCT MOCKUP ── */
+  .hero-mockup {
+    position: relative;
+    max-width: 860px;
+    margin: 0 auto;
+    animation: fadeUp 0.8s 0.5s ease both;
+  }
+
+  .mockup-glow {
+    position: absolute;
+    bottom: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px; height: 200px;
+    background: radial-gradient(ellipse, rgba(232,255,71,0.12), transparent 70%);
+    pointer-events: none;
+    filter: blur(20px);
+  }
+
+  .mockup-frame {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+    position: relative;
+  }
+
+  .mockup-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-elevated);
+  }
+
+  .mockup-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .live-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--success);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .mockup-bar span {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+  }
+
+  .approved-badge {
+    background: rgba(74,222,128,0.12);
+    border: 1px solid rgba(74,222,128,0.25);
+    color: var(--success);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    padding: 3px 10px;
+    border-radius: 100px;
+    text-transform: uppercase;
+  }
+
+  .mockup-content {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    height: 340px;
+  }
+
+  .mockup-sidebar {
+    border-right: 1px solid var(--border-subtle);
+    padding: 16px 0;
+    overflow: hidden;
+  }
+
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .sidebar-item.active { background: rgba(232,255,71,0.05); border-left: 2px solid var(--accent); }
+  .sidebar-item:not(.active) { border-left: 2px solid transparent; }
+
+  .sidebar-thumb {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .thumb-1 { background: linear-gradient(135deg, #1a2535, #0d1117); }
+  .thumb-2 { background: linear-gradient(135deg, #1f1208, #2d1a0a); }
+  .thumb-3 { background: linear-gradient(135deg, #0f1a1a, #0a1f15); }
+  .thumb-4 { background: linear-gradient(135deg, #1a0f1a, #120a1f); }
+  .thumb-5 { background: linear-gradient(135deg, #1a1508, #201a05); }
+
+  .sidebar-info { flex: 1; min-width: 0; }
+
+  .sidebar-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+  }
+
+  .sidebar-meta {
+    font-size: 9px;
+    color: var(--text-muted);
+    display: block;
+    margin-top: 2px;
+  }
+
+  .mockup-preview {
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-base);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Checkerboard bg */
+  .mockup-preview::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  .poster-card {
+    position: relative;
+    width: 200px; height: 200px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+  }
+
+  .poster-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(160deg, #1a2535 0%, #0d1117 60%, #0a0f1a 100%);
+  }
+
+  .poster-glow {
+    position: absolute;
+    top: -20px; right: -20px;
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, rgba(232,255,71,0.2), transparent 70%);
+    filter: blur(10px);
+  }
+
+  .poster-content {
+    position: absolute;
+    inset: 0;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .poster-line-1 { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-bottom: 8px; }
+  .poster-line-2 { height: 14px; background: rgba(255,255,255,0.85); border-radius: 4px; margin-bottom: 5px; }
+  .poster-line-3 { height: 10px; width: 75%; background: rgba(255,255,255,0.45); border-radius: 4px; margin-bottom: 10px; }
+  .poster-cta-btn {
+    height: 22px; width: 70px;
+    background: var(--accent);
+    border-radius: 100px;
+  }
+
+  /* Right info panel */
+  .mockup-info {
+    position: absolute;
+    right: 24px; top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 190px;
+  }
+
+  .info-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: 11px;
+    padding: 12px 14px;
+  }
+
+  .info-card-label {
+    font-size: 9px;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .info-card-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+    display: block;
+  }
+
+  .info-card-sub {
+    font-size: 10px;
+    color: var(--text-muted);
+    display: block;
+    margin-top: 2px;
+  }
+
+  .headline-preview {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    display: block;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0);    }
+  }
+
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     MARQUEE / TRUST BAR
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  .trust-bar {
+    background: var(--bg-surface);
+    padding: 48px 0;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .trust-label {
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+
+  .marquee-track {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .marquee-fade-left {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 160px; z-index: 2;
+    background: linear-gradient(to right, var(--bg-surface), transparent);
+    pointer-events: none;
+  }
+
+  .marquee-fade-right {
+    position: absolute; right: 0; top: 0; bottom: 0; width: 160px; z-index: 2;
+    background: linear-gradient(to left, var(--bg-surface), transparent);
+    pointer-events: none;
+  }
+
+  .marquee-inner {
+    display: flex;
+    align-items: center;
+    gap: 64px;
+    animation: marquee 28s linear infinite;
+    width: max-content;
+  }
+
+  .marquee-inner:hover { animation-play-state: paused; }
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+
+  .brand-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    cursor: default;
+    transition: opacity 0.2s;
+  }
+
+  .brand-item:hover { opacity: 1 !important; }
+
+  .brand-item:not(:hover) { opacity: 1; }
+
+  .brand-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.2);
+    transition: color 0.2s;
+    text-transform: uppercase;
+  }
+
+  .brand-item:hover .brand-name { color: rgba(255,255,255,0.55); }
+
+  .brand-cat {
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: rgba(255,255,255,0.1);
+    transition: color 0.2s;
+    text-transform: uppercase;
+  }
+
+  .brand-item:hover .brand-cat { color: rgba(255,255,255,0.3); }
+
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     PROCESS SECTION
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  .section { padding: 100px 24px; }
+  .section-inner { max-width: 1000px; margin: 0 auto; }
+
+  .section-eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--accent);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    color: var(--text-primary);
+    max-width: 480px;
+    margin-bottom: 56px;
+  }
+
+  .section-title span { color: var(--text-muted); }
+
+  /* Process steps */
+  .process-steps { border-top: 1px solid var(--border-subtle); }
+
+  .process-step {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 32px;
+    align-items: center;
+    padding: 28px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    transition: border-color 0.2s;
+    cursor: default;
+  }
+
+  .process-step:hover { border-bottom-color: var(--border-default); }
+
+  .step-num {
+    font-family: 'Instrument Serif', serif;
+    font-size: 52px;
+    color: rgba(255,255,255,0.06);
+    line-height: 1;
+    transition: color 0.3s;
+    user-select: none;
+    font-style: italic;
+  }
+
+  .process-step:hover .step-num { color: rgba(232,255,71,0.15); }
+
+  .step-body { }
+
+  .step-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+
+  .step-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.65;
+    max-width: 440px;
+  }
+
+  .step-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: 100px;
+    padding: 6px 14px;
+    white-space: nowrap;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .process-step:hover .step-pill {
+    border-color: rgba(232,255,71,0.25);
+    background: rgba(232,255,71,0.04);
+  }
+
+  .pill-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .step-pill span {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .process-step:hover .step-pill span { color: var(--text-secondary); }
+
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     FEATURES GRID
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  .features-section {
+    padding: 100px 24px;
+    background: var(--bg-surface);
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border-subtle);
+    border: 1px solid var(--border-subtle);
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  .feature-card {
+    background: var(--bg-surface);
+    padding: 32px;
+    transition: background 0.2s;
+    cursor: default;
+  }
+
+  .feature-card:hover { background: var(--bg-elevated); }
+
+  .feature-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: rgba(232,255,71,0.08);
+    border: 1px solid rgba(232,255,71,0.15);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px;
+    color: var(--accent);
+  }
+
+  .feature-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+
+  .feature-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     TESTIMONIAL
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  .testimonial-section { padding: 100px 24px; }
+
+  .testimonial-inner {
+    max-width: 680px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .quote-mark {
+    font-family: 'Instrument Serif', serif;
+    font-size: 80px;
+    color: rgba(232,255,71,0.15);
+    line-height: 0.8;
+    margin-bottom: 24px;
+    font-style: italic;
+    display: block;
+  }
+
+  .testimonial-quote {
+    font-family: 'Instrument Serif', serif;
+    font-size: clamp(22px, 3vw, 30px);
+    color: var(--text-primary);
+    line-height: 1.4;
+    margin-bottom: 32px;
+    font-style: italic;
+    letter-spacing: -0.01em;
+  }
+
+  .testimonial-author {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+  }
+
+  .author-avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: rgba(232,255,71,0.15);
+    border: 1.5px solid rgba(232,255,71,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .author-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: block;
+    letter-spacing: -0.01em;
+  }
+
+  .author-role {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: block;
+    margin-top: 2px;
+  }
+
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     FINAL CTA
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  .cta-section {
+    padding: 100px 24px 120px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-section::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 600px; height: 400px;
+    background: radial-gradient(ellipse, rgba(232,255,71,0.06), transparent 70%);
+    pointer-events: none;
+  }
+
+  .cta-section-inner { position: relative; z-index: 1; }
+
+  .cta-headline {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(36px, 5vw, 60px);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+  }
+
+  .cta-headline span {
+    color: var(--text-muted);
+    display: block;
+  }
+
+  .cta-sub {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 40px;
+    line-height: 1.6;
+  }
+
+  .cta-no-cc {
+    margin-top: 16px;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     FOOTER
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  footer {
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .footer-inner {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  .footer-main {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 48px;
+    padding: 56px 0 48px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .footer-brand-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    max-width: 220px;
+    margin-top: 14px;
+    margin-bottom: 20px;
+  }
+
+  .footer-location-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: 100px;
+    padding: 5px 12px;
+  }
+
+  .location-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--success);
+  }
+
+  .footer-location-badge span {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
+  }
+
+  .footer-col-title {
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    display: block;
+  }
+
+  .footer-links { list-style: none; }
+
+  .footer-links li { margin-bottom: 10px; }
+
+  .footer-links a {
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  .footer-links a:hover { color: var(--text-primary); }
+
+  .footer-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 0;
+  }
+
+  .footer-bottom p {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     SCROLL ANIMATIONS
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.65s ease, transform 0.65s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
+  .reveal-delay-4 { transition-delay: 0.4s; }
+  .reveal-delay-5 { transition-delay: 0.5s; }
+
+  /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     RESPONSIVE
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+  @media (max-width: 768px) {
+    nav { padding: 0 16px; }
+    .nav-links { display: none; }
+
+    .hero { padding: 100px 16px 60px; }
+    .hero-stats { gap: 20px; }
+    .stat-value { font-size: 18px; }
+
+    .mockup-content { grid-template-columns: 1fr; }
+    .mockup-sidebar { display: none; }
+    .mockup-info { position: static; transform: none; width: 100%; }
+
+    .process-step { grid-template-columns: 60px 1fr; }
+    .step-pill { display: none; }
+
+    .features-grid { grid-template-columns: 1fr; }
+
+    .footer-main { grid-template-columns: 1fr 1fr; gap: 32px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ━━━━ NAV ━━━━ -->
+<nav>
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-mark"><span></span></div>
+    <div class="nav-logo-text">
+      <strong>ArtMaster</strong>
+      <small>Platform</small>
+    </div>
+  </a>
+
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how-it-works">How it works</a></li>
+    <li><a href="/pricing">Pricing</a></li>
+  </ul>
+
+  <div class="nav-right">
+    <a href="/login" class="btn-ghost">Sign in</a>
+    <a href="/signup" class="btn-primary">
+      Get started
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+  </div>
+</nav>
+
+<!-- ━━━━ HERO ━━━━ -->
+<section class="hero">
+  <div class="hero-inner">
+
+    <div class="hero-badge">
+      <div class="hero-badge-dot"></div>
+      <span>Social media on autopilot</span>
+    </div>
+
+    <h1 class="hero-headline">
+      Your brand deserves<br>
+      to show up <em>every day.</em>
+    </h1>
+
+    <p class="hero-sub">
+      Professional, on-brand social media posters generated every morning. No designer. No effort. Just results.
+    </p>
+
+    <div class="hero-ctas">
+      <a href="/signup" class="cta-primary">
+        Start automating free
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+      <a href="/login" class="cta-secondary">Sign in to dashboard</a>
+    </div>
+
+    <div class="hero-stats">
+      <div class="stat-item">
+        <span class="stat-value">500+</span>
+        <span class="stat-label">African businesses</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-value">12K+</span>
+        <span class="stat-label">Posters generated</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-value">99.9%</span>
+        <span class="stat-label">Uptime</span>
+      </div>
+    </div>
+
+    <!-- Product mockup -->
+    <div class="hero-mockup">
+      <div class="mockup-glow"></div>
+      <div class="mockup-frame">
+        <div class="mockup-bar">
+          <div class="mockup-bar-left">
+            <div class="live-dot"></div>
+            <span>Generated today · 08:00 AM EAT</span>
+          </div>
+          <div class="approved-badge">Approved</div>
+        </div>
+        <div class="mockup-content">
+          <!-- Sidebar list -->
+          <div class="mockup-sidebar">
+            <div class="sidebar-item active">
+              <div class="sidebar-thumb thumb-1"></div>
+              <div class="sidebar-info">
+                <span class="sidebar-title">Kickstart Semester</span>
+                <span class="sidebar-meta">Today · Education</span>
+              </div>
+            </div>
+            <div class="sidebar-item">
+              <div class="sidebar-thumb thumb-2"></div>
+              <div class="sidebar-info">
+                <span class="sidebar-title">Africa Youth Day</span>
+                <span class="sidebar-meta">Yesterday · Occasion</span>
+              </div>
+            </div>
+            <div class="sidebar-item">
+              <div class="sidebar-thumb thumb-3"></div>
+              <div class="sidebar-info">
+                <span class="sidebar-title">Big Savings</span>
+                <span class="sidebar-meta">25 Feb · Promotion</span>
+              </div>
+            </div>
+            <div class="sidebar-item">
+              <div class="sidebar-thumb thumb-4"></div>
+              <div class="sidebar-info">
+                <span class="sidebar-title">Week's Agenda</span>
+                <span class="sidebar-meta">25 Feb · Brand</span>
+              </div>
+            </div>
+            <div class="sidebar-item">
+              <div class="sidebar-thumb thumb-5"></div>
+              <div class="sidebar-info">
+                <span class="sidebar-title">AI to the Rescue</span>
+                <span class="sidebar-meta">25 Feb · Product</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Preview area -->
+          <div class="mockup-preview">
+            <!-- Poster card -->
+            <div class="poster-card">
+              <div class="poster-bg"></div>
+              <div class="poster-glow"></div>
+              <div class="poster-content">
+                <div class="poster-line-1"></div>
+                <div class="poster-line-2"></div>
+                <div class="poster-line-3"></div>
+                <div class="poster-cta-btn"></div>
+              </div>
+            </div>
+
+            <!-- Floating info -->
+            <div class="mockup-info">
+              <div class="info-card">
+                <span class="info-card-label">Headline</span>
+                <span class="headline-preview">"Kickstart Your Semester Now!"</span>
+              </div>
+              <div class="info-card">
+                <span class="info-card-label">Posters this month</span>
+                <span class="info-card-value">5</span>
+                <span class="info-card-sub">of 5 used · Free plan</span>
+              </div>
+              <div class="info-card">
+                <span class="info-card-label">Brand kit</span>
+                <span class="info-card-value" style="font-size:14px; color: var(--text-secondary)">Chuo AI</span>
+                <span class="info-card-sub">Education · Tanzania</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ━━━━ TRUST BAR ━━━━ -->
+<section class="trust-bar">
+  <p class="trust-label">Trusted by businesses across Africa and beyond</p>
+  <div class="marquee-track">
+    <div class="marquee-fade-left"></div>
+    <div class="marquee-fade-right"></div>
+    <div class="marquee-inner">
+      <!-- Set 1 -->
+      <div class="brand-item"><span class="brand-name">KILIMO</span><span class="brand-cat">AgriTech</span></div>
+      <div class="brand-item"><span class="brand-name">NEXUS</span><span class="brand-cat">Finance</span></div>
+      <div class="brand-item"><span class="brand-name">URBANHAUS</span><span class="brand-cat">Real Estate</span></div>
+      <div class="brand-item"><span class="brand-name">MERIDIAN</span><span class="brand-cat">Healthcare</span></div>
+      <div class="brand-item"><span class="brand-name">APEX</span><span class="brand-cat">Retail</span></div>
+      <div class="brand-item"><span class="brand-name">SOLARIS</span><span class="brand-cat">Technology</span></div>
+      <div class="brand-item"><span class="brand-name">HARBOR</span><span class="brand-cat">Logistics</span></div>
+      <div class="brand-item"><span class="brand-name">CREST</span><span class="brand-cat">Education</span></div>
+      <div class="brand-item"><span class="brand-name">VOLTA</span><span class="brand-cat">Energy</span></div>
+      <div class="brand-item"><span class="brand-name">ONYX</span><span class="brand-cat">Fashion</span></div>
+      <!-- Set 2 (duplicate for seamless loop) -->
+      <div class="brand-item"><span class="brand-name">KILIMO</span><span class="brand-cat">AgriTech</span></div>
+      <div class="brand-item"><span class="brand-name">NEXUS</span><span class="brand-cat">Finance</span></div>
+      <div class="brand-item"><span class="brand-name">URBANHAUS</span><span class="brand-cat">Real Estate</span></div>
+      <div class="brand-item"><span class="brand-name">MERIDIAN</span><span class="brand-cat">Healthcare</span></div>
+      <div class="brand-item"><span class="brand-name">APEX</span><span class="brand-cat">Retail</span></div>
+      <div class="brand-item"><span class="brand-name">SOLARIS</span><span class="brand-cat">Technology</span></div>
+      <div class="brand-item"><span class="brand-name">HARBOR</span><span class="brand-cat">Logistics</span></div>
+      <div class="brand-item"><span class="brand-name">CREST</span><span class="brand-cat">Education</span></div>
+      <div class="brand-item"><span class="brand-name">VOLTA</span><span class="brand-cat">Energy</span></div>
+      <div class="brand-item"><span class="brand-name">ONYX</span><span class="brand-cat">Fashion</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━ HOW IT WORKS ━━━━ -->
+<section class="section" id="how-it-works">
+  <div class="section-inner">
+    <span class="section-eyebrow reveal">The process</span>
+    <h2 class="section-title reveal reveal-delay-1">
+      From brand kit<br>
+      to published post<br>
+      <span>in minutes.</span>
+    </h2>
+
+    <div class="process-steps">
+      <div class="process-step reveal">
+        <div class="step-num">01</div>
+        <div class="step-body">
+          <div class="step-title">Set up your brand kit</div>
+          <div class="step-desc">Add your logo, colors, industry, and target audience. Tell us your brand voice and where you operate. Takes under 5 minutes.</div>
+        </div>
+        <div class="step-pill">
+          <div class="pill-dot"></div>
+          <span>Under 5 min setup</span>
+        </div>
+      </div>
+
+      <div class="process-step reveal reveal-delay-1">
+        <div class="step-num">02</div>
+        <div class="step-body">
+          <div class="step-title">Content generated daily</div>
+          <div class="step-desc">Every morning, your poster is created automatically. Copy, visuals, and layout — all tailored to your brand and today's moment in your market.</div>
+        </div>
+        <div class="step-pill">
+          <div class="pill-dot"></div>
+          <span>Daily at your chosen time</span>
+        </div>
+      </div>
+
+      <div class="process-step reveal reveal-delay-2">
+        <div class="step-num">03</div>
+        <div class="step-body">
+          <div class="step-title">Review, approve, publish</div>
+          <div class="step-desc">Get notified the moment your poster is ready. Approve with one tap. Download and post directly to your social channels.</div>
+        </div>
+        <div class="step-pill">
+          <div class="pill-dot"></div>
+          <span>30–60 sec generation</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━ FEATURES ━━━━ -->
+<section class="features-section" id="features">
+  <div class="section-inner">
+    <span class="section-eyebrow reveal">What's included</span>
+    <h2 class="section-title reveal reveal-delay-1">
+      Everything your brand<br>
+      <span>needs to stay consistent.</span>
+    </h2>
+
+    <div class="features-grid reveal reveal-delay-2">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="feature-title">Brand-aware generation</div>
+        <div class="feature-desc">Every poster reflects your exact brand — colors, tone, logo, and voice. Never off-brand.</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div class="feature-title">Occasion intelligence</div>
+        <div class="feature-desc">Knows local holidays, market moments, and cultural events across 40+ African countries.</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="feature-title">Daily automation</div>
+        <div class="feature-desc">Set your time once. Wake up to a freshly generated, ready-to-post poster every morning.</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <div class="feature-title">All platform sizes</div>
+        <div class="feature-desc">Instagram, Facebook, TikTok, LinkedIn, X — the right dimensions for every feed, automatically.</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <div class="feature-title">Content recommendations</div>
+        <div class="feature-desc">Six tailored content ideas generated daily based on your brand, market, and what's happening today.</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div class="feature-title">Instant notifications</div>
+        <div class="feature-desc">Get notified by email or SMS the moment your poster is ready to review and approve.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━ TESTIMONIAL ━━━━ -->
+<section class="testimonial-section">
+  <div class="testimonial-inner reveal">
+    <span class="quote-mark">"</span>
+    <p class="testimonial-quote">
+      We went from spending hours every week on social media content to checking our phone once a day to approve what's ready. The quality is consistently on-brand.
+    </p>
+    <div class="testimonial-author">
+      <div class="author-avatar">A</div>
+      <div>
+        <span class="author-name">Amara Osei</span>
+        <span class="author-role">Founder, Osei Retail · Accra, Ghana</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━━ FINAL CTA ━━━━ -->
+<section class="cta-section">
+  <div class="cta-section-inner reveal">
+    <h2 class="cta-headline">
+      Start posting
+      <span>consistently.</span>
+    </h2>
+    <p class="cta-sub">Join businesses across Africa that never miss a day on social media.</p>
+    <a href="/signup" class="cta-primary" style="display:inline-flex; margin: 0 auto;">
+      Create free account
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+    <p class="cta-no-cc">No credit card required</p>
+  </div>
+</section>
+
+<!-- ━━━━ FOOTER ━━━━ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-main">
+      <!-- Brand col -->
+      <div style="grid-column: span 2">
+        <a href="/" class="nav-logo" style="margin-bottom: 0; text-decoration:none;">
+          <div class="nav-logo-mark"><span></span></div>
+          <div class="nav-logo-text">
+            <strong>ArtMaster</strong>
+            <small>Platform</small>
+          </div>
+        </a>
+        <p class="footer-brand-desc">Automated social media poster generation for African businesses scaling globally.</p>
+        <div class="footer-location-badge">
+          <div class="location-dot"></div>
+          <span>Built for Africa · Used worldwide</span>
+        </div>
+      </div>
+
+      <!-- Product col -->
+      <div>
+        <span class="footer-col-title">Product</span>
+        <ul class="footer-links">
+          <li><a href="#features">Features</a></li>
+          <li><a href="#how-it-works">How it works</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+          <li><a href="/signup">Sign up</a></li>
+          <li><a href="/login">Sign in</a></li>
+        </ul>
+      </div>
+
+      <!-- Legal col -->
+      <div>
+        <span class="footer-col-title">Legal</span>
+        <ul class="footer-links">
+          <li><a href="/privacy">Privacy Policy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/contact">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© <script>document.write(new Date().getFullYear())</script> ArtMaster Platform. All rights reserved.</p>
+      <p>artmasterpro.com</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Nav scroll effect
+  const nav = document.querySelector('nav');
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 40) {
+      nav.style.background = 'rgba(8,8,8,0.96)';
+      nav.style.borderBottomColor = 'rgba(255,255,255,0.08)';
+    } else {
+      nav.style.background = 'rgba(8,8,8,0.85)';
+      nav.style.borderBottomColor = 'rgba(255,255,255,0.06)';
+    }
+  });
+</script>
+
+</body>
+</html>
