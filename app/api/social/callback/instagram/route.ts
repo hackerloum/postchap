@@ -54,15 +54,19 @@ export async function GET(request: NextRequest) {
     console.log("[Instagram callback] Using APP_ID:", APP_ID);
     console.log("[Instagram callback] Code length:", code.length);
 
-    // Step 1: Exchange code for short-lived token
-    // Use FormData-style body — Instagram requires redirect_uri NOT double-encoded
-    const rawBody = `client_id=${APP_ID}&client_secret=${APP_SECRET}&grant_type=authorization_code&redirect_uri=${cleanRedirectUri}&code=${code}`;
-    console.log("[Instagram callback] Raw body (secret hidden):", rawBody.replace(APP_SECRET, "***"));
+    // Step 1: Exchange code — try JSON body first (Instagram Business Login preference)
+    console.log("[Instagram callback] Code preview:", code.slice(0, 20) + "...");
 
     const tokenRes = await fetch("https://api.instagram.com/oauth/access_token", {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: rawBody,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client_id: APP_ID,
+        client_secret: APP_SECRET,
+        grant_type: "authorization_code",
+        redirect_uri: cleanRedirectUri,
+        code,
+      }),
     });
     const tokenData = await tokenRes.json() as {
       access_token?: string;
