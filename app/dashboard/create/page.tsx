@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   Sparkles,
   RefreshCw,
@@ -720,8 +721,16 @@ export default function CreatePage() {
 
   if (loadingKits) {
     return (
-      <div className="min-h-screen bg-bg-base flex items-center justify-center">
-        <Loader2 size={20} className="text-accent animate-spin" />
+      <div className="min-h-screen bg-bg-base flex flex-col items-center justify-center gap-4">
+        <Image
+          src="/artmasterwordmarklogo-03-03.webp"
+          alt="ArtMaster"
+          width={140}
+          height={40}
+          className="h-8 w-auto object-contain opacity-90"
+          priority
+        />
+        <Loader2 size={18} className="text-accent animate-spin" />
       </div>
     );
   }
