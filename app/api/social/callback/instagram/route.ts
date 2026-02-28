@@ -4,8 +4,12 @@ import { FieldValue } from "firebase-admin/firestore";
 
 const APP_ID = process.env.FACEBOOK_APP_ID!;
 const APP_SECRET = (process.env.INSTAGRAM_APP_SECRET ?? process.env.FACEBOOK_APP_SECRET)!;
-const REDIRECT_URI = process.env.FACEBOOK_REDIRECT_URI ?? "https://artmasterpro.com/api/social/callback/instagram";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://artmasterpro.com";
+const APP_URL = "https://artmasterpro.com";
+
+// In-memory set to prevent double-processing the same code (Vercel can invoke twice)
+const usedCodes = new Set<string>();
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -21,6 +25,14 @@ export async function GET(request: NextRequest) {
       new URL(`/dashboard/settings?instagram=${status}`, APP_URL)
     );
   }
+
+  // Prevent double-processing (Vercel/Next.js can invoke route handlers twice)
+  if (usedCodes.has(code)) {
+    console.warn("[Instagram callback] Code already used, ignoring duplicate request");
+    return NextResponse.redirect(new URL("/dashboard/settings?instagram=connected", APP_URL));
+  }
+  usedCodes.add(code);
+  setTimeout(() => usedCodes.delete(code), 60_000);
 
   // Verify session
   const token = request.cookies.get("__session")?.value;
