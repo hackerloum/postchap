@@ -24,13 +24,13 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Build Meta OAuth URL — using Business Login scopes
+  // Build Meta OAuth URL — Facebook Login for Business uses instagram_content_publish only
   const params = new URLSearchParams({
     client_id: APP_ID,
     redirect_uri: REDIRECT_URI,
-    scope: "instagram_basic,instagram_content_publish",
+    scope: "instagram_content_publish",
     response_type: "code",
-    state: Buffer.from(token.slice(0, 32)).toString("base64"), // CSRF protection
+    state: Buffer.from(token.slice(0, 32)).toString("base64"),
   });
 
   const oauthUrl = `https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}`;

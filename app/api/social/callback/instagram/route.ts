@@ -11,10 +11,14 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const error = searchParams.get("error");
+  const errorReason = searchParams.get("error_reason");
+  const errorDescription = searchParams.get("error_description");
 
   if (error || !code) {
+    console.error("[Instagram callback] OAuth error:", { error, errorReason, errorDescription });
+    const status = errorReason === "user_denied" ? "cancelled" : "error";
     return NextResponse.redirect(
-      new URL("/dashboard/settings?instagram=cancelled", APP_URL)
+      new URL(`/dashboard/settings?instagram=${status}`, APP_URL)
     );
   }
 
