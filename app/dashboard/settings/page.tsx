@@ -185,7 +185,6 @@ function SettingsContent() {
             </a>
           ))}
         </div>
-        </div>
       </section>
     </div>
   );
