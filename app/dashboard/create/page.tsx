@@ -1286,8 +1286,8 @@ export default function CreatePage() {
         </div>
       </div>
 
-      {/* Mobile: fixed bottom bar */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-bg-base/95 backdrop-blur border-t border-border-subtle lg:hidden pb-[env(safe-area-inset-bottom)]">
+      {/* Mobile: fixed bottom bar — sits above the bottom nav (≈56px) */}
+      <div className="fixed left-0 right-0 px-4 pt-3 pb-4 bg-bg-base/95 backdrop-blur border-t border-border-subtle md:hidden z-40" style={{ bottom: "calc(56px + env(safe-area-inset-bottom, 0px))" }}>
         <button
           type="button"
           onClick={handleGenerate}
