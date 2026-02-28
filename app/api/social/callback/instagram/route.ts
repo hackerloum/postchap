@@ -54,19 +54,20 @@ export async function GET(request: NextRequest) {
     console.log("[Instagram callback] Using APP_ID:", APP_ID);
     console.log("[Instagram callback] Code length:", code.length);
 
-    // Step 1: Exchange code — try JSON body first (Instagram Business Login preference)
+    // Step 1: Exchange code — form-urlencoded (required by Instagram)
     console.log("[Instagram callback] Code preview:", code.slice(0, 20) + "...");
+    console.log("[Instagram callback] Secret length:", APP_SECRET?.length);
+
+    const formBody = new FormData();
+    formBody.append("client_id", APP_ID);
+    formBody.append("client_secret", APP_SECRET);
+    formBody.append("grant_type", "authorization_code");
+    formBody.append("redirect_uri", cleanRedirectUri);
+    formBody.append("code", code);
 
     const tokenRes = await fetch("https://api.instagram.com/oauth/access_token", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        client_id: APP_ID,
-        client_secret: APP_SECRET,
-        grant_type: "authorization_code",
-        redirect_uri: cleanRedirectUri,
-        code,
-      }),
+      body: formBody,
     });
     const tokenData = await tokenRes.json() as {
       access_token?: string;
