@@ -766,9 +766,14 @@ export default function CreatePage() {
     <div className="min-h-screen bg-bg-base">
       {generating && (
         <div className="fixed inset-0 bg-bg-base/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-6">
-          <div className="w-12 h-12 bg-accent rounded-2xl flex items-center justify-center animate-pulse">
-            <div className="w-6 h-6 bg-black rounded-lg" />
-          </div>
+          <Image
+            src="/artmasterwordmarklogo-03-03.webp"
+            alt="ArtMaster"
+            width={140}
+            height={40}
+            className="h-8 w-auto object-contain animate-pulse"
+            priority
+          />
           <div className="text-center space-y-2">
             <p className="font-semibold text-[16px] text-text-primary">
               {generationStep || "Generating your poster..."}
