@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth } from "@/lib/firebase/admin";
 
 const APP_ID = process.env.FACEBOOK_APP_ID!;
-const REDIRECT_URI = process.env.FACEBOOK_REDIRECT_URI!;
+const REDIRECT_URI = process.env.FACEBOOK_REDIRECT_URI ?? "https://artmasterpro.com/api/social/callback/instagram";
 
 export async function GET(request: NextRequest) {
   // Verify user is authenticated
