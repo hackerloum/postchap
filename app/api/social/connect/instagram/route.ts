@@ -24,15 +24,16 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Build Meta OAuth URL — Facebook Login for Business uses instagram_content_publish only
+  // Instagram Business Login — uses instagram_business_* scopes
   const params = new URLSearchParams({
     client_id: APP_ID,
     redirect_uri: REDIRECT_URI,
-    scope: "instagram_content_publish",
+    scope: "instagram_business_basic,instagram_business_content_publish",
     response_type: "code",
     state: Buffer.from(token.slice(0, 32)).toString("base64"),
   });
 
-  const oauthUrl = `https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}`;
+  // Instagram Business Login uses a different OAuth endpoint
+  const oauthUrl = `https://www.instagram.com/oauth/authorize?${params.toString()}`;
   return NextResponse.redirect(oauthUrl);
 }

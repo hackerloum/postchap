@@ -37,41 +37,47 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Step 1: Exchange code for short-lived access token
-    const tokenParams = new URLSearchParams({
-      client_id: APP_ID,
-      client_secret: APP_SECRET,
-      redirect_uri: REDIRECT_URI,
-      code,
+    // Step 1: Exchange code for short-lived token via Instagram Business Login
+    const tokenRes = await fetch("https://api.instagram.com/oauth/access_token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: APP_ID,
+        client_secret: APP_SECRET,
+        grant_type: "authorization_code",
+        redirect_uri: REDIRECT_URI,
+        code,
+      }).toString(),
     });
-
-    const tokenRes = await fetch(
-      `https://graph.facebook.com/v19.0/oauth/access_token?${tokenParams.toString()}`
-    );
     const tokenData = await tokenRes.json() as {
       access_token?: string;
+      user_id?: number;
       error?: { message: string };
+      error_type?: string;
+      error_message?: string;
     };
 
+    console.log("[Instagram callback] Token response:", JSON.stringify(tokenData));
+
     if (!tokenData.access_token) {
-      console.error("[Instagram callback] Token exchange failed:", tokenData.error);
+      console.error("[Instagram callback] Token exchange failed:", tokenData);
       return NextResponse.redirect(
         new URL("/dashboard/settings?instagram=error", APP_URL)
       );
     }
 
     const shortToken = tokenData.access_token;
+    const igUserId = tokenData.user_id;
 
     // Step 2: Exchange for long-lived token (60 days)
     const longTokenParams = new URLSearchParams({
-      grant_type: "fb_exchange_token",
-      client_id: APP_ID,
+      grant_type: "ig_exchange_token",
       client_secret: APP_SECRET,
-      fb_exchange_token: shortToken,
+      access_token: shortToken,
     });
 
     const longTokenRes = await fetch(
-      `https://graph.facebook.com/v19.0/oauth/access_token?${longTokenParams.toString()}`
+      `https://graph.instagram.com/access_token?${longTokenParams.toString()}`
     );
     const longTokenData = await longTokenRes.json() as {
       access_token?: string;
@@ -82,54 +88,27 @@ export async function GET(request: NextRequest) {
     const accessToken = longTokenData.access_token ?? shortToken;
     const expiresIn = longTokenData.expires_in ?? 3600;
 
-    // Step 3: Get connected Facebook Pages
-    const pagesRes = await fetch(
-      `https://graph.facebook.com/v19.0/me/accounts?access_token=${accessToken}`
+    // Step 3: Get Instagram account info
+    const igInfoRes = await fetch(
+      `https://graph.instagram.com/v19.0/me?fields=id,username,name&access_token=${accessToken}`
     );
-    const pagesData = await pagesRes.json() as {
-      data?: Array<{ id: string; name: string; access_token: string }>;
+    const igInfo = await igInfoRes.json() as {
+      id?: string;
+      username?: string;
+      name?: string;
     };
 
-    // Step 4: Find the Instagram Business Account linked to the first Page
-    let instagramAccountId: string | null = null;
-    let instagramUsername: string | null = null;
-    let pageAccessToken: string | null = null;
+    const instagramAccountId = igInfo.id ?? String(igUserId) ?? null;
+    const instagramUsername = igInfo.username ?? igInfo.name ?? null;
 
-    if (pagesData.data && pagesData.data.length > 0) {
-      for (const page of pagesData.data) {
-        const igRes = await fetch(
-          `https://graph.facebook.com/v19.0/${page.id}?fields=instagram_business_account&access_token=${page.access_token}`
-        );
-        const igData = await igRes.json() as {
-          instagram_business_account?: { id: string };
-        };
-
-        if (igData.instagram_business_account?.id) {
-          instagramAccountId = igData.instagram_business_account.id;
-          pageAccessToken = page.access_token;
-
-          // Get Instagram username
-          const igInfoRes = await fetch(
-            `https://graph.facebook.com/v19.0/${instagramAccountId}?fields=username,name&access_token=${page.access_token}`
-          );
-          const igInfo = await igInfoRes.json() as {
-            username?: string;
-            name?: string;
-          };
-          instagramUsername = igInfo.username ?? igInfo.name ?? null;
-          break;
-        }
-      }
-    }
-
-    // Step 5: Save to Firestore
+    // Step 4: Save to Firestore
     const db = getAdminDb();
     await db.collection("users").doc(uid).set(
       {
         instagram: {
           connected: true,
           accessToken,
-          pageAccessToken,
+          pageAccessToken: accessToken, // Instagram Business Login uses same token for publishing
           accountId: instagramAccountId,
           username: instagramUsername,
           connectedAt: FieldValue.serverTimestamp(),

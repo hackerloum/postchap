@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Step 1: Create media container
+    // Step 1: Create media container via Instagram Graph API
     const containerParams = new URLSearchParams({
       image_url: imageUrl,
       caption,
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     });
 
     const containerRes = await fetch(
-      `https://graph.facebook.com/v19.0/${instagram.accountId}/media`,
+      `https://graph.instagram.com/v19.0/${instagram.accountId}/media`,
       {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -78,12 +78,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 2: Poll until container is ready (usually instant)
+    // Step 2: Poll until container is ready
     let ready = false;
     for (let i = 0; i < 10; i++) {
       await new Promise((r) => setTimeout(r, 1500));
       const statusRes = await fetch(
-        `https://graph.facebook.com/v19.0/${containerData.id}?fields=status_code&access_token=${instagram.pageAccessToken}`
+        `https://graph.instagram.com/v19.0/${containerData.id}?fields=status_code&access_token=${instagram.pageAccessToken}`
       );
       const statusData = await statusRes.json() as { status_code?: string };
       if (statusData.status_code === "FINISHED") {
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     });
 
     const publishRes = await fetch(
-      `https://graph.facebook.com/v19.0/${instagram.accountId}/media_publish`,
+      `https://graph.instagram.com/v19.0/${instagram.accountId}/media_publish`,
       {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
