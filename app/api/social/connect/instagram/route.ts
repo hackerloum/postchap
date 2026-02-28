@@ -24,16 +24,15 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Instagram Business Login — uses instagram_business_* scopes
+  // Instagram Business Login — exact scopes from Meta dashboard
   const params = new URLSearchParams({
     client_id: APP_ID,
     redirect_uri: REDIRECT_URI,
-    scope: "instagram_business_basic,instagram_business_content_publish",
+    scope: "instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights",
     response_type: "code",
     state: Buffer.from(token.slice(0, 32)).toString("base64"),
   });
 
-  // Instagram Business Login uses a different OAuth endpoint
   const oauthUrl = `https://www.instagram.com/oauth/authorize?${params.toString()}`;
   return NextResponse.redirect(oauthUrl);
 }

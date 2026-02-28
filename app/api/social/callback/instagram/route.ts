@@ -3,7 +3,7 @@ import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 
 const APP_ID = process.env.FACEBOOK_APP_ID!;
-const APP_SECRET = process.env.FACEBOOK_APP_SECRET!;
+const APP_SECRET = (process.env.INSTAGRAM_APP_SECRET ?? process.env.FACEBOOK_APP_SECRET)!;
 const REDIRECT_URI = process.env.FACEBOOK_REDIRECT_URI ?? "https://artmasterpro.com/api/social/callback/instagram";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://artmasterpro.com";
 
