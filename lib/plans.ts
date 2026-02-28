@@ -33,7 +33,7 @@ export const PLANS: PlanInfo[] = [
     priceMonthly: 0,
     limits: {
       brandKits: 1,
-      postersPerMonth: 5,
+      postersPerMonth: 3,
       scheduledGeneration: false,
       aiRecommendationsFull: false,
     },
@@ -44,7 +44,7 @@ export const PLANS: PlanInfo[] = [
     priceLabel: "$12/mo",
     priceMonthly: 12,
     priceYearlyUSD: 120, // Save 2 months (10 × $12)
-    priceTzs: 30_000, // TZS per month (adjust for your rate)
+    priceTzs: 30_000,
     limits: {
       brandKits: 5,
       postersPerMonth: 50,
@@ -55,13 +55,13 @@ export const PLANS: PlanInfo[] = [
   {
     id: "business",
     name: "Business",
-    priceLabel: "$24/mo",
-    priceMonthly: 24,
-    priceYearlyUSD: 240, // Save 2 months (10 × $24)
-    priceTzs: 60_000, // TZS per month (adjust for your rate)
+    priceLabel: "$39/mo",
+    priceMonthly: 39,
+    priceYearlyUSD: 390, // Save 2 months (10 × $39)
+    priceTzs: 97_500,
     limits: {
       brandKits: -1, // unlimited
-      postersPerMonth: -1,
+      postersPerMonth: 200,
       scheduledGeneration: true,
       aiRecommendationsFull: true,
     },

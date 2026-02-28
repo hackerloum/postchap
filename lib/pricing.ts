@@ -5,8 +5,8 @@
 
 import type { PlanId } from "./plans";
 
-/** Base monthly price in USD (Pro $12, Business $24). */
-export const BASE_USD = { pro: 12, business: 24 } as const;
+/** Base monthly price in USD (Pro $12, Business $39). */
+export const BASE_USD = { pro: 12, business: 39 } as const;
 
 /** Per-country: currency code, amount in smallest unit for payment, and display label. */
 export interface CountryPrice {
@@ -26,27 +26,27 @@ const TWO_DECIMAL_CURRENCIES = new Set([
 
 /** Africa and common countries: amount in smallest unit. */
 const COUNTRY_PRICING: Record<string, { currency: string; proMinor: number; businessMinor: number; mobileMoney: boolean }> = {
-  TZ: { currency: "TZS", proMinor: 30_000, businessMinor: 60_000, mobileMoney: true },
-  NG: { currency: "NGN", proMinor: 18_000, businessMinor: 36_000, mobileMoney: false },
-  ZA: { currency: "ZAR", proMinor: 22_200, businessMinor: 44_400, mobileMoney: false }, // 222.00 / 444.00
-  KE: { currency: "KES", proMinor: 1_560_00, businessMinor: 3_120_00, mobileMoney: false },
-  GH: { currency: "GHS", proMinor: 180_00, businessMinor: 360_00, mobileMoney: false },
-  ET: { currency: "ETB", proMinor: 1_320_00, businessMinor: 2_640_00, mobileMoney: false },
-  EG: { currency: "EGP", proMinor: 600_00, businessMinor: 1_200_00, mobileMoney: false },
-  UG: { currency: "UGX", proMinor: 45_600, businessMinor: 91_200, mobileMoney: false },
-  RW: { currency: "RWF", proMinor: 15_600, businessMinor: 31_200, mobileMoney: false },
-  MA: { currency: "MAD", proMinor: 120_00, businessMinor: 240_00, mobileMoney: false },
-  SN: { currency: "XOF", proMinor: 7_200, businessMinor: 14_400, mobileMoney: false },
-  CI: { currency: "XOF", proMinor: 7_200, businessMinor: 14_400, mobileMoney: false },
-  CM: { currency: "XAF", proMinor: 7_200, businessMinor: 14_400, mobileMoney: false },
-  AO: { currency: "AOA", proMinor: 10_200, businessMinor: 20_400, mobileMoney: false },
-  MZ: { currency: "MZN", proMinor: 768_00, businessMinor: 1_536_00, mobileMoney: false },
-  ZM: { currency: "ZMW", proMinor: 324_00, businessMinor: 648_00, mobileMoney: false },
-  ZW: { currency: "USD", proMinor: 1200, businessMinor: 2400, mobileMoney: false },
-  US: { currency: "USD", proMinor: 1200, businessMinor: 2400, mobileMoney: false },
-  GB: { currency: "GBP", proMinor: 950, businessMinor: 1900, mobileMoney: false }, // pence
-  AE: { currency: "AED", proMinor: 44_00, businessMinor: 88_00, mobileMoney: false },
-  IN: { currency: "INR", proMinor: 999_00, businessMinor: 1998_00, mobileMoney: false },
+  TZ: { currency: "TZS", proMinor: 30_000, businessMinor: 97_500, mobileMoney: true },
+  NG: { currency: "NGN", proMinor: 18_000, businessMinor: 58_500, mobileMoney: false },
+  ZA: { currency: "ZAR", proMinor: 22_200, businessMinor: 72_150, mobileMoney: false },
+  KE: { currency: "KES", proMinor: 1_560_00, businessMinor: 5_070_00, mobileMoney: false },
+  GH: { currency: "GHS", proMinor: 180_00, businessMinor: 585_00, mobileMoney: false },
+  ET: { currency: "ETB", proMinor: 1_320_00, businessMinor: 4_290_00, mobileMoney: false },
+  EG: { currency: "EGP", proMinor: 600_00, businessMinor: 1_950_00, mobileMoney: false },
+  UG: { currency: "UGX", proMinor: 45_600, businessMinor: 148_200, mobileMoney: false },
+  RW: { currency: "RWF", proMinor: 15_600, businessMinor: 50_700, mobileMoney: false },
+  MA: { currency: "MAD", proMinor: 120_00, businessMinor: 390_00, mobileMoney: false },
+  SN: { currency: "XOF", proMinor: 7_200, businessMinor: 23_400, mobileMoney: false },
+  CI: { currency: "XOF", proMinor: 7_200, businessMinor: 23_400, mobileMoney: false },
+  CM: { currency: "XAF", proMinor: 7_200, businessMinor: 23_400, mobileMoney: false },
+  AO: { currency: "AOA", proMinor: 10_200, businessMinor: 33_150, mobileMoney: false },
+  MZ: { currency: "MZN", proMinor: 768_00, businessMinor: 2_496_00, mobileMoney: false },
+  ZM: { currency: "ZMW", proMinor: 324_00, businessMinor: 1_053_00, mobileMoney: false },
+  ZW: { currency: "USD", proMinor: 1200, businessMinor: 3900, mobileMoney: false },
+  US: { currency: "USD", proMinor: 1200, businessMinor: 3900, mobileMoney: false },
+  GB: { currency: "GBP", proMinor: 950, businessMinor: 3088, mobileMoney: false },
+  AE: { currency: "AED", proMinor: 44_00, businessMinor: 143_00, mobileMoney: false },
+  IN: { currency: "INR", proMinor: 999_00, businessMinor: 3_247_00, mobileMoney: false },
 };
 
 function formatAmount(minor: number, currency: string): string {
@@ -100,7 +100,7 @@ export function getPaymentCurrencyAndAmount(
   }
   return {
     currency: "USD",
-    amount: planId === "pro" ? 1200 : 2400, // cents
+    amount: planId === "pro" ? 1200 : 3900, // cents
   };
 }
 

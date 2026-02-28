@@ -54,12 +54,12 @@ const PLANS: PlanItem[] = [
     id: "free",
     name: "Free",
     price: { monthly: 0, annual: 0 },
-    description: "Perfect for getting started",
+    description: "Try it out — no card needed",
     badge: null,
     cta: "Get started free",
     ctaVariant: "outline",
     limits: {
-      postersPerMonth: 5,
+      postersPerMonth: 3,
       brandKits: 1,
       platforms: 2,
       aiRecommendations: true,
@@ -73,16 +73,13 @@ const PLANS: PlanItem[] = [
       resolution: "1080px",
     },
     features: [
-      { label: "5 posters per month", included: true },
+      { label: "3 posters per month", included: true },
       { label: "1 brand kit", included: true },
       { label: "AI content recommendations", included: true },
-      { label: "2 social platforms", included: true },
-      { label: "Standard resolution", included: true },
+      { label: "Templates & inspiration", included: true },
       { label: "Daily scheduling", included: false },
-      { label: "Custom templates", included: false },
-      { label: "Analytics dashboard", included: false },
+      { label: "5 brand kits", included: false },
       { label: "Priority support", included: false },
-      { label: "API access", included: false },
     ],
   },
   {
@@ -94,8 +91,8 @@ const PLANS: PlanItem[] = [
     cta: "Start Pro",
     ctaVariant: "accent",
     limits: {
-      postersPerMonth: 60,
-      brandKits: 3,
+      postersPerMonth: 50,
+      brandKits: 5,
       platforms: 8,
       aiRecommendations: true,
       scheduling: true,
@@ -108,28 +105,24 @@ const PLANS: PlanItem[] = [
       resolution: "2048px",
     },
     features: [
-      { label: "60 posters per month", included: true },
-      { label: "3 brand kits", included: true },
+      { label: "50 posters per month", included: true },
+      { label: "5 brand kits", included: true },
       { label: "AI content recommendations", included: true },
-      { label: "All 8 social platforms", included: true },
-      { label: "High resolution (2048px)", included: true },
+      { label: "Templates & inspiration", included: true },
       { label: "Daily scheduling", included: true },
-      { label: "Custom templates", included: true },
-      { label: "Analytics dashboard", included: true },
       { label: "Priority support", included: false },
-      { label: "API access", included: false },
     ],
   },
   {
     id: "business",
     name: "Business",
-    price: { monthly: 24, annual: 20 },
+    price: { monthly: 39, annual: 33 },
     description: "For agencies and scaling brands",
     badge: null,
     cta: "Start Business",
     ctaVariant: "outline",
     limits: {
-      postersPerMonth: -1,
+      postersPerMonth: 200,
       brandKits: -1,
       platforms: 8,
       aiRecommendations: true,
@@ -138,21 +131,17 @@ const PLANS: PlanItem[] = [
       teamMembers: -1,
       analytics: true,
       prioritySupport: true,
-      apiAccess: true,
-      whiteLabel: true,
-      resolution: "4096px",
+      apiAccess: false,
+      whiteLabel: false,
+      resolution: "2048px",
     },
     features: [
-      { label: "Unlimited posters", included: true },
+      { label: "200 posters per month", included: true },
       { label: "Unlimited brand kits", included: true },
       { label: "AI content recommendations", included: true },
-      { label: "All 8 social platforms", included: true },
-      { label: "4K resolution (4096px)", included: true },
+      { label: "Templates & inspiration", included: true },
       { label: "Daily scheduling", included: true },
-      { label: "Custom templates", included: true },
-      { label: "Analytics dashboard", included: true },
       { label: "Priority support", included: true },
-      { label: "API access", included: true },
     ],
   },
 ];
@@ -463,14 +452,14 @@ export function PricingPlans({
               rows: [
                 {
                   label: "Posters per month",
-                  values: ["5", "60", "Unlimited"],
-                },
-                {
-                  label: "Image resolution",
-                  values: ["1080px", "2048px", "4096px"],
+                  values: ["3", "50", "200"],
                 },
                 {
                   label: "AI recommendations",
+                  values: [true, true, true],
+                },
+                {
+                  label: "Templates & inspiration",
                   values: [true, true, true],
                 },
                 {
@@ -484,39 +473,15 @@ export function PricingPlans({
               rows: [
                 {
                   label: "Brand kits",
-                  values: ["1", "3", "Unlimited"],
-                },
-                {
-                  label: "Social platforms",
-                  values: ["2", "8", "8"],
-                },
-                {
-                  label: "Custom templates",
-                  values: [false, true, true],
-                },
-                {
-                  label: "White label",
-                  values: [false, false, true],
+                  values: ["1", "5", "Unlimited"],
                 },
               ],
             },
             {
-              category: "Team & Support",
+              category: "Support",
               rows: [
                 {
-                  label: "Team members",
-                  values: ["1", "3", "Unlimited"],
-                },
-                {
-                  label: "Analytics",
-                  values: [false, true, true],
-                },
-                {
                   label: "Priority support",
-                  values: [false, false, true],
-                },
-                {
-                  label: "API access",
                   values: [false, false, true],
                 },
               ],
@@ -596,7 +561,7 @@ export function PricingPlans({
             },
             {
               q: "What happens when I reach my poster limit?",
-              a: "Generation is paused until your next billing cycle resets the counter. You can upgrade at any time to continue generating immediately.",
+              a: "Generation is paused until your next billing cycle resets the counter. Free: 3/mo, Pro: 50/mo, Business: 200/mo. You can upgrade at any time to continue generating immediately.",
             },
             {
               q: "Do unused posters roll over?",
