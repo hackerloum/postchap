@@ -37,20 +37,25 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    console.log("[Instagram callback] Using redirect URI:", REDIRECT_URI);
+    const cleanRedirectUri = "https://artmasterpro.com/api/social/callback/instagram";
+    console.log("[Instagram callback] Using redirect URI:", cleanRedirectUri);
     console.log("[Instagram callback] Using APP_ID:", APP_ID);
+    console.log("[Instagram callback] Code length:", code.length);
 
     // Step 1: Exchange code for short-lived token via Instagram Business Login
+    const tokenBody = new URLSearchParams({
+      client_id: APP_ID,
+      client_secret: APP_SECRET,
+      grant_type: "authorization_code",
+      redirect_uri: cleanRedirectUri,
+      code,
+    });
+    console.log("[Instagram callback] Token body:", tokenBody.toString().replace(APP_SECRET, "***"));
+
     const tokenRes = await fetch("https://api.instagram.com/oauth/access_token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: APP_ID,
-        client_secret: APP_SECRET,
-        grant_type: "authorization_code",
-        redirect_uri: REDIRECT_URI,
-        code,
-      }).toString(),
+      body: tokenBody.toString(),
     });
     const tokenData = await tokenRes.json() as {
       access_token?: string;
