@@ -45,7 +45,12 @@ export default function SignupPage() {
       body: JSON.stringify({ token }),
     });
     if (!res.ok) throw new Error("Session failed");
-    router.push("/onboarding");
+    const data = await res.json();
+    if (data.isAdmin) {
+      router.push("/admin");
+    } else {
+      router.push("/onboarding");
+    }
   }
 
   async function handleSignUp(e: React.FormEvent) {

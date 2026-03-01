@@ -12,6 +12,7 @@ export async function POST(request: NextRequest) {
 
     const decoded = await getAdminAuth().verifyIdToken(token);
     const uid = decoded.uid;
+    const isAdmin = decoded.isAdmin === true;
 
     const userRef = getAdminDb().collection("users").doc(uid);
     const userSnap = await userRef.get();
@@ -36,6 +37,7 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({
       success: true,
       hasOnboarded,
+      isAdmin,
       uid,
       plan,
     });

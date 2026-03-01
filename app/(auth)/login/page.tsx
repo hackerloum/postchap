@@ -33,7 +33,9 @@ export default function LoginPage() {
 
     const data = await res.json();
 
-    if (data.hasOnboarded) {
+    if (data.isAdmin) {
+      router.push("/admin");
+    } else if (data.hasOnboarded) {
       router.push("/dashboard");
     } else {
       router.push("/onboarding");
