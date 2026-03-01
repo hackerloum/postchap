@@ -31,3 +31,7 @@ export function getAdminAuth() {
 export function getAdminDb() {
   return getFirestore(getAdminApp());
 }
+
+export async function setAdminClaim(uid: string): Promise<void> {
+  await getAuth(getAdminApp()).setCustomUserClaims(uid, { isAdmin: true });
+}

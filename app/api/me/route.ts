@@ -4,7 +4,7 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getPlanLimits } from "@/lib/plans";
 import { isValidPlanId } from "@/lib/plans";
 
-async function getUid(request: NextRequest): Promise<string> {
+async function getUid(request: NextRequest): Promise<{ uid: string; isAdmin: boolean }> {
   const header = request.headers.get("Authorization");
   const token =
     header?.startsWith("Bearer ")
@@ -12,13 +12,14 @@ async function getUid(request: NextRequest): Promise<string> {
       : request.cookies.get("__session")?.value;
   if (!token) throw new Error("Unauthorized");
   const decoded = await getAdminAuth().verifyIdToken(token);
-  return decoded.uid;
+  return { uid: decoded.uid, isAdmin: decoded.isAdmin === true };
 }
 
 export async function GET(request: NextRequest) {
   let uid: string;
+  let isAdmin = false;
   try {
-    uid = await getUid(request);
+    ({ uid, isAdmin } = await getUid(request));
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -88,6 +89,7 @@ export async function GET(request: NextRequest) {
       phoneNumber: data.phoneNumber ?? null,
       hasOnboarded: data.hasOnboarded ?? false,
       plan,
+      isAdmin,
       country: data.country ?? null,
       countryCode: data.countryCode ?? null,
       currency: data.currency ?? null,
@@ -113,7 +115,7 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   let uid: string;
   try {
-    uid = await getUid(request);
+    ({ uid } = await getUid(request));
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
