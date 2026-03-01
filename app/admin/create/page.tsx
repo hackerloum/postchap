@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
   Sparkles,
@@ -13,9 +13,21 @@ import {
   CheckCircle,
   TrendingUp,
   Star,
+  Clock,
 } from "lucide-react";
 import { PLATFORM_FORMATS } from "@/lib/generation/platformFormats";
 import type { Recommendation } from "@/types/generation";
+
+interface AdminPost {
+  id: string;
+  imageUrl: string;
+  headline: string;
+  cta: string;
+  theme: string;
+  hashtags: string[];
+  platformFormatId: string;
+  createdAt: number | null;
+}
 
 const URGENCY_COLOR: Record<string, string> = {
   high: "text-red-400 bg-red-400/10 border-red-400/30",
@@ -50,6 +62,18 @@ export default function AdminCreatePage() {
   const [result, setResult] = useState<{ posterId: string; imageUrl: string; copy?: Record<string, unknown> } | null>(null);
   const [postingToInstagram, setPostingToInstagram] = useState(false);
   const [caption, setCaption] = useState("");
+  const [posts, setPosts] = useState<AdminPost[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState(true);
+  const [selectedPost, setSelectedPost] = useState<AdminPost | null>(null);
+  const [postingHistoryItem, setPostingHistoryItem] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/posts", { credentials: "same-origin" })
+      .then((r) => r.ok && r.json())
+      .then((d) => d?.posts && setPosts(d.posts))
+      .catch(() => {})
+      .finally(() => setLoadingPosts(false));
+  }, []);
 
   async function handleGetRecommendations() {
     setLoadingRecs(true);
@@ -99,6 +123,11 @@ export default function AdminCreatePage() {
         setCaption(rec.hashtags.join(" "));
       }
       toast.success("Enterprise poster generated!");
+      // Refresh history
+      fetch("/api/admin/posts", { credentials: "same-origin" })
+        .then((r) => r.ok && r.json())
+        .then((d) => d?.posts && setPosts(d.posts))
+        .catch(() => {});
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Generation failed");
     } finally {
@@ -128,6 +157,25 @@ export default function AdminCreatePage() {
   }
 
   const currentStep = GENERATION_STEPS[generationStepIdx] ?? GENERATION_STEPS[0];
+
+  async function handlePostHistoryToInstagram(post: AdminPost, postCaption: string) {
+    setPostingHistoryItem(post.id);
+    try {
+      const res = await fetch("/api/social/instagram/post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ imageUrl: post.imageUrl, caption: postCaption }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d?.error ?? "Failed to post");
+      toast.success(`Posted to @${d.username ?? "Instagram"}!`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to post");
+    } finally {
+      setPostingHistoryItem(null);
+    }
+  }
 
   return (
     <div className="p-8 max-w-6xl">
@@ -435,6 +483,117 @@ export default function AdminCreatePage() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* History */}
+      <div className="mt-10">
+        <div className="flex items-center gap-2 mb-4">
+          <Clock size={14} className="text-text-muted" />
+          <h2 className="font-semibold text-[15px] text-text-primary">Previously generated</h2>
+          <span className="font-mono text-[11px] text-text-muted">({posts.length})</span>
+        </div>
+
+        {loadingPosts ? (
+          <div className="flex items-center gap-2 py-6 text-text-muted">
+            <Loader2 size={14} className="animate-spin" />
+            <span className="font-mono text-[12px]">Loading history...</span>
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="bg-bg-surface border border-border-default rounded-xl py-10 flex flex-col items-center gap-2 text-text-muted">
+            <Sparkles size={20} />
+            <p className="font-mono text-[12px]">No posters generated yet</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {posts.map((post) => (
+              <div
+                key={post.id}
+                className={`group relative rounded-xl overflow-hidden border transition-all cursor-pointer ${
+                  selectedPost?.id === post.id
+                    ? "border-accent ring-1 ring-accent/30"
+                    : "border-border-default hover:border-border-strong"
+                }`}
+                onClick={() =>
+                  setSelectedPost((prev) => (prev?.id === post.id ? null : post))
+                }
+              >
+                <img
+                  src={post.imageUrl}
+                  alt={post.headline}
+                  className="w-full aspect-square object-cover"
+                />
+                {/* Hover overlay */}
+                <div className="absolute inset-0 bg-bg-base/80 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2.5 gap-1.5">
+                  <p className="font-semibold text-[11px] text-text-primary line-clamp-2 leading-snug">
+                    {post.headline}
+                  </p>
+                  {post.createdAt && (
+                    <p className="font-mono text-[10px] text-text-muted">
+                      {new Date(post.createdAt).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Selected post actions */}
+        {selectedPost && (
+          <div className="mt-4 bg-bg-surface border border-border-default rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <img
+              src={selectedPost.imageUrl}
+              alt={selectedPost.headline}
+              className="w-16 h-16 rounded-lg object-cover border border-border-subtle shrink-0"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-[13px] text-text-primary truncate">
+                {selectedPost.headline}
+              </p>
+              <p className="font-mono text-[11px] text-text-muted mt-0.5 capitalize">
+                {selectedPost.theme} · {selectedPost.platformFormatId?.replace(/_/g, " ")}
+              </p>
+              {selectedPost.hashtags?.length > 0 && (
+                <p className="font-mono text-[10px] text-accent/70 mt-1 truncate">
+                  {selectedPost.hashtags.slice(0, 4).join(" ")}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                disabled={postingHistoryItem === selectedPost.id}
+                onClick={() =>
+                  handlePostHistoryToInstagram(
+                    selectedPost,
+                    selectedPost.hashtags?.join(" ") ?? ""
+                  )
+                }
+                className="flex items-center gap-1.5 bg-gradient-to-r from-[#f09433] to-[#bc1888] text-white font-semibold text-[12px] px-3 py-2 rounded-lg hover:opacity-90 transition-all disabled:opacity-50"
+              >
+                {postingHistoryItem === selectedPost.id ? (
+                  <Loader2 size={12} className="animate-spin" />
+                ) : (
+                  <Instagram size={12} />
+                )}
+                Post to Instagram
+              </button>
+              <a
+                href={selectedPost.imageUrl}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 bg-bg-elevated border border-border-default text-text-primary font-semibold text-[12px] px-3 py-2 rounded-lg hover:border-border-strong transition-all"
+              >
+                <Download size={12} />
+                Download
+              </a>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
