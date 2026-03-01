@@ -83,6 +83,19 @@ export async function POST(request: NextRequest) {
       console.warn("[admin/generate] improvePrompt failed, using original:", err);
     }
 
+    // Hard-append negative constraints AFTER improvePrompt so they cannot be overridden.
+    // Seedream treats trailing instructions as high-priority negative guidance.
+    const NO_LOGO_SUFFIX = [
+      "STRICT NEGATIVE CONSTRAINTS:",
+      "Do NOT show any logo, wordmark, brand mark, emblem, icon, or symbol anywhere in the image.",
+      "Do NOT show any text on signs, papers, boards, screens, clothing, or held objects.",
+      "If a person is holding anything (paper, sign, board, phone), it must be blank — no text, no logos, no brand marks on it.",
+      "Do NOT render 'ArtMaster', 'Art Master', or any brand name as text or graphic anywhere.",
+      "The top-left corner must remain completely empty background — no elements within 220x100 pixels of the top-left.",
+      "No watermarks. No copyright symbols. No generated logos.",
+    ].join(" ");
+    imagePrompt = `${imagePrompt}\n\n${NO_LOGO_SUFFIX}`;
+
     const { buffer: backgroundBuffer, imageHasText } = await generateImage(imagePrompt, format.freepikAspectRatio);
 
     const finalBuffer = await compositePoster({

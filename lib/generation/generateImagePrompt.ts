@@ -50,7 +50,7 @@ ${hasBrandName
 
 6. ADD QUALITY KEYWORDS — "Professional", "high-end advertising quality", "premium feel", "production-ready", "commercial quality", "no watermarks".
 
-6b. NO LOGOS OR EMBLEMS IN THE IMAGE — The image must NOT contain any logo, logo mark, emblem, crest, or brand symbol. Do not describe or request a logo in the scene. Do not put brand marks on objects (notebooks, devices, products, etc.). The real logo will be composited on top separately. Only the background, main visual, and text (headline/CTA) should appear.
+6b. ABSOLUTELY NO LOGOS OR BRAND MARKS — The image must NOT contain any logo, wordmark, emblem, crest, icon, or brand symbol anywhere. This includes: on notebooks, devices, clothing, screens, papers, signs, boards, or any object a person is holding. If a person holds a sign or paper, it must be completely blank — no text, no logos, no marks on it. The real logo is composited on top after generation. Only the background scene, main visual subject, and the headline/CTA text may appear.
 
 7. DESCRIBE THE SUBJECT CLEARLY — What is the main visual element (product, person, scene, abstract) and style (photography, illustration, flat design).
 

@@ -47,6 +47,7 @@ FORBIDDEN — these overused tropes that AI keeps repeating:
 - Blue/purple gradient tech-bro backgrounds
 - Rocket or "launch" metaphors
 - Identical centred-text-over-image layouts for every card
+- Person holding a sign, paper, board, or card with any text or logo on it (the AI generates a fake logo on the held object — strictly forbidden)
 
 Instead, think in diverse visual categories:
 - Editorial / magazine spread
@@ -78,7 +79,7 @@ THE 6 CONCEPTS MUST EACH USE A COMPLETELY DIFFERENT VISUAL APPROACH:
 
 Concept 1 — TYPOGRAPHIC POWER: The design IS the typography. Massive, oversized text dominates the entire frame. Almost no imagery — just type, color, and white space. Think Sagmeister & Walsh or Die Gestalten editorial design.
 
-Concept 2 — HUMAN EMOTION: A real person's face or hands — the emotion tells the story. A business owner looking proud at their creation. A creator smiling at a phone screen. Raw authentic feeling. No stock-photo clichés.
+Concept 2 — HUMAN EMOTION: A real person's face or expression — the emotion tells the story. A business owner looking proud and confident. A creator with a genuine smile. Raw authentic feeling. IMPORTANT: The person must NOT hold any sign, paper, board, or object with text or logos on it. The emotion comes from their face and body language only, not from props.
 
 Concept 3 — SPLIT DUALITY: Two-panel composition. Left side: chaotic, messy, old-school design process (sticky notes, stress, Canva clutter). Right side: ArtMaster — clean, instant, perfect. The contrast IS the message.
 
