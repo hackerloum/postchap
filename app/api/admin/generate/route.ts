@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { generateCopy } from "@/lib/generation/generateCopy";
 import { generateImagePrompt } from "@/lib/generation/generateImagePrompt";
 import { generateImage } from "@/lib/freepik/generateImage";
+import { improvePrompt } from "@/lib/freepik/improvePrompt";
 import { compositePoster } from "@/lib/sharp/compositePoster";
 import { uploadBufferToCloudinary } from "@/lib/uploadToCloudinary";
 import { getPlatformFormat } from "@/lib/generation/platformFormats";
@@ -63,7 +64,15 @@ export async function POST(request: NextRequest) {
     const format = getPlatformFormat(body.platformFormatId ?? null);
 
     const copy = await generateCopy(brandKit, null, recommendation);
-    const imagePrompt = await generateImagePrompt(brandKit, copy, null, recommendation);
+    let imagePrompt = await generateImagePrompt(brandKit, copy, null, recommendation);
+
+    // Always run prompt improvement for admin — maximum quality output
+    try {
+      imagePrompt = await improvePrompt(imagePrompt, { type: "image", language: "en" });
+    } catch (err) {
+      console.warn("[admin/generate] improvePrompt failed, using original:", err);
+    }
+
     const { buffer: backgroundBuffer, imageHasText } = await generateImage(imagePrompt, format.freepikAspectRatio);
 
     const finalBuffer = await compositePoster({
