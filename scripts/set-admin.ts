@@ -10,8 +10,24 @@
  * The UID can be found in the Firebase Console → Authentication → Users.
  */
 
-import * as dotenv from "dotenv";
-dotenv.config({ path: ".env.local" });
+// Load .env.local manually without requiring dotenv
+import { readFileSync } from "fs";
+import { resolve } from "path";
+try {
+  const envPath = resolve(process.cwd(), ".env.local");
+  const lines = readFileSync(envPath, "utf8").split("\n");
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIdx = trimmed.indexOf("=");
+    if (eqIdx === -1) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, "");
+    if (key && !(key in process.env)) process.env[key] = val;
+  }
+} catch {
+  // .env.local not found — rely on existing env vars
+}
 
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
