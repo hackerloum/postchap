@@ -6,14 +6,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth } from "@/lib/firebase/admin";
 
 const OWNER_UID = "KXDy0d47vcbgqJKA75KJScxEexy2";
-const SETUP_SECRET = process.env.ADMIN_SETUP_SECRET;
+const SETUP_SECRET = "artmaster-admin-setup-2026";
 
 export async function GET(request: NextRequest) {
   const secret = request.nextUrl.searchParams.get("secret");
-
-  if (!SETUP_SECRET) {
-    return NextResponse.json({ error: "ADMIN_SETUP_SECRET env var not set" }, { status: 500 });
-  }
 
   if (secret !== SETUP_SECRET) {
     return NextResponse.json({ error: "Invalid secret" }, { status: 403 });
