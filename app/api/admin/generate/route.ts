@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
       // so Freepik does NOT attempt to render it (preventing double logo)
       tone: kitData.tone ?? "professional",
       styleNotes: (kitData.styleNotes ? kitData.styleNotes + ". " : "") +
-        "CRITICAL: Do NOT render any logo, wordmark, or brand symbol in the image. Do NOT write the brand name as a logo. Leave the top-left corner clean for logo overlay. Only the background, main visual, headline text, and CTA may appear.",
+        "CRITICAL COMPOSITION RULE: The top-left corner of the image (approximately 220x100 pixels) must be completely empty — pure background only. No text, no icons, no logos, no symbols, no brand marks anywhere in the top-left area. Do NOT render any logo, wordmark, shield icon, brand symbol, or industry icon anywhere in the image. The uploaded logo will be placed there separately. Only the background scene, main visual subject, headline text, and CTA button may appear.",
       targetAudience: kitData.targetAudience ?? "",
       language: kitData.language ?? "English",
       // website omitted: contact bar SVG font rendering fails on Vercel (shows boxes)

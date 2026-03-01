@@ -96,11 +96,31 @@ export async function compositePoster({
 
   const compositeInputs: sharp.OverlayOptions[] = [];
 
-  const LOGO_SIZE = 112;
+  const LOGO_SIZE = Math.round(140 * scale);
+  const BADGE_PAD_X = Math.round(16 * scale);
+  const BADGE_PAD_Y = Math.round(10 * scale);
+  const BADGE_W = LOGO_SIZE + BADGE_PAD_X * 2;
+  const BADGE_H = LOGO_SIZE + BADGE_PAD_Y * 2;
+  const BADGE_R = Math.round(16 * scale);
+
   if (brandKit.logoUrl) {
     try {
       const logoBuffer = await downloadImage(brandKit.logoUrl);
       if (logoBuffer) {
+        // 1. Semi-transparent dark badge behind the logo so it always stands out
+        const badgeSvg = `<svg width="${BADGE_W}" height="${BADGE_H}" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="${BADGE_W}" height="${BADGE_H}"
+                rx="${BADGE_R}" ry="${BADGE_R}"
+                fill="rgba(0,0,0,0.55)" />
+        </svg>`;
+        compositeInputs.push({
+          input: Buffer.from(badgeSvg),
+          top: Math.round(PADDING * 0.7),
+          left: Math.round(PADDING * 0.7),
+          blend: "over",
+        });
+
+        // 2. Logo on top of the badge
         const logoResized = await sharp(logoBuffer)
           .resize(LOGO_SIZE, LOGO_SIZE, {
             fit: "contain",
@@ -110,8 +130,8 @@ export async function compositePoster({
           .toBuffer();
         compositeInputs.push({
           input: logoResized,
-          top: PADDING,
-          left: PADDING,
+          top: Math.round(PADDING * 0.7) + BADGE_PAD_Y,
+          left: Math.round(PADDING * 0.7) + BADGE_PAD_X,
           blend: "over",
         });
       }
@@ -338,6 +358,17 @@ export async function compositePoster({
     try {
       const logoBuffer = await downloadImage(brandKit.logoUrl);
       if (logoBuffer) {
+        const badgeSvg2 = `<svg width="${BADGE_W}" height="${BADGE_H}" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="${BADGE_W}" height="${BADGE_H}"
+                rx="${BADGE_R}" ry="${BADGE_R}"
+                fill="rgba(0,0,0,0.55)" />
+        </svg>`;
+        fullOverlayInputs.push({
+          input: Buffer.from(badgeSvg2),
+          top: Math.round(PADDING * 0.7),
+          left: Math.round(PADDING * 0.7),
+          blend: "over",
+        });
         const logoResized = await sharp(logoBuffer)
           .resize(LOGO_SIZE, LOGO_SIZE, {
             fit: "contain",
@@ -347,8 +378,8 @@ export async function compositePoster({
           .toBuffer();
         fullOverlayInputs.push({
           input: logoResized,
-          top: PADDING,
-          left: PADDING,
+          top: Math.round(PADDING * 0.7) + BADGE_PAD_Y,
+          left: Math.round(PADDING * 0.7) + BADGE_PAD_X,
           blend: "over",
         });
       }
