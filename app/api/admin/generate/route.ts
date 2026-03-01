@@ -47,26 +47,33 @@ export async function POST(request: NextRequest) {
     const kitData = kitSnap.data()!;
     const brandKit: BrandKit = {
       id: "artmaster",
-      brandName: kitData.brandName ?? "ArtMaster",
+      // Intentionally blank — prevents Seedream from baking "ArtMaster" as typographic text.
+      // The real brand name is only used in generateCopy (via brandKitForCopy).
+      brandName: "",
       industry: kitData.industry ?? "SaaS / AI Tools",
       tagline: kitData.tagline ?? "",
       primaryColor: kitData.primaryColor ?? "#000000",
       secondaryColor: kitData.secondaryColor ?? "#ffffff",
       accentColor: kitData.accentColor ?? "#a3e635",
-      // logoUrl passed separately to compositor below — NOT to the image prompt
-      // so Freepik does NOT attempt to render it (preventing double logo)
+      // logoUrl NOT passed to image generation — added by compositor below
       tone: kitData.tone ?? "professional",
       styleNotes: (kitData.styleNotes ? kitData.styleNotes + ". " : "") +
-        "CRITICAL COMPOSITION RULE: The top-left corner of the image (approximately 220x100 pixels) must be completely empty — pure background only. No text, no icons, no logos, no symbols, no brand marks anywhere in the top-left area. Do NOT render any logo, wordmark, shield icon, brand symbol, or industry icon anywhere in the image. The uploaded logo will be placed there separately. Only the background scene, main visual subject, headline text, and CTA button may appear.",
+        "CRITICAL: Do NOT render any brand name, wordmark, or logo text anywhere on the poster. Do NOT render 'ArtMaster' or any brand identifier as text or graphic. The top-left area must be completely empty — pure background only. No icons, no logos, no brand symbols anywhere. Only the headline, subheadline, and CTA text may appear as poster text.",
       targetAudience: kitData.targetAudience ?? "",
       language: kitData.language ?? "English",
-      // website omitted: contact bar SVG font rendering fails on Vercel (shows boxes)
+    };
+    // Keep brand name available for copy generation context (used in generateCopy)
+    const brandKitForCopy: BrandKit = {
+      ...brandKit,
+      brandName: kitData.brandName ?? "ArtMaster",
     };
 
     const recommendation = body.recommendation ?? null;
     const format = getPlatformFormat(body.platformFormatId ?? null);
 
-    const copy = await generateCopy(brandKit, null, recommendation);
+    // Use brandKitForCopy (has real brand name) for copy generation
+    // Use brandKit (empty brandName) for image prompt to stop Seedream rendering "ArtMaster" text
+    const copy = await generateCopy(brandKitForCopy, null, recommendation);
     let imagePrompt = await generateImagePrompt(brandKit, copy, null, recommendation);
 
     // Always run prompt improvement for admin — maximum quality output
@@ -81,12 +88,10 @@ export async function POST(request: NextRequest) {
     const finalBuffer = await compositePoster({
       backgroundBuffer,
       brandKit: {
-        brandName: brandKit.brandName ?? "ArtMaster",
-        primaryColor: brandKit.primaryColor ?? "#000000",
-        secondaryColor: brandKit.secondaryColor ?? "#ffffff",
-        accentColor: brandKit.accentColor ?? "#a3e635",
-        // Pass the real logo here — compositor overlays it cleanly in top-left.
-        // The image prompt above has logoUrl removed so Freepik won't render one.
+        brandName: kitData.brandName ?? "ArtMaster",
+        primaryColor: kitData.primaryColor ?? "#000000",
+        secondaryColor: kitData.secondaryColor ?? "#ffffff",
+        accentColor: kitData.accentColor ?? "#a3e635",
         logoUrl: kitData.logoUrl ?? undefined,
         // website omitted to prevent broken contact bar boxes on Vercel
       },

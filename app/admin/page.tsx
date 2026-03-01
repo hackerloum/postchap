@@ -45,13 +45,16 @@ export default function AdminOverview() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/api/admin/stats", { credentials: "same-origin" })
-      .then((r) => {
-        if (!r.ok) throw new Error("Failed to load");
+    fetch("/api/admin/stats", { credentials: "include" })
+      .then(async (r) => {
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({}));
+          throw new Error(body.error ?? `HTTP ${r.status}`);
+        }
         return r.json();
       })
       .then((d) => setStats(d))
-      .catch(() => setError("Failed to load stats"))
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : "Failed to load stats"))
       .finally(() => setLoading(false));
   }, []);
 

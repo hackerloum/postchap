@@ -27,14 +27,20 @@ export async function generateImagePrompt(
   if (!apiKey) throw new Error("Image prompt generation is not available. Please try again later.");
   const openai = new OpenAI({ apiKey });
 
+  const hasBrandName = !!(brandKit.brandName && brandKit.brandName.trim());
+  const styleNotes = brandKit.styleNotes ?? "";
+
   const systemPrompt = `
 You are an expert at writing prompts for Seedream 4.5, an AI image model that excels at professional social media posters with text, typography, and branded visuals.
 
 Seedream 4.5 has superior typography rendering. Your prompt must describe the COMPLETE POSTER in English and follow these rules:
 
-1. INCLUDE BRAND NAME & TEXT EXPLICITLY — Write out the exact text to display: brand name, headline, tagline, CTA. Seedream can render them on the poster.
+${hasBrandName
+  ? `1. INCLUDE TEXT EXPLICITLY — Write out the exact text to display: brand name, headline, tagline, CTA. Seedream can render them on the poster.`
+  : `1. LOGO-ONLY BRANDING — Do NOT include any brand name, wordmark, or company name as text in the image. The poster's only text is the headline, subheadline if present, and CTA. The brand identity is provided via a logo overlay added after generation — leave the top-left corner (approx 220x100px) completely empty background only.`
+}
 
-2. SPECIFY TEXT PLACEMENT — Describe where each text appears: e.g. "brand name centered at the top", "headline in large bold type at center", "tagline at the bottom", "CTA button at bottom right".
+2. SPECIFY TEXT PLACEMENT — Describe where each text appears: e.g. "headline in large bold type at center", "tagline at the bottom", "CTA button at bottom".
 
 3. DEFINE COLOR PALETTE — Match brand colors: e.g. "rich dark brown and gold color palette", "dominant colors: [exact hex or names]".
 
@@ -44,15 +50,16 @@ Seedream 4.5 has superior typography rendering. Your prompt must describe the CO
 
 6. ADD QUALITY KEYWORDS — "Professional", "high-end advertising quality", "premium feel", "production-ready", "commercial quality", "no watermarks".
 
-6b. NO LOGOS OR EMBLEMS IN THE IMAGE — The image must NOT contain any logo, logo mark, emblem, crest, or brand symbol. Do not describe or request a logo in the scene. Do not put brand marks on objects (notebooks, devices, products, etc.). The user's real logo will be added separately on top of the image. Only the background, main visual, and text (headline/CTA) should appear.
+6b. NO LOGOS OR EMBLEMS IN THE IMAGE — The image must NOT contain any logo, logo mark, emblem, crest, or brand symbol. Do not describe or request a logo in the scene. Do not put brand marks on objects (notebooks, devices, products, etc.). The real logo will be composited on top separately. Only the background, main visual, and text (headline/CTA) should appear.
 
 7. DESCRIBE THE SUBJECT CLEARLY — What is the main visual element (product, person, scene, abstract) and style (photography, illustration, flat design).
 
-8. CRITICAL — TEXT ON POSTER: Only the exact headline, tagline, and CTA phrase (e.g. "Start Learning") must appear as visible text. NEVER include hex color codes (e.g. #dc6f09), technical IDs, or variable names on the poster. When describing colors for the image, use color NAMES only (e.g. orange, gold, dark brown), never hex codes in quotes or as button text. Do not include any platform name, product name, or service name (e.g. Chuo AI, Artmaster) — only the user's brand name may appear.
+8. CRITICAL — TEXT ON POSTER: Only the exact headline, tagline, and CTA phrase must appear as visible text. NEVER include hex color codes, technical IDs, or variable names. Use color NAMES only (e.g. orange, gold, dark brown), never hex codes. Do not include any platform/product/service name unless it IS the brand name explicitly provided.
 
-9. FULL-BLEED BACKGROUND: The main image (photo, illustration, or gradient) must fill the entire poster from edge to edge. Do not describe separate colored bars, panels, or strips at the bottom. No orange/white/brown rectangular blocks below the main image. The background is one continuous visual that extends to all edges.
+9. FULL-BLEED BACKGROUND: The main image must fill the entire poster from edge to edge. No separate colored bars, panels, or strips at the bottom. The background is one continuous visual extending to all edges.
 
-10. CLEAN BOTTOM EDGE: No footer artifacts, no small symbols or patterns at the bottom edge, no watermark symbols, no letter-like shapes at the very bottom.
+10. CLEAN BOTTOM EDGE: No footer artifacts, no small symbols or patterns at the bottom edge, no watermark symbols.
+${styleNotes ? `\n11. ADDITIONAL BRAND DIRECTION: ${styleNotes}` : ""}
 
 Write the prompt in English only. Maximum 400 words. Return ONLY the prompt, no explanation or quotes around the whole thing.
 `.trim();
@@ -101,7 +108,7 @@ ${tagline ? `- Tagline: "${tagline}"` : ""}
   const userPrompt = `
 Create a Seedream 4.5 prompt using this template structure:
 
-Create a professional social media poster for ${brandKit.brandName ?? "the brand"}.
+Create a professional social media poster${brandKit.brandName ? ` for ${brandKit.brandName}` : " (no brand name text — logo-only branding)"}.
 Brand colors (describe using color NAMES only in the prompt, e.g. orange/gold/dark — do not put hex codes like #xxxxx as text on the poster): ${colors}.
 Main headline: "${copy.headline}" — specify where it appears (e.g. centered at top, large bold).
 ${tagline ? `Tagline: "${tagline}" — specify placement (e.g. below headline or at bottom).` : ""}
@@ -114,7 +121,7 @@ Quality: professional, high-end advertising, clean layout, production-ready, no 
 
 Additional context:
 - Industry: ${industry}. Country/market: ${country}.
-- Brand name to show on poster: "${brandKit.brandName ?? ""}".
+${brandKit.brandName ? `- Brand name to show on poster: "${brandKit.brandName}".` : "- NO brand name text on poster — the logo image handles all branding. Do NOT render any brand name, wordmark, or title text."}
 ${languageInstruction ? `\n${languageInstruction}\n` : ""}
 
 ${recContext}
@@ -135,7 +142,7 @@ Write the complete poster prompt now. Be specific about text placement, colors, 
   const prompt = response.choices[0]?.message?.content?.trim() ?? "";
 
   if (!prompt) {
-    return `Professional social media poster for ${brandKit.brandName ?? "brand"}, a ${industry} brand in ${country}. Color scheme: ${colors}. Bold typography displaying "${copy.headline}" at center. Brand name "${brandKit.brandName ?? ""}" at top. CTA "${copy.cta}" at bottom. Clean modern layout. Professional, high-end advertising quality, production-ready, no watermarks.`;
+    return `Professional social media poster${brandKit.brandName ? ` for ${brandKit.brandName}` : ""}, a ${industry} brand in ${country}. Color scheme: ${colors}. Bold typography displaying "${copy.headline}" at center.${brandKit.brandName ? ` Brand name "${brandKit.brandName}" at top.` : " No brand name text — logo handles all branding."} CTA "${copy.cta}" at bottom. Clean modern layout. Professional, high-end advertising quality, production-ready, no watermarks.`;
   }
 
   console.log("[ImagePrompt] Generated:", prompt.slice(0, 150));

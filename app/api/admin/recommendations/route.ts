@@ -30,85 +30,91 @@ export async function POST(request: NextRequest) {
     }
     const openai = new OpenAI({ apiKey });
 
+    const sessionSeed = Date.now().toString().slice(-4);
+
     const systemPrompt = `
-You are a world-class SaaS marketing creative director and brand strategist.
-You specialize in creating viral, high-converting social media campaigns for AI-powered software tools.
-Your recommendations result in enterprise-grade posters that drive sign-ups, conversions, and brand awareness.
+You are a legendary creative director who has led campaigns for Apple, Nike, Notion, and Linear.
+You think like a combination of David Droga (storytelling), Paula Scher (bold typography), and Dieter Rams (function-first design).
 
-You understand:
-- SaaS growth marketing (free trial conversion, feature spotlights, social proof)
-- Visual storytelling for AI product marketing
-- What makes a poster stop someone mid-scroll on Instagram
-- Current digital design trends: bold typography, contrast, minimalism, motion feel
+Your job: generate 6 poster concepts so different from each other they could each be from a different agency.
+Each concept must have a completely unique visual language, emotional angle, and composition style.
 
-Return ONLY valid JSON array. No markdown. No explanation. Raw JSON only.
+FORBIDDEN — these overused tropes that AI keeps repeating:
+- Globe or world map imagery
+- Generic "spotlight on a dark background"
+- Hands typing on keyboards
+- Floating smartphone mockups with the app on screen
+- Blue/purple gradient tech-bro backgrounds
+- Rocket or "launch" metaphors
+- Identical centred-text-over-image layouts for every card
+
+Instead, think in diverse visual categories:
+- Editorial / magazine spread
+- Cinematic film poster
+- Bold typographic poster (the TYPE is the design)
+- Abstract conceptual art
+- Human-emotion-first (a face, a reaction, a moment)
+- Split composition (before/after, left/right contrast)
+- Flat geometric / Bauhaus inspired
+- Dark luxury / premium minimal
+- Energetic street poster / urban
+- Data becomes beautiful (infographic as art)
+
+Return ONLY a valid JSON array. No markdown. No explanation. Raw JSON only.
 `.trim();
 
     const userPrompt = `
-Today is ${dateStr} (${dayOfWeek}).
+Today is ${dateStr}. Session seed: ${sessionSeed}.
 
-Generate 6 high-impact marketing poster recommendations for ArtMaster — an AI-powered poster generation platform for businesses and creators.
+Generate 6 RADICALLY DIFFERENT marketing poster recommendations for ArtMaster.
 
-ARTMASTER BRAND:
-  Product: AI poster generation SaaS
-  Tagline: ${kit.tagline ?? "AI-powered poster generation for your brand"}
-  Target audience: ${kit.targetAudience ?? "Small business owners, marketers, creators, African businesses"}
-  Tone: ${kit.tone ?? "modern, bold, professional, approachable"}
-  Colors: Primary ${kit.primaryColor ?? "#000"}, Accent ${kit.accentColor ?? "#a3e635"}
-  Website: ${kit.website ?? "artmasterpro.com"}
-  Style notes: ${kit.styleNotes ?? "Clean, high contrast, enterprise SaaS aesthetic"}
+PRODUCT: ArtMaster — AI that generates brand-consistent posters in seconds. No design skills needed.
+Tagline: ${kit.tagline ?? "AI-powered poster generation for your brand"}
+Target: ${kit.targetAudience ?? "Small business owners, marketers, creators, African & global businesses"}
+Tone: ${kit.tone ?? "modern, bold, professional, approachable"}
+Accent color: ${kit.accentColor ?? "electric lime green (#a3e635)"}
 
-KEY SELLING POINTS TO LEVERAGE:
-- AI generates ready-to-post posters in seconds
-- No design skills needed
-- Brand-consistent posters every time
-- Supports Instagram, Facebook, LinkedIn, and more
-- Affordable pricing with a free plan
-- Built for African and global businesses
+THE 6 CONCEPTS MUST EACH USE A COMPLETELY DIFFERENT VISUAL APPROACH:
 
-COMPETITOR CONTEXT (differentiate from):
-- Canva (manual, time-consuming)
-- Adobe Express (complex, expensive)
-- Generic AI image tools (not brand-aware)
+Concept 1 — TYPOGRAPHIC POWER: The design IS the typography. Massive, oversized text dominates the entire frame. Almost no imagery — just type, color, and white space. Think Sagmeister & Walsh or Die Gestalten editorial design.
 
-ARTMASTER'S ADVANTAGE TO HIGHLIGHT:
-- Brand kit awareness (uses your colors, fonts, tone automatically)
-- Poster-specific AI (not generic image gen)
-- Schedule and auto-post built in
-- Faster than any manual tool
+Concept 2 — HUMAN EMOTION: A real person's face or hands — the emotion tells the story. A business owner looking proud at their creation. A creator smiling at a phone screen. Raw authentic feeling. No stock-photo clichés.
 
-Return exactly 6 recommendation objects:
-[
-  {
-    "id": "unique_id",
-    "theme": "Short theme (2-4 words)",
-    "topic": "Specific focused topic for this poster",
-    "description": "Exactly what this poster should communicate — be specific about the message, visual concept, and emotion it should trigger. 2-3 sentences.",
-    "suggestedHeadline": "Punchy ready-to-use headline (max 7 words, must stop the scroll)",
-    "suggestedCta": "Strong CTA (max 5 words)",
-    "visualMood": "Detailed visual direction: lighting, composition, colors, style, mood. 1-2 sentences.",
-    "urgency": "high | medium | low",
-    "reason": "Why this exact poster angle works for ArtMaster's growth TODAY (${dayOfWeek}). 1 sentence.",
-    "hashtags": ["#ArtMaster", "#AIDesign", "#relevant3", "#relevant4"],
-    "category": "promotion | feature | social_proof | engagement | brand | comparison"
-  }
-]
+Concept 3 — SPLIT DUALITY: Two-panel composition. Left side: chaotic, messy, old-school design process (sticky notes, stress, Canva clutter). Right side: ArtMaster — clean, instant, perfect. The contrast IS the message.
 
-RULES:
-- At least 1 must show a direct comparison to manual design tools (Canva, etc.)
-- At least 1 must highlight a specific ArtMaster feature (brand kit, scheduling, speed)
-- At least 1 must focus on free trial / zero barrier to start
-- At least 1 must be visually dramatic — bold, scroll-stopping
-- Make the suggestedHeadline something genuinely compelling, not generic
-- visualMood must be enterprise-grade: think Apple, Notion, Linear aesthetic
-- Today is ${dayOfWeek} — reference timing if relevant (e.g. "Start your week", "Weekend content sorted")
+Concept 4 — DARK LUXURY MINIMAL: Pure dark background, one centered object or element bathed in dramatic directional light. Ultra-premium feel like a luxury product launch. Minimal text, maximum presence.
 
-Return the JSON array now. 6 items only. No other text.
+Concept 5 — ABSTRACT DATA / CONCEPT: AI and creativity visualized as something unexpected — circuits blooming into flowers, binary code forming a paintbrush, data streams morphing into a perfect poster. Conceptual and thought-provoking.
+
+Concept 6 — URGENCY / LIMITED SOCIAL PROOF: Testimonial-style. A quote from a fictional satisfied user overlaid on a rich background. Social proof format — feels like a real person recommending it. Trust-building, FOMO-inducing.
+
+For each concept return this object:
+{
+  "id": "rec_${sessionSeed}_N",
+  "theme": "2-4 word theme name",
+  "topic": "The specific focused message for this poster",
+  "description": "Detailed brief: what exactly should this poster show, what emotion should the viewer feel, what action should they take. Be so specific a designer can execute it immediately. 3 sentences.",
+  "suggestedHeadline": "Scroll-stopping headline — make it provocative, unexpected, or bold. Max 8 words. NOT generic like 'Create Stunning Posters'. Make it feel like a hit ad.",
+  "suggestedCta": "Sharp CTA, max 5 words",
+  "visualMood": "Highly specific art direction: exact lighting style, composition type, color palette (use names not hex), texture/material feel, photographic or illustrated, aspect ratio feeling. 2 sentences. Be a senior art director.",
+  "urgency": "high | medium | low",
+  "reason": "The strategic reason this concept will drive results for ArtMaster on ${dayOfWeek}. 1 sentence.",
+  "hashtags": ["#ArtMaster", "#AIDesign", 2 more highly relevant hashtags],
+  "category": "typography | emotion | comparison | luxury | abstract | social_proof"
+}
+
+QUALITY STANDARDS:
+- suggestedHeadline must feel like it belongs on a billboard in NYC or Lagos — not a tech landing page
+- visualMood must reference a specific visual style or director, e.g. "Kubrick symmetry", "Wes Anderson palette", "Bauhaus geometry", "Caravaggio lighting"
+- Each of the 6 must be so visually different a viewer would never guess they're from the same brand kit
+- description must be 3 full sentences with specific, actionable design direction
+
+Return the JSON array now. Exactly 6 objects. Raw JSON only.
 `.trim();
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
-      temperature: 0.9,
+      temperature: 1.1,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
