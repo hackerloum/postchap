@@ -37,7 +37,7 @@ Seedream 4.5 has superior typography rendering. Your prompt must describe the CO
 
 ${hasBrandName
   ? `1. INCLUDE TEXT EXPLICITLY — Write out the exact text to display: brand name, headline, tagline, CTA. Seedream can render them on the poster.`
-  : `1. LOGO-ONLY BRANDING — Do NOT include any brand name, wordmark, or company name as text in the image. The poster's only text is the headline, subheadline if present, and CTA. The brand identity is provided via a logo overlay added after generation — leave the top-left corner (approx 220x100px) completely empty background only.`
+  : `1. LOGO-ONLY BRANDING — Do NOT include any brand name, wordmark, or company name as text in the image. The poster's only text is the headline, subheadline if present, and CTA. The brand identity is provided via a logo overlay composited after generation. TOP-LEFT DEAD ZONE: the top-left area (approximately 250px wide × 120px tall) must be completely empty — pure background only, no icons, no arrows, no triangles, no shapes, no decorative elements of any kind.`
 }
 
 2. SPECIFY TEXT PLACEMENT — Describe where each text appears: e.g. "headline in large bold type at center", "tagline at the bottom", "CTA button at bottom".

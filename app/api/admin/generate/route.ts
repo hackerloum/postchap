@@ -86,13 +86,12 @@ export async function POST(request: NextRequest) {
     // Hard-append negative constraints AFTER improvePrompt so they cannot be overridden.
     // Seedream treats trailing instructions as high-priority negative guidance.
     const NO_LOGO_SUFFIX = [
-      "STRICT NEGATIVE CONSTRAINTS:",
-      "Do NOT show any logo, wordmark, brand mark, emblem, icon, or symbol anywhere in the image.",
-      "Do NOT show any text on signs, papers, boards, screens, clothing, or held objects.",
-      "If a person is holding anything (paper, sign, board, phone), it must be blank — no text, no logos, no brand marks on it.",
+      "STRICT NEGATIVE CONSTRAINTS — these override everything above:",
+      "TOP-LEFT CORNER IS A DEAD ZONE: The rectangular area spanning the top-left 250 pixels wide by 120 pixels tall must be 100% pure background — absolutely nothing there. No icons, no arrows, no triangles, no shapes, no decorative elements, no text, no symbols, no gradients, no overlays, no UI elements. Pure empty background only. This space is reserved for the brand logo which will be added separately.",
+      "Do NOT show any logo, wordmark, brand mark, emblem, icon, arrow icon, triangle icon, geometric icon, or decorative symbol anywhere in the entire image.",
+      "Do NOT show any text on signs, papers, boards, screens, clothing, or held objects — all held items must be completely blank.",
       "Do NOT render 'ArtMaster', 'Art Master', or any brand name as text or graphic anywhere.",
-      "The top-left corner must remain completely empty background — no elements within 220x100 pixels of the top-left.",
-      "No watermarks. No copyright symbols. No generated logos.",
+      "No watermarks. No copyright symbols. No AI-generated logos or icons of any kind.",
     ].join(" ");
     imagePrompt = `${imagePrompt}\n\n${NO_LOGO_SUFFIX}`;
 
