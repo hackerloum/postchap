@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Upload, X, ImageIcon } from "lucide-react";
 
 interface Kit {
   brandName: string;
@@ -16,6 +16,7 @@ interface Kit {
   styleNotes: string;
   targetAudience: string;
   language: string;
+  logoUrl: string;
 }
 
 const DEFAULT: Kit = {
@@ -30,6 +31,7 @@ const DEFAULT: Kit = {
   styleNotes: "",
   targetAudience: "Small business owners, marketers, creators",
   language: "English",
+  logoUrl: "",
 };
 
 function Field({
@@ -92,6 +94,8 @@ export default function ArtMasterKitPage() {
   const [kit, setKit] = useState<Kit>(DEFAULT);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch("/api/admin/artmaster-kit", { credentials: "same-origin" })
@@ -103,6 +107,39 @@ export default function ArtMasterKitPage() {
 
   function update(key: keyof Kit, value: string) {
     setKit((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Must be an image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Max 5MB");
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload/logo", {
+        method: "POST",
+        credentials: "same-origin",
+        body: formData,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error ?? "Upload failed");
+      setKit((prev) => ({ ...prev, logoUrl: data.url }));
+      toast.success("Logo uploaded!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploadingLogo(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   }
 
   async function handleSave() {
@@ -152,6 +189,60 @@ export default function ArtMasterKitPage() {
       </div>
 
       <div className="space-y-5">
+        {/* Logo upload */}
+        <div>
+          <label className="block font-mono text-[11px] text-text-muted mb-1.5 uppercase tracking-wide">
+            Logo
+          </label>
+          <div className="flex items-center gap-4">
+            {kit.logoUrl ? (
+              <div className="relative w-20 h-20 rounded-xl border border-border-default bg-bg-elevated flex items-center justify-center overflow-hidden">
+                <img
+                  src={kit.logoUrl}
+                  alt="ArtMaster logo"
+                  className="w-full h-full object-contain p-2"
+                />
+                <button
+                  type="button"
+                  onClick={() => setKit((prev) => ({ ...prev, logoUrl: "" }))}
+                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-bg-base/80 flex items-center justify-center hover:bg-red-500/20 transition-colors"
+                >
+                  <X size={10} className="text-text-muted" />
+                </button>
+              </div>
+            ) : (
+              <div className="w-20 h-20 rounded-xl border border-dashed border-border-default bg-bg-elevated flex items-center justify-center">
+                <ImageIcon size={20} className="text-text-muted" />
+              </div>
+            )}
+            <div className="flex flex-col gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleLogoUpload}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingLogo}
+                className="flex items-center gap-2 bg-bg-elevated border border-border-default text-text-primary font-medium text-[12px] px-3 py-2 rounded-lg hover:border-border-strong transition-colors disabled:opacity-50"
+              >
+                {uploadingLogo ? (
+                  <Loader2 size={12} className="animate-spin" />
+                ) : (
+                  <Upload size={12} />
+                )}
+                {uploadingLogo ? "Uploading..." : "Upload logo"}
+              </button>
+              <p className="font-mono text-[10px] text-text-muted">
+                PNG, SVG or WebP · Max 5MB
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <Field label="Brand name" name="brandName" value={kit.brandName} onChange={update} />
           <Field label="Industry" name="industry" value={kit.industry} onChange={update} />

@@ -6,12 +6,11 @@ export async function POST(request: NextRequest) {
   let uid: string;
   try {
     const header = request.headers.get("Authorization");
-    if (!header?.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const decoded = await getAdminAuth().verifyIdToken(
-      header.replace("Bearer ", "")
-    );
+    const token = header?.startsWith("Bearer ")
+      ? header.replace("Bearer ", "")
+      : request.cookies.get("__session")?.value;
+    if (!token) throw new Error("No token");
+    const decoded = await getAdminAuth().verifyIdToken(token);
     uid = decoded.uid;
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

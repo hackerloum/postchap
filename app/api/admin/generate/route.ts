@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
       primaryColor: kitData.primaryColor ?? "#000000",
       secondaryColor: kitData.secondaryColor ?? "#ffffff",
       accentColor: kitData.accentColor ?? "#a3e635",
+      logoUrl: kitData.logoUrl ?? undefined,
       tone: kitData.tone ?? "professional",
       styleNotes: kitData.styleNotes ?? "",
       targetAudience: kitData.targetAudience ?? "",
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
         primaryColor: brandKit.primaryColor ?? "#000000",
         secondaryColor: brandKit.secondaryColor ?? "#ffffff",
         accentColor: brandKit.accentColor ?? "#a3e635",
-        logoUrl: brandKit.logoUrl,
+        logoUrl: brandKit.logoUrl ?? undefined,
         website: brandKit.website,
       },
       copy: {

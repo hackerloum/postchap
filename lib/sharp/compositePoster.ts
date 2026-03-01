@@ -130,7 +130,7 @@ export async function compositePoster({
       if (brandKit.phoneNumber?.trim()) parts.push(brandKit.phoneNumber.trim());
       if (brandKit.contactLocation?.trim()) parts.push(brandKit.contactLocation.trim());
       if (brandKit.website?.trim()) parts.push(brandKit.website.trim());
-      const line = parts.join("  •  ");
+      const line = parts.join("  |  ");
       const contactBarH = Math.round(44 * scale);
       const contactSvg = `<svg width="${W}" height="${contactBarH}" xmlns="http://www.w3.org/2000/svg"><rect width="${W}" height="${contactBarH}" fill="${secondary}" opacity="0.85"/><text x="${W / 2}" y="${contactBarH / 2 + 4}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${Math.round(12 * scale)}" fill="${primary}" opacity="0.95" dominant-baseline="middle">${escapeXml(line)}</text></svg>`;
       compositeInputs.push({
@@ -186,7 +186,7 @@ export async function compositePoster({
   if (brandKit.phoneNumber?.trim()) contactParts.push(brandKit.phoneNumber.trim());
   if (brandKit.contactLocation?.trim()) contactParts.push(brandKit.contactLocation.trim());
   if (brandKit.website?.trim()) contactParts.push(brandKit.website.trim());
-  const contactLine = contactParts.join("  •  ");
+  const contactLine = contactParts.join("  |  ");
   const contactY = hasContact ? H - Math.round(50 * scaleY) : 0;
   const hashtagY = hasContact ? H - Math.round(75 * scaleY) : H - Math.round(30 * scaleY);
   const ctaY = H - Math.round(hasContact ? 160 : 130 * scaleY);
