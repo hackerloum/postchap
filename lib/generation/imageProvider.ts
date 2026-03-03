@@ -13,9 +13,9 @@ import {
   generateImageNanaBanana,
   isNanoBananaConfigured,
   buildGeminiPromptWithLogo,
-  getNegativeConstraints,
   type GeminiBrandKit,
 } from "@/lib/gemini/nanoBanana";
+import { getNegativeConstraints } from "@/lib/generation/negativeConstraints";
 import {
   getImageProvider,
   isValidImageProviderId,
@@ -31,7 +31,7 @@ export type ImageGenResult = {
 };
 
 export { IMAGE_PROVIDERS, DEFAULT_IMAGE_PROVIDER } from "@/lib/image-models";
-export { getNegativeConstraints } from "@/lib/gemini/nanoBanana";
+export { getNegativeConstraints } from "@/lib/generation/negativeConstraints";
 
 /**
  * Generate a poster background image using the provider the user selected.
@@ -58,8 +58,7 @@ export async function generateImage(
   if (provider.provider === "gemini") {
     if (!isNanoBananaConfigured()) {
       console.warn("[ImageProvider] Gemini not configured — falling back to Freepik Seedream");
-      const result = await generateFreepikPrimary(prompt, freepikAspectRatio);
-      return { ...result, logoHandledByAI: false };
+      return generateFreepikPrimary(prompt, freepikAspectRatio, brandKit ?? undefined);
     }
 
     // Augment the prompt with logo integration instructions when brand kit is provided
@@ -101,30 +100,29 @@ export async function generateImage(
       }
     }
 
-    // All Gemini models exhausted — fall back to Freepik
+    // All Gemini models quota-exhausted — fall back to Freepik Seedream (with logo ref)
     console.warn("[ImageProvider] All Gemini models quota-exhausted — falling back to Freepik Seedream");
-    const result = await generateFreepikPrimary(prompt, freepikAspectRatio);
-    return { ...result, logoHandledByAI: false };
+    return generateFreepikPrimary(prompt, freepikAspectRatio, brandKit ?? undefined);
   }
 
-  // Freepik: force mystic-only or seedream-first (default)
+  // Freepik: force mystic-only (no logo reference — Sharp handles it)
   if (resolvedId === "freepik:mystic") {
     const result = await generateFreepikMysticOnly(prompt, freepikAspectRatio);
     return { ...result, logoHandledByAI: false };
   }
 
-  // freepik:seedream — default Freepik flow (Seedream → Mystic fallback)
-  const result = await generateFreepikPrimary(prompt, freepikAspectRatio);
-  return { ...result, logoHandledByAI: false };
+  // freepik:seedream — Seedream primary → Mystic fallback (logo ref passed through)
+  return generateFreepikPrimary(prompt, freepikAspectRatio, brandKit ?? undefined);
 }
 
 /**
  * Use Freepik Mystic directly (no Seedream first).
+ * Mystic does NOT support reference_image — Sharp handles logo badge.
  */
 async function generateFreepikMysticOnly(
   prompt: string,
   aspectRatio = "square_1_1"
-): Promise<{ buffer: Buffer; imageHasText: boolean }> {
+): Promise<ImageGenResult> {
   const FREEPIK_KEY = process.env.FREEPIK_API_KEY!;
   const MYSTIC_BASE = "https://api.freepik.com/v1/ai/mystic";
 
@@ -183,7 +181,7 @@ async function generateFreepikMysticOnly(
       const url = extractUrl(data);
       if (!url) throw new Error("Freepik Mystic: completed but no URL");
       const buf = await downloadBuffer(url);
-      return { buffer: buf, imageHasText: false };
+      return { buffer: buf, imageHasText: false, logoHandledByAI: false };
     }
     if (status === "FAILED" || status === "ERROR" || status === "CANCELLED") {
       throw new Error("Freepik Mystic task failed");

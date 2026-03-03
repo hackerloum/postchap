@@ -12,6 +12,7 @@
  */
 
 import { GoogleGenAI } from "@google/genai";
+import { fetchImageAsBase64 } from "@/lib/freepik/generateImage";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -45,60 +46,13 @@ function getGeminiAspectRatio(freepikAspectRatio: string): string {
   return FREEPIK_TO_GEMINI_ASPECT[freepikAspectRatio] ?? "1:1";
 }
 
-/** Download a URL and return base64 + mimeType for Gemini inline data. */
+/** Wrap fetchImageAsBase64 output into Gemini's inlineData shape. */
 async function imageUrlToInlineData(
   url: string
 ): Promise<{ data: string; mimeType: string } | null> {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const buffer = await res.arrayBuffer();
-    const base64 = Buffer.from(buffer).toString("base64");
-    const ct = res.headers.get("content-type") ?? "image/png";
-    const mimeType = ct.split(";")[0].trim();
-    return { data: base64, mimeType };
-  } catch (err) {
-    console.warn("[NanaBanana] imageUrlToInlineData failed:", err);
-    return null;
-  }
-}
-
-/**
- * Build provider-specific negative constraints.
- * When Gemini receives the logo as inline data, we tell it how to
- * handle the logo rather than leaving a dead zone.
- */
-export function getNegativeConstraints(
-  provider: string,
-  hasLogo: boolean
-): string {
-  const isGemini = provider.startsWith("gemini:");
-  const isFreepik = provider.startsWith("freepik:");
-
-  if (isGemini && hasLogo) {
-    return `
-NEGATIVE CONSTRAINTS:
-- Do NOT redraw or recreate the logo from scratch
-- Do NOT add effects, glows, outlines, or drop shadows to the logo
-- Do NOT place the logo anywhere except top-left
-- Do NOT render the brand name as separate text if logo is visible
-- No watermarks. No copyright symbols. No AI artifacts.
-- No text other than: headline, CTA, and subheadline
-`.trim();
-  }
-
-  if (isFreepik || (isGemini && !hasLogo)) {
-    return `
-STRICT NEGATIVE CONSTRAINTS — override everything above:
-- TOP-LEFT CORNER IS A DEAD ZONE: 250px wide × 120px tall — pure background only
-- Do NOT show any logo, wordmark, brand mark, emblem, icon, arrow,
-  triangle, or decorative symbol anywhere in the image
-- Do NOT render any brand name as text or graphic anywhere
-- No watermarks. No copyright symbols. No AI-generated logos or icons
-`.trim();
-  }
-
-  return "";
+  const result = await fetchImageAsBase64(url);
+  if (!result) return null;
+  return { data: result.base64, mimeType: result.mimeType };
 }
 
 /**
