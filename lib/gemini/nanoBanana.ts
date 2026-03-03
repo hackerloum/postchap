@@ -62,11 +62,29 @@ export async function generateImageNanoBanana(
   console.log("[NanaBanana] Aspect:", aspectRatio);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const response = await ai.models.generateContent({
-    model,
-    contents: prompt,
-    config: config as any,
-  });
+  let response: any;
+  const MAX_RETRIES = 2;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: config as any,
+      });
+      break; // success
+    } catch (err) {
+      const retryDelaySec = extractRetryDelay(err);
+      const isQuota = isRateLimitError(err);
+      if (isQuota && attempt < MAX_RETRIES && retryDelaySec > 0 && retryDelaySec <= 90) {
+        console.warn(
+          `[NanaBanana] Rate limited (attempt ${attempt}/${MAX_RETRIES}). Retrying in ${retryDelaySec}s…`
+        );
+        await new Promise((r) => setTimeout(r, retryDelaySec * 1000));
+        continue;
+      }
+      throw err; // non-retryable or retries exhausted
+    }
+  }
 
   const candidates = (
     response as {
@@ -100,4 +118,37 @@ export async function generateImageNanoBanana(
 
 export function isNanoBananaConfigured(): boolean {
   return Boolean(GEMINI_API_KEY);
+}
+
+/** Returns true for HTTP 429 / RESOURCE_EXHAUSTED Gemini errors. */
+function isRateLimitError(err: unknown): boolean {
+  if (!err) return false;
+  const msg = err instanceof Error ? err.message : String(err);
+  if (/RESOURCE_EXHAUSTED/i.test(msg)) return true;
+  if (/429/i.test(msg)) return true;
+  const e = err as Record<string, unknown>;
+  if (e?.status === 429 || e?.status === "RESOURCE_EXHAUSTED") return true;
+  return false;
+}
+
+/**
+ * Parses the `retryDelay` value (in seconds) from a Gemini ApiError.
+ * The SDK embeds it in the error JSON as `details[].retryDelay: "50s"`.
+ */
+function extractRetryDelay(err: unknown): number {
+  try {
+    const msg = err instanceof Error ? err.message : String(err);
+    // The SDK serialises the full API error JSON as the message string
+    const parsed = JSON.parse(msg.startsWith("{") ? msg : (msg.match(/(\{.*\})/s)?.[1] ?? "{}"));
+    const details: Array<Record<string, unknown>> =
+      parsed?.error?.details ?? parsed?.details ?? [];
+    for (const detail of details) {
+      if (typeof detail?.retryDelay === "string") {
+        return parseInt(detail.retryDelay, 10) || 0;
+      }
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return 0;
 }
