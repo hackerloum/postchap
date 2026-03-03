@@ -41,7 +41,17 @@ export async function generateImage(
       console.warn("[ImageProvider] Gemini not configured — falling back to Freepik Seedream");
       return generateFreepikPrimary(prompt, freepikAspectRatio);
     }
-    return generateImageNanoBanana(prompt, freepikAspectRatio, provider.geminiModel!);
+    try {
+      return await generateImageNanoBanana(prompt, freepikAspectRatio, provider.geminiModel!);
+    } catch (err) {
+      if (isGeminiQuotaError(err)) {
+        console.warn(
+          `[ImageProvider] Gemini quota exhausted for ${provider.geminiModel} — falling back to Freepik Seedream`
+        );
+        return generateFreepikPrimary(prompt, freepikAspectRatio);
+      }
+      throw err;
+    }
   }
 
   // Freepik: force mystic-only or seedream-first (default)
@@ -158,4 +168,21 @@ async function downloadBuffer(url: string): Promise<Buffer> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Download failed: ${res.status}`);
   return Buffer.from(await res.arrayBuffer());
+}
+
+/**
+ * Returns true if the error is a Gemini quota/rate-limit error (HTTP 429 /
+ * RESOURCE_EXHAUSTED). These are transient billing/quota issues that should
+ * fall back to Freepik rather than surface as a hard error to the user.
+ */
+function isGeminiQuotaError(err: unknown): boolean {
+  if (!err) return false;
+  const msg = err instanceof Error ? err.message : String(err);
+  if (/RESOURCE_EXHAUSTED/i.test(msg)) return true;
+  if (/quota/i.test(msg) && /429|exceeded/i.test(msg)) return true;
+  // The @google/genai SDK throws ApiError objects with a `.status` number
+  const e = err as Record<string, unknown>;
+  if (e?.status === 429) return true;
+  if (typeof e?.status === "string" && e.status === "RESOURCE_EXHAUSTED") return true;
+  return false;
 }

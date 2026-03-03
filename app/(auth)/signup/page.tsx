@@ -48,6 +48,8 @@ export default function SignupPage() {
     const data = await res.json();
     if (data.isAdmin) {
       router.push("/admin");
+    } else if (data.hasOnboarded) {
+      router.push("/dashboard");
     } else {
       router.push("/onboarding");
     }
