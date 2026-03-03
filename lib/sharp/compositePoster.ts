@@ -24,11 +24,16 @@ interface CompositeInput {
   backgroundBuffer: Buffer;
   brandKit: BrandKit;
   copy: CopyData;
-  /** When true (Seedream), image already has text — only add logo + watermark */
+  /** When true (Seedream/Gemini), image already has text — only add logo + contact bar */
   imageHasText?: boolean;
   /** Output dimensions (default 1080×1080) */
   width?: number;
   height?: number;
+  /**
+   * When true, Gemini already integrated the logo into the generated image.
+   * Sharp skips the logo badge overlay to avoid double-rendering.
+   */
+  logoHandledByAI?: boolean;
 }
 
 function wrapText(text: string, maxChars: number): string[] {
@@ -77,6 +82,7 @@ export async function compositePoster({
   imageHasText = true,
   width: inputW,
   height: inputH,
+  logoHandledByAI = false,
 }: CompositeInput): Promise<Buffer> {
   const W = inputW ?? BASE;
   const H = inputH ?? BASE;
@@ -104,7 +110,7 @@ export async function compositePoster({
   // Only round the bottom-right corner — top-left corner anchors to image edge
   const BADGE_R = Math.round(20 * scale);
 
-  if (brandKit.logoUrl) {
+  if (!logoHandledByAI && brandKit.logoUrl) {
     try {
       const logoBuffer = await downloadImage(brandKit.logoUrl);
       if (logoBuffer) {
@@ -359,7 +365,7 @@ export async function compositePoster({
     { input: svgBuffer, top: 0, left: 0 },
   ];
 
-  if (brandKit.logoUrl) {
+  if (!logoHandledByAI && brandKit.logoUrl) {
     try {
       const logoBuffer = await downloadImage(brandKit.logoUrl);
       if (logoBuffer) {

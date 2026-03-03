@@ -216,34 +216,42 @@ export async function runGenerationForUser(
     }
   }
 
-  const { buffer: backgroundBuffer, imageHasText } = await generateImage(
+  const { buffer: backgroundBuffer, imageHasText, logoHandledByAI } = await generateImage(
     imagePrompt,
     format.freepikAspectRatio,
-    imageProviderId
+    imageProviderId,
+    {
+      brandName:      brandKit.brandName,
+      logoUrl:        brandKit.logoUrl,
+      primaryColor:   brandKit.primaryColor,
+      secondaryColor: brandKit.secondaryColor,
+      accentColor:    brandKit.accentColor,
+    }
   );
 
   const finalBuffer = await compositePoster({
     backgroundBuffer,
     brandKit: {
-      brandName: brandKit.brandName ?? "",
-      primaryColor: brandKit.primaryColor ?? "#E8FF47",
-      secondaryColor: brandKit.secondaryColor ?? "#111111",
-      accentColor: brandKit.accentColor ?? "#FFFFFF",
-      logoUrl: brandKit.logoUrl,
-      tone: brandKit.tone,
-      phoneNumber: brandKit.phoneNumber,
+      brandName:       brandKit.brandName ?? "",
+      primaryColor:    brandKit.primaryColor ?? "#E8FF47",
+      secondaryColor:  brandKit.secondaryColor ?? "#111111",
+      accentColor:     brandKit.accentColor ?? "#FFFFFF",
+      logoUrl:         brandKit.logoUrl,
+      tone:            brandKit.tone,
+      phoneNumber:     brandKit.phoneNumber,
       contactLocation: brandKit.contactLocation,
-      website: brandKit.website,
+      website:         brandKit.website,
     },
     copy: {
-      headline: copy.headline,
+      headline:    copy.headline,
       subheadline: copy.subheadline,
-      body: copy.body,
-      cta: copy.cta,
-      hashtags: copy.hashtags ?? [],
+      body:        copy.body,
+      cta:         copy.cta,
+      hashtags:    copy.hashtags ?? [],
     },
     imageHasText,
-    width: format.width,
+    logoHandledByAI,
+    width:  format.width,
     height: format.height,
   });
 

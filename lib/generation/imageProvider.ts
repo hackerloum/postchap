@@ -2,10 +2,20 @@
  * Unified image generation.
  * Routes to the provider the user selected via `imageProviderId`.
  * Falls back to freepik:seedream when no valid provider is given.
+ *
+ * Gemini providers receive the brand logo as inline image data so
+ * the model can natively integrate it. The result carries
+ * `logoHandledByAI: true` so Sharp skips its own logo overlay.
  */
 
 import { generateImage as generateFreepikPrimary } from "@/lib/freepik/generateImage";
-import { generateImageNanoBanana, isNanoBananaConfigured } from "@/lib/gemini/nanoBanana";
+import {
+  generateImageNanaBanana,
+  isNanoBananaConfigured,
+  buildGeminiPromptWithLogo,
+  getNegativeConstraints,
+  type GeminiBrandKit,
+} from "@/lib/gemini/nanoBanana";
 import {
   getImageProvider,
   isValidImageProviderId,
@@ -13,20 +23,29 @@ import {
   type ImageProviderId,
 } from "@/lib/image-models";
 
-export type ImageGenResult = { buffer: Buffer; imageHasText: boolean };
+export type ImageGenResult = {
+  buffer: Buffer;
+  imageHasText: boolean;
+  /** True when Gemini integrated the logo — Sharp should skip re-compositing it */
+  logoHandledByAI: boolean;
+};
 
 export { IMAGE_PROVIDERS, DEFAULT_IMAGE_PROVIDER } from "@/lib/image-models";
+export { getNegativeConstraints } from "@/lib/gemini/nanoBanana";
 
 /**
  * Generate a poster background image using the provider the user selected.
- * @param prompt         Image prompt
+ *
+ * @param prompt              Final image prompt (negative constraints NOT yet appended)
  * @param freepikAspectRatio  Aspect ratio in Freepik format (e.g. "square_1_1")
  * @param imageProviderId     One of the IMAGE_PROVIDERS ids
+ * @param brandKit            Optional brand kit — Gemini uses logoUrl as inline data
  */
 export async function generateImage(
   prompt: string,
   freepikAspectRatio = "square_1_1",
-  imageProviderId?: string | null
+  imageProviderId?: string | null,
+  brandKit?: GeminiBrandKit | null
 ): Promise<ImageGenResult> {
   const resolvedId: ImageProviderId = isValidImageProviderId(imageProviderId ?? "")
     ? (imageProviderId as ImageProviderId)
@@ -39,12 +58,23 @@ export async function generateImage(
   if (provider.provider === "gemini") {
     if (!isNanoBananaConfigured()) {
       console.warn("[ImageProvider] Gemini not configured — falling back to Freepik Seedream");
-      return generateFreepikPrimary(prompt, freepikAspectRatio);
+      const result = await generateFreepikPrimary(prompt, freepikAspectRatio);
+      return { ...result, logoHandledByAI: false };
     }
 
+    // Augment the prompt with logo integration instructions when brand kit is provided
+    const hasLogo = !!brandKit?.logoUrl;
+    const geminiPrompt = brandKit
+      ? buildGeminiPromptWithLogo(prompt, brandKit)
+      : prompt;
+
+    // Append provider-specific negative constraints
+    const negativeConstraints = getNegativeConstraints(resolvedId, hasLogo);
+    const finalPrompt = negativeConstraints
+      ? `${geminiPrompt}\n\n${negativeConstraints}`
+      : geminiPrompt;
+
     // Build a cascade of Gemini models to try in order.
-    // Start with the user's chosen model; if quota is exhausted, cascade through
-    // the remaining Gemini models (cheapest/most available last) before giving up.
     const GEMINI_CASCADE = ["gemini-2.5-flash-image", "gemini-2.0-flash-image"];
     const modelsToTry: string[] = [provider.geminiModel!];
     for (const m of GEMINI_CASCADE) {
@@ -56,38 +86,45 @@ export async function generateImage(
         if (model !== provider.geminiModel) {
           console.warn(`[ImageProvider] Cascading to Gemini model: ${model}`);
         }
-        return await generateImageNanoBanana(prompt, freepikAspectRatio, model);
+        return await generateImageNanaBanana(
+          finalPrompt,
+          freepikAspectRatio,
+          model,
+          brandKit ?? undefined
+        );
       } catch (err) {
         if (isGeminiQuotaError(err)) {
           console.warn(`[ImageProvider] Gemini quota exhausted for ${model}`);
-          continue; // try next model in cascade
+          continue;
         }
-        throw err; // non-quota errors bubble up immediately
+        throw err;
       }
     }
 
     // All Gemini models exhausted — fall back to Freepik
     console.warn("[ImageProvider] All Gemini models quota-exhausted — falling back to Freepik Seedream");
-    return generateFreepikPrimary(prompt, freepikAspectRatio);
+    const result = await generateFreepikPrimary(prompt, freepikAspectRatio);
+    return { ...result, logoHandledByAI: false };
   }
 
   // Freepik: force mystic-only or seedream-first (default)
   if (resolvedId === "freepik:mystic") {
-    return generateFreepikMysticOnly(prompt, freepikAspectRatio);
+    const result = await generateFreepikMysticOnly(prompt, freepikAspectRatio);
+    return { ...result, logoHandledByAI: false };
   }
 
   // freepik:seedream — default Freepik flow (Seedream → Mystic fallback)
-  return generateFreepikPrimary(prompt, freepikAspectRatio);
+  const result = await generateFreepikPrimary(prompt, freepikAspectRatio);
+  return { ...result, logoHandledByAI: false };
 }
 
 /**
  * Use Freepik Mystic directly (no Seedream first).
- * Mirrors the internals of lib/freepik/generateImage.ts's Mystic flow.
  */
 async function generateFreepikMysticOnly(
   prompt: string,
   aspectRatio = "square_1_1"
-): Promise<ImageGenResult> {
+): Promise<{ buffer: Buffer; imageHasText: boolean }> {
   const FREEPIK_KEY = process.env.FREEPIK_API_KEY!;
   const MYSTIC_BASE = "https://api.freepik.com/v1/ai/mystic";
 
@@ -187,17 +224,11 @@ async function downloadBuffer(url: string): Promise<Buffer> {
   return Buffer.from(await res.arrayBuffer());
 }
 
-/**
- * Returns true if the error is a Gemini quota/rate-limit error (HTTP 429 /
- * RESOURCE_EXHAUSTED). These are transient billing/quota issues that should
- * fall back to Freepik rather than surface as a hard error to the user.
- */
 function isGeminiQuotaError(err: unknown): boolean {
   if (!err) return false;
   const msg = err instanceof Error ? err.message : String(err);
   if (/RESOURCE_EXHAUSTED/i.test(msg)) return true;
   if (/quota/i.test(msg) && /429|exceeded/i.test(msg)) return true;
-  // The @google/genai SDK throws ApiError objects with a `.status` number
   const e = err as Record<string, unknown>;
   if (e?.status === 429) return true;
   if (typeof e?.status === "string" && e.status === "RESOURCE_EXHAUSTED") return true;

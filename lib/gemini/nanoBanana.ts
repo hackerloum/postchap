@@ -5,6 +5,10 @@
  * - gemini-3.1-flash-image-preview (Nano Banana 2): Best balance, 2K
  * - gemini-3-pro-image-preview (Nano Banana Pro): 4K, Thinking mode
  * - gemini-2.5-flash-image (Nano Banana): Fastest, high-volume
+ *
+ * When a brand logo is provided, it is sent as inline image data so
+ * Gemini can integrate it naturally into the composition. Sharp then
+ * skips the logo overlay step (logoHandledByAI = true).
  */
 
 import { GoogleGenAI } from "@google/genai";
@@ -24,20 +28,135 @@ const FREEPIK_TO_GEMINI_ASPECT: Record<string, string> = {
 export interface ImageGenResult {
   buffer: Buffer;
   imageHasText: boolean;
+  /** True when Gemini received and integrated the logo — Sharp should skip re-compositing it */
+  logoHandledByAI: boolean;
+}
+
+export interface GeminiBrandKit {
+  brandName?: string;
+  logoUrl?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  samplePosterUrl?: string;
 }
 
 function getGeminiAspectRatio(freepikAspectRatio: string): string {
   return FREEPIK_TO_GEMINI_ASPECT[freepikAspectRatio] ?? "1:1";
 }
 
+/** Download a URL and return base64 + mimeType for Gemini inline data. */
+async function imageUrlToInlineData(
+  url: string
+): Promise<{ data: string; mimeType: string } | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const buffer = await res.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString("base64");
+    const ct = res.headers.get("content-type") ?? "image/png";
+    const mimeType = ct.split(";")[0].trim();
+    return { data: base64, mimeType };
+  } catch (err) {
+    console.warn("[NanaBanana] imageUrlToInlineData failed:", err);
+    return null;
+  }
+}
+
+/**
+ * Build provider-specific negative constraints.
+ * When Gemini receives the logo as inline data, we tell it how to
+ * handle the logo rather than leaving a dead zone.
+ */
+export function getNegativeConstraints(
+  provider: string,
+  hasLogo: boolean
+): string {
+  const isGemini = provider.startsWith("gemini:");
+  const isFreepik = provider.startsWith("freepik:");
+
+  if (isGemini && hasLogo) {
+    return `
+NEGATIVE CONSTRAINTS:
+- Do NOT redraw or recreate the logo from scratch
+- Do NOT add effects, glows, outlines, or drop shadows to the logo
+- Do NOT place the logo anywhere except top-left
+- Do NOT render the brand name as separate text if logo is visible
+- No watermarks. No copyright symbols. No AI artifacts.
+- No text other than: headline, CTA, and subheadline
+`.trim();
+  }
+
+  if (isFreepik || (isGemini && !hasLogo)) {
+    return `
+STRICT NEGATIVE CONSTRAINTS — override everything above:
+- TOP-LEFT CORNER IS A DEAD ZONE: 250px wide × 120px tall — pure background only
+- Do NOT show any logo, wordmark, brand mark, emblem, icon, arrow,
+  triangle, or decorative symbol anywhere in the image
+- Do NOT render any brand name as text or graphic anywhere
+- No watermarks. No copyright symbols. No AI-generated logos or icons
+`.trim();
+  }
+
+  return "";
+}
+
+/**
+ * Append logo integration instructions to a base prompt when
+ * the logo is being sent to Gemini as inline data.
+ */
+export function buildGeminiPromptWithLogo(
+  basePrompt: string,
+  brandKit: GeminiBrandKit
+): string {
+  const hasLogo = !!brandKit?.logoUrl;
+
+  const logoInstruction = hasLogo
+    ? `
+LOGO INTEGRATION:
+The brand logo has been provided as a visual reference above.
+- Integrate it naturally into the top-left of the composition
+- Use its color palette as the foundation for the entire design
+- Match its visual weight and style energy
+- Do NOT leave a blank dead zone — the logo is being composed by the AI
+- Do NOT recreate, redraw, or modify the logo — render it exactly as shown
+- Do NOT add effects, glows, or shadows to the logo itself
+- Minimum logo size: roughly 15% of poster width
+- Ensure the background behind the logo provides enough contrast
+`.trim()
+    : `
+LOGO ZONE:
+No logo provided.
+- Top-left area (250px × 120px) must remain clean background only
+- This zone will be used for brand name text overlay in post-processing
+`.trim();
+
+  return `${basePrompt}
+
+${logoInstruction}
+
+BRAND COLORS (extracted from logo if provided):
+Primary:   ${brandKit.primaryColor ?? "derive from logo"}
+Secondary: ${brandKit.secondaryColor ?? "derive from logo"}
+Accent:    ${brandKit.accentColor ?? "derive from logo"}
+
+If logo colors contradict the brand colors above, PRIORITIZE the logo colors.
+The logo is the source of truth for brand identity.`;
+}
+
 /**
  * Generate an image using a Gemini Nano Banana model.
- * @param model  Full Gemini model id (e.g. "gemini-3.1-flash-image-preview")
+ *
+ * @param prompt               Final generation prompt
+ * @param freepikAspectRatio   Aspect ratio in Freepik format
+ * @param model                Full Gemini model id
+ * @param brandKit             Optional brand kit for multimodal logo input
  */
-export async function generateImageNanoBanana(
+export async function generateImageNanaBanana(
   prompt: string,
   freepikAspectRatio = "square_1_1",
-  model = "gemini-3.1-flash-image-preview"
+  model = "gemini-2.5-flash-image",
+  brandKit?: GeminiBrandKit
 ): Promise<ImageGenResult> {
   if (!GEMINI_API_KEY) {
     throw new Error(
@@ -57,21 +176,71 @@ export async function generateImageNanoBanana(
       : { aspectRatio },
   };
 
+  // Build multimodal content parts
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const parts: any[] = [];
+  let logoSentToAI = false;
+
+  // Part 1 — Logo reference (if exists)
+  if (brandKit?.logoUrl) {
+    const logo = await imageUrlToInlineData(brandKit.logoUrl);
+    if (logo) {
+      parts.push({ inlineData: { mimeType: logo.mimeType, data: logo.data } });
+      parts.push({
+        text: `BRAND LOGO REFERENCE (the image above):
+This is the exact logo for ${brandKit.brandName ?? "this brand"}.
+- Study the logo's colors — use them as the PRIMARY color anchor for the entire design
+- Study the logo's shapes and visual style — let it inform the design aesthetic
+- Place the logo in the TOP-LEFT corner, clearly visible, respecting the design style
+- The logo must look like it BELONGS in the composition, not stamped on top
+- Minimum size: roughly 15% of poster width
+- Ensure the background behind the logo provides enough contrast
+- DO NOT recreate, redraw, or modify the logo — render it exactly as shown
+- DO NOT add effects, glows, or shadows to the logo itself`,
+      });
+      logoSentToAI = true;
+      console.log("[NanaBanana] Logo sent as inline data");
+    }
+  }
+
+  // Part 2 — Sample poster reference (if exists)
+  if (brandKit?.samplePosterUrl) {
+    const sample = await imageUrlToInlineData(brandKit.samplePosterUrl);
+    if (sample) {
+      parts.push({
+        inlineData: { mimeType: sample.mimeType, data: sample.data },
+      });
+      parts.push({
+        text: `SAMPLE POSTER REFERENCE (the image above):
+Study this poster's layout hierarchy and compositional energy.
+Mimic: grid structure, text placement zones, visual balance.
+Do NOT copy: the colors, copy, or brand elements.
+Apply the same structural approach with ${brandKit.brandName ?? "this brand"}'s brand identity.`,
+      });
+    }
+  }
+
+  // Part 3 — Main generation prompt
+  parts.push({ text: prompt });
+
   console.log("[NanaBanana] Model:", model);
   console.log("[NanaBanana] Prompt:", prompt.slice(0, 200));
   console.log("[NanaBanana] Aspect:", aspectRatio);
+  console.log("[NanaBanana] Parts:", parts.length, "| Logo sent:", logoSentToAI);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let response: any;
   const MAX_RETRIES = 2;
+
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       response = await ai.models.generateContent({
         model,
-        contents: prompt,
+        contents: [{ role: "user", parts }],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         config: config as any,
       });
-      break; // success
+      break;
     } catch (err) {
       const retryDelaySec = extractRetryDelay(err);
       const isQuota = isRateLimitError(err);
@@ -82,7 +251,7 @@ export async function generateImageNanoBanana(
         await new Promise((r) => setTimeout(r, retryDelaySec * 1000));
         continue;
       }
-      throw err; // non-retryable or retries exhausted
+      throw err;
     }
   }
 
@@ -93,7 +262,7 @@ export async function generateImageNanoBanana(
           parts?: Array<{
             thought?: boolean;
             text?: string;
-            inlineData?: { data?: string };
+            inlineData?: { data?: string; mimeType?: string };
           }>;
         };
       }>;
@@ -109,12 +278,15 @@ export async function generateImageNanoBanana(
     if (part.inlineData?.data) {
       const buffer = Buffer.from(part.inlineData.data, "base64");
       console.log("[NanaBanana] Success:", buffer.length, "bytes");
-      return { buffer, imageHasText: true };
+      return { buffer, imageHasText: true, logoHandledByAI: logoSentToAI };
     }
   }
 
   throw new Error("Nano Banana: no image data in response parts");
 }
+
+/** Keep old export name as alias for backward compat */
+export const generateImageNanoBanana = generateImageNanaBanana;
 
 export function isNanoBananaConfigured(): boolean {
   return Boolean(GEMINI_API_KEY);
@@ -138,8 +310,9 @@ function isRateLimitError(err: unknown): boolean {
 function extractRetryDelay(err: unknown): number {
   try {
     const msg = err instanceof Error ? err.message : String(err);
-    // The SDK serialises the full API error JSON as the message string
-    const parsed = JSON.parse(msg.startsWith("{") ? msg : (msg.match(/(\{[\s\S]*\})/)?.[1] ?? "{}"));
+    const parsed = JSON.parse(
+      msg.startsWith("{") ? msg : (msg.match(/(\{[\s\S]*\})/)?.[1] ?? "{}")
+    );
     const details: Array<Record<string, unknown>> =
       parsed?.error?.details ?? parsed?.details ?? [];
     for (const detail of details) {

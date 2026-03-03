@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { requireAdmin } from "@/lib/admin-auth";
 import { generateCopy } from "@/lib/generation/generateCopy";
-import { generateImage } from "@/lib/generation/imageProvider";
+import { generateImage, getNegativeConstraints } from "@/lib/generation/imageProvider";
 import { generateImagePrompt } from "@/lib/generation/generateImagePrompt";
 import { improvePrompt } from "@/lib/freepik/improvePrompt";
 import { compositePoster } from "@/lib/sharp/compositePoster";
@@ -87,43 +87,50 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Hard-append negative constraints AFTER improvePrompt so they cannot be overridden.
-    // Seedream treats trailing instructions as high-priority negative guidance.
-    const NO_LOGO_SUFFIX = [
-      "STRICT NEGATIVE CONSTRAINTS — these override everything above:",
-      "TOP-LEFT CORNER IS A DEAD ZONE: The rectangular area spanning the top-left 250 pixels wide by 120 pixels tall must be 100% pure background — absolutely nothing there. No icons, no arrows, no triangles, no shapes, no decorative elements, no text, no symbols, no gradients, no overlays, no UI elements. Pure empty background only. This space is reserved for the brand logo which will be added separately.",
-      "Do NOT show any logo, wordmark, brand mark, emblem, icon, arrow icon, triangle icon, geometric icon, or decorative symbol anywhere in the entire image.",
-      "Do NOT show any text on signs, papers, boards, screens, clothing, or held objects — all held items must be completely blank.",
-      "Do NOT render 'ArtMaster', 'Art Master', or any brand name as text or graphic anywhere.",
-      "No watermarks. No copyright symbols. No AI-generated logos or icons of any kind.",
-    ].join(" ");
-    imagePrompt = `${imagePrompt}\n\n${NO_LOGO_SUFFIX}`;
+    // Append provider-specific negative constraints.
+    // For Gemini + logo: don't use dead-zone — Gemini integrates the logo natively.
+    // For Freepik or Gemini without logo: use dead-zone approach.
+    const resolvedProviderId = body.imageProviderId ?? "freepik:seedream";
+    const hasAdminLogo = !!kitData.logoUrl;
+    const negConstraints = getNegativeConstraints(resolvedProviderId, hasAdminLogo);
+    if (negConstraints) {
+      imagePrompt = `${imagePrompt}\n\n${negConstraints}`;
+    }
 
-    const { buffer: backgroundBuffer, imageHasText } = await generateImage(
+    const adminBrandKitForImage = {
+      brandName:      kitData.brandName as string | undefined,
+      logoUrl:        kitData.logoUrl as string | undefined,
+      primaryColor:   kitData.primaryColor as string | undefined,
+      secondaryColor: kitData.secondaryColor as string | undefined,
+      accentColor:    kitData.accentColor as string | undefined,
+    };
+
+    const { buffer: backgroundBuffer, imageHasText, logoHandledByAI } = await generateImage(
       imagePrompt,
       format.freepikAspectRatio,
-      body.imageProviderId ?? null
+      resolvedProviderId,
+      adminBrandKitForImage
     );
 
     const finalBuffer = await compositePoster({
       backgroundBuffer,
       brandKit: {
-        brandName: kitData.brandName ?? "ArtMaster",
-        primaryColor: kitData.primaryColor ?? "#000000",
+        brandName:      kitData.brandName ?? "ArtMaster",
+        primaryColor:   kitData.primaryColor ?? "#000000",
         secondaryColor: kitData.secondaryColor ?? "#ffffff",
-        accentColor: kitData.accentColor ?? "#a3e635",
-        logoUrl: kitData.logoUrl ?? undefined,
-        // website omitted to prevent broken contact bar boxes on Vercel
+        accentColor:    kitData.accentColor ?? "#a3e635",
+        logoUrl:        kitData.logoUrl ?? undefined,
       },
       copy: {
-        headline: copy.headline,
+        headline:    copy.headline,
         subheadline: copy.subheadline,
-        body: copy.body,
-        cta: copy.cta,
-        hashtags: copy.hashtags ?? [],
+        body:        copy.body,
+        cta:         copy.cta,
+        hashtags:    copy.hashtags ?? [],
       },
       imageHasText,
-      width: format.width,
+      logoHandledByAI,
+      width:  format.width,
       height: format.height,
     });
 
