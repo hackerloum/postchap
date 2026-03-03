@@ -108,7 +108,8 @@ export async function runGenerationForUser(
   templateId?: string | number | null,
   platformFormatId?: string | null,
   inspirationImageUrl?: string | null,
-  imageProviderId?: string | null
+  imageProviderId?: string | null,
+  useImprovePrompt?: boolean
 ): Promise<RunGenerationResult> {
   const format = getPlatformFormat(platformFormatId);
   const db = getAdminDb();
@@ -201,7 +202,9 @@ export async function runGenerationForUser(
     imagePrompt = ensureRealisticHumanStyle(imagePrompt);
   } else {
     imagePrompt = await generateImagePrompt(brandKit, copy, null, recommendation ?? null);
-    if (process.env.USE_FREEPIK_IMPROVE_PROMPT === "true") {
+    const shouldImprove =
+      useImprovePrompt === true || (useImprovePrompt !== false && process.env.USE_FREEPIK_IMPROVE_PROMPT === "true");
+    if (shouldImprove) {
       try {
         imagePrompt = await improvePrompt(imagePrompt, {
           type: "image",

@@ -15,6 +15,7 @@ export function CreatePosterForm({ brandKits: initialKits }: { brandKits: BrandK
   const [occasion, setOccasion] = useState("");
   const [customPrompt, setCustomPrompt] = useState("");
   const [imageProviderId, setImageProviderId] = useState<string>(DEFAULT_IMAGE_PROVIDER);
+  const [useImprovePrompt, setUseImprovePrompt] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -65,6 +66,7 @@ export function CreatePosterForm({ brandKits: initialKits }: { brandKits: BrandK
           customPrompt,
           posterSize: "1080x1080",
           imageProviderId,
+          useImprovePrompt,
         }),
         signal: controller.signal,
       });
@@ -174,6 +176,17 @@ export function CreatePosterForm({ brandKits: initialKits }: { brandKits: BrandK
                 </option>
               ))}
             </select>
+            <label className="mt-3 flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={useImprovePrompt}
+                onChange={(e) => setUseImprovePrompt(e.target.checked)}
+                className="w-4 h-4 rounded border-border-default bg-bg-elevated text-accent focus:ring-accent/30"
+              />
+              <span className="font-mono text-[11px] text-text-muted">
+                Enhance prompt with Freepik (lighting & composition)
+              </span>
+            </label>
           </div>
           <div>
             <label className="block font-mono text-[11px] text-text-muted mb-2">Custom instructions (optional)</label>

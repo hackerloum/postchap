@@ -372,6 +372,7 @@ export default function CreatePage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | string | null>(null);
   const [platformFormatId, setPlatformFormatId] = useState<string>(PLATFORM_FORMATS[0].id);
   const [imageProviderId, setImageProviderId] = useState<string>(DEFAULT_IMAGE_PROVIDER);
+  const [useImprovePrompt, setUseImprovePrompt] = useState(false);
   const [suggestedSearches, setSuggestedSearches] = useState<string[]>([]);
   const [loadingSuggestedSearches, setLoadingSuggestedSearches] = useState(false);
   const [useTemplate, setUseTemplate] = useState(false);
@@ -672,6 +673,7 @@ export default function CreatePage() {
         mode,
         platformFormatId,
         imageProviderId,
+        useImprovePrompt,
         recommendation: recommendationPayload,
         customTopic: useCustom && customTopic.trim() ? customTopic : null,
         templateId: mode === "template" ? (selectedTemplateId ?? null) : null,
@@ -997,6 +999,21 @@ export default function CreatePage() {
                 );
               })}
             </div>
+
+            {/* Optional: Enhance prompt with Freepik (AI Pick mode) */}
+            {mode === "ai" && (
+              <label className="mt-4 flex items-center gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={useImprovePrompt}
+                  onChange={(e) => setUseImprovePrompt(e.target.checked)}
+                  className="w-4 h-4 rounded border-border-default bg-bg-elevated text-accent focus:ring-accent/30"
+                />
+                <span className="font-mono text-[12px] text-text-secondary group-hover:text-text-primary">
+                  Enhance prompt with Freepik (adds lighting, composition & style details)
+                </span>
+              </label>
+            )}
           </div>
 
           {mode === "template" && (

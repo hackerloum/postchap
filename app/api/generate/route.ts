@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
     platformFormatId?: string | null;
     inspirationImageUrl?: string | null;
     imageProviderId?: string | null;
+    useImprovePrompt?: boolean;
   };
   try {
     body = await request.json();
@@ -41,7 +42,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  const { brandKitId, recommendation, templateId, platformFormatId, inspirationImageUrl, imageProviderId } = body;
+  const {
+    brandKitId,
+    recommendation,
+    templateId,
+    platformFormatId,
+    inspirationImageUrl,
+    imageProviderId,
+    useImprovePrompt,
+  } = body;
 
   if (!brandKitId) {
     return NextResponse.json(
@@ -82,7 +91,8 @@ export async function POST(request: NextRequest) {
       templateId ?? null,
       platformFormatId ?? null,
       inspirationImageUrl ?? null,
-      imageProviderId ?? null
+      imageProviderId ?? null,
+      useImprovePrompt
     );
     return NextResponse.json({
       success: true,

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { requireAdmin } from "@/lib/admin-auth";
 import OpenAI from "openai";
+import {
+  buildRecommendationSystemPrompt,
+  injectDeduplication,
+} from "@/lib/generation/generateRecommendations";
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,18 +15,24 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const db = getAdminDb();
+    const db      = getAdminDb();
     const kitSnap = await db.doc("admin_config/artmaster_brand_kit").get();
-    const kit = kitSnap.exists ? kitSnap.data()! : {};
+    const kit     = kitSnap.exists ? kitSnap.data()! : {};
 
-    const today = new Date();
-    const dateStr = today.toLocaleDateString("en-GB", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-    const dayOfWeek = today.toLocaleDateString("en-GB", { weekday: "long" });
+    const brandKit = {
+      brandName:      (kit.brandName as string) ?? "ArtMaster",
+      industry:       (kit.industry as string) ?? "technology",
+      tone:           (kit.tone as string) ?? "modern, bold, professional",
+      language:       (kit.language as string) ?? "English",
+      targetAudience: (kit.targetAudience as string) ?? "Small business owners, marketers, creators, African & global businesses",
+      brandLocation:  (kit.brandLocation as {
+        country?: string;
+        city?: string;
+        continent?: string;
+        currency?: string;
+        languages?: string[];
+      }) ?? { continent: "Africa" },
+    };
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
@@ -30,107 +40,55 @@ export async function POST(request: NextRequest) {
     }
     const openai = new OpenAI({ apiKey });
 
-    const sessionSeed = Date.now().toString().slice(-4);
+    // Admin has no per-brand history — pull global admin history to deduplicate
+    let previousThemes: string[] = [];
+    try {
+      const historySnap = await db.doc("admin_config/recommendation_history").get();
+      previousThemes = (historySnap.data()?.recentThemes as string[]) ?? [];
+    } catch {
+      // Non-critical
+    }
 
-    const systemPrompt = `
-You are a legendary creative director who has led campaigns for Apple, Nike, Notion, and Linear.
-You think like a combination of David Droga (storytelling), Paula Scher (bold typography), and Dieter Rams (function-first design).
-
-Your job: generate 6 poster concepts so different from each other they could each be from a different agency.
-Each concept must have a completely unique visual language, emotional angle, and composition style.
-
-FORBIDDEN — these overused tropes that AI keeps repeating:
-- Globe or world map imagery
-- Generic "spotlight on a dark background"
-- Hands typing on keyboards
-- Floating smartphone mockups with the app on screen
-- Blue/purple gradient tech-bro backgrounds
-- Rocket or "launch" metaphors
-- Identical centred-text-over-image layouts for every card
-- Person holding a sign, paper, board, or card with any text or logo on it (the AI generates a fake logo on the held object — strictly forbidden)
-
-Instead, think in diverse visual categories:
-- Editorial / magazine spread
-- Cinematic film poster
-- Bold typographic poster (the TYPE is the design)
-- Abstract conceptual art
-- Human-emotion-first (a face, a reaction, a moment)
-- Split composition (before/after, left/right contrast)
-- Flat geometric / Bauhaus inspired
-- Dark luxury / premium minimal
-- Energetic street poster / urban
-- Data becomes beautiful (infographic as art)
-
-Return ONLY a valid JSON array. No markdown. No explanation. Raw JSON only.
-`.trim();
-
-    const userPrompt = `
-Today is ${dateStr}. Session seed: ${sessionSeed}.
-
-Generate 6 RADICALLY DIFFERENT marketing poster recommendations for ArtMaster.
-
-PRODUCT: ArtMaster — AI that generates brand-consistent posters in seconds. No design skills needed.
-Tagline: ${kit.tagline ?? "AI-powered poster generation for your brand"}
-Target: ${kit.targetAudience ?? "Small business owners, marketers, creators, African & global businesses"}
-Tone: ${kit.tone ?? "modern, bold, professional, approachable"}
-Accent color: ${kit.accentColor ?? "electric lime green (#a3e635)"}
-
-THE 6 CONCEPTS MUST EACH USE A COMPLETELY DIFFERENT VISUAL APPROACH:
-
-Concept 1 — TYPOGRAPHIC POWER: The design IS the typography. Massive, oversized text dominates the entire frame. Almost no imagery — just type, color, and white space. Think Sagmeister & Walsh or Die Gestalten editorial design.
-
-Concept 2 — HUMAN EMOTION: A real person's face or expression — the emotion tells the story. A business owner looking proud and confident. A creator with a genuine smile. Raw authentic feeling. IMPORTANT: The person must NOT hold any sign, paper, board, or object with text or logos on it. The emotion comes from their face and body language only, not from props.
-
-Concept 3 — SPLIT DUALITY: Two-panel composition. Left side: chaotic, messy, old-school design process (sticky notes, stress, Canva clutter). Right side: ArtMaster — clean, instant, perfect. The contrast IS the message.
-
-Concept 4 — DARK LUXURY MINIMAL: Pure dark background, one centered object or element bathed in dramatic directional light. Ultra-premium feel like a luxury product launch. Minimal text, maximum presence.
-
-Concept 5 — ABSTRACT DATA / CONCEPT: AI and creativity visualized as something unexpected — circuits blooming into flowers, binary code forming a paintbrush, data streams morphing into a perfect poster. Conceptual and thought-provoking.
-
-Concept 6 — URGENCY / LIMITED SOCIAL PROOF: Testimonial-style. A quote from a fictional satisfied user overlaid on a rich background. Social proof format — feels like a real person recommending it. Trust-building, FOMO-inducing.
-
-For each concept return this object:
-{
-  "id": "rec_${sessionSeed}_N",
-  "theme": "2-4 word theme name",
-  "topic": "The specific focused message for this poster",
-  "description": "Detailed brief: what exactly should this poster show, what emotion should the viewer feel, what action should they take. Be so specific a designer can execute it immediately. 3 sentences.",
-  "suggestedHeadline": "Scroll-stopping headline — make it provocative, unexpected, or bold. Max 8 words. NOT generic like 'Create Stunning Posters'. Make it feel like a hit ad.",
-  "suggestedCta": "Sharp CTA, max 5 words",
-  "visualMood": "Highly specific art direction: exact lighting style, composition type, color palette (use names not hex), texture/material feel, photographic or illustrated, aspect ratio feeling. 2 sentences. Be a senior art director.",
-  "urgency": "high | medium | low",
-  "reason": "The strategic reason this concept will drive results for ArtMaster on ${dayOfWeek}. 1 sentence.",
-  "hashtags": ["#ArtMaster", "#AIDesign", 2 more highly relevant hashtags],
-  "category": "typography | emotion | comparison | luxury | abstract | social_proof"
-}
-
-QUALITY STANDARDS:
-- suggestedHeadline must feel like it belongs on a billboard in NYC or Lagos — not a tech landing page
-- visualMood must reference a specific visual style or director, e.g. "Kubrick symmetry", "Wes Anderson palette", "Bauhaus geometry", "Caravaggio lighting"
-- Each of the 6 must be so visually different a viewer would never guess they're from the same brand kit
-- description must be 3 full sentences with specific, actionable design direction
-
-Return the JSON array now. Exactly 6 objects. Raw JSON only.
-`.trim();
+    let systemPrompt = buildRecommendationSystemPrompt(brandKit, true);
+    systemPrompt = injectDeduplication(systemPrompt, previousThemes);
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      temperature: 1.1,
+      model:       "gpt-4o",
+      temperature: 1.15,
+      top_p:       0.95,
+      max_tokens:  2000,
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
+        {
+          role: "user",
+          content: `Generate exactly 6 RADICALLY DIFFERENT poster concepts for ArtMaster. Return raw JSON array only.`,
+        },
       ],
     });
 
-    const raw = response.choices[0]?.message?.content ?? "[]";
+    const raw     = response.choices[0]?.message?.content ?? "[]";
     const cleaned = raw.replace(/```json/g, "").replace(/```/g, "").trim();
 
     let recommendations: unknown[];
     try {
       recommendations = JSON.parse(cleaned) as unknown[];
     } catch {
-      console.error("[admin/recommendations] Parse error:", cleaned);
+      console.error("[admin/recommendations] Parse error:", cleaned.slice(0, 300));
       return NextResponse.json({ error: "Failed to parse AI response" }, { status: 500 });
+    }
+
+    // Persist themes for cross-session deduplication
+    try {
+      const themes = (recommendations as Array<{ theme?: string }>)
+        .map((r) => r.theme ?? "")
+        .filter(Boolean);
+      const updated = [...themes, ...previousThemes].slice(0, 12);
+      await db.doc("admin_config/recommendation_history").set({
+        recentThemes: updated,
+        updatedAt: new Date(),
+      });
+    } catch {
+      // Non-critical
     }
 
     return NextResponse.json({ recommendations });

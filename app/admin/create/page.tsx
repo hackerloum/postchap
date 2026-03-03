@@ -56,6 +56,7 @@ const GENERATION_STEPS = [
 export default function AdminCreatePage() {
   const [platformFormatId, setPlatformFormatId] = useState("instagram_square");
   const [imageProviderId, setImageProviderId] = useState<string>(DEFAULT_IMAGE_PROVIDER);
+  const [useImprovePrompt, setUseImprovePrompt] = useState(false);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loadingRecs, setLoadingRecs] = useState(false);
   const [selected, setSelected] = useState<Recommendation | null>(null);
@@ -113,7 +114,7 @@ export default function AdminCreatePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify({ recommendation: rec, platformFormatId, imageProviderId }),
+        body: JSON.stringify({ recommendation: rec, platformFormatId, imageProviderId, useImprovePrompt }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error ?? "Generation failed");
@@ -258,6 +259,17 @@ export default function AdminCreatePage() {
                 );
               })}
             </div>
+            <label className="mt-4 flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={useImprovePrompt}
+                onChange={(e) => setUseImprovePrompt(e.target.checked)}
+                className="w-4 h-4 rounded border-border-default bg-bg-elevated text-accent focus:ring-accent/30"
+              />
+              <span className="font-mono text-[11px] text-text-muted">
+                Enhance prompt with Freepik (adds lighting, composition & style)
+              </span>
+            </label>
           </div>
 
           {/* Step 3: AI Recommendations */}

@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
     recommendation?: Recommendation | null;
     platformFormatId?: string | null;
     imageProviderId?: string | null;
+    useImprovePrompt?: boolean;
     topic?: string;
   };
   try {
@@ -77,11 +78,13 @@ export async function POST(request: NextRequest) {
     const copy = await generateCopy(brandKitForCopy, null, recommendation);
     let imagePrompt = await generateImagePrompt(brandKit, copy, null, recommendation);
 
-    // Always run prompt improvement for admin — maximum quality output
-    try {
-      imagePrompt = await improvePrompt(imagePrompt, { type: "image", language: "en" });
-    } catch (err) {
-      console.warn("[admin/generate] improvePrompt failed, using original:", err);
+    // Optional: enhance prompt with Freepik (lighting, composition, style)
+    if (body.useImprovePrompt === true) {
+      try {
+        imagePrompt = await improvePrompt(imagePrompt, { type: "image", language: "en" });
+      } catch (err) {
+        console.warn("[admin/generate] improvePrompt failed, using original:", err);
+      }
     }
 
     // Hard-append negative constraints AFTER improvePrompt so they cannot be overridden.
