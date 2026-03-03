@@ -5,7 +5,9 @@
  * cross-session deduplication via Firestore recommendation history.
  */
 
-import type { FirebaseFirestore } from "firebase-admin/firestore";
+import { getFirestore } from "firebase-admin/firestore";
+
+type Firestore = ReturnType<typeof getFirestore>;
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // VISUAL ARCHETYPES
@@ -531,7 +533,7 @@ OUTPUT RULES:
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export async function getPreviousThemes(
-  db: FirebaseFirestore.Firestore,
+  db: Firestore,
   uid: string,
   brandKitId: string
 ): Promise<string[]> {
@@ -549,7 +551,7 @@ export async function getPreviousThemes(
 }
 
 export async function saveThemes(
-  db: FirebaseFirestore.Firestore,
+  db: Firestore,
   uid: string,
   brandKitId: string,
   newThemes: string[]
