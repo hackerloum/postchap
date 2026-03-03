@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { requireAdmin } from "@/lib/admin-auth";
 import { generateCopy } from "@/lib/generation/generateCopy";
-import { generateImage, DEFAULT_IMAGE_PROVIDER } from "@/lib/generation/imageProvider";
+import { generateImage } from "@/lib/generation/imageProvider";
 import { generateImagePrompt } from "@/lib/generation/generateImagePrompt";
 import { improvePrompt } from "@/lib/freepik/improvePrompt";
 import { compositePoster } from "@/lib/sharp/compositePoster";
@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
   let body: {
     recommendation?: Recommendation | null;
     platformFormatId?: string | null;
+    imageProviderId?: string | null;
     topic?: string;
   };
   try {
@@ -95,7 +96,11 @@ export async function POST(request: NextRequest) {
     ].join(" ");
     imagePrompt = `${imagePrompt}\n\n${NO_LOGO_SUFFIX}`;
 
-    const { buffer: backgroundBuffer, imageHasText } = await generateImage(imagePrompt, format.freepikAspectRatio);
+    const { buffer: backgroundBuffer, imageHasText } = await generateImage(
+      imagePrompt,
+      format.freepikAspectRatio,
+      body.imageProviderId ?? null
+    );
 
     const finalBuffer = await compositePoster({
       backgroundBuffer,

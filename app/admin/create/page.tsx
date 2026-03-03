@@ -16,6 +16,7 @@ import {
   Clock,
 } from "lucide-react";
 import { PLATFORM_FORMATS } from "@/lib/generation/platformFormats";
+import { IMAGE_PROVIDERS, DEFAULT_IMAGE_PROVIDER } from "@/lib/image-models";
 import type { Recommendation } from "@/types/generation";
 
 interface AdminPost {
@@ -54,6 +55,7 @@ const GENERATION_STEPS = [
 
 export default function AdminCreatePage() {
   const [platformFormatId, setPlatformFormatId] = useState("instagram_square");
+  const [imageProviderId, setImageProviderId] = useState<string>(DEFAULT_IMAGE_PROVIDER);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loadingRecs, setLoadingRecs] = useState(false);
   const [selected, setSelected] = useState<Recommendation | null>(null);
@@ -111,7 +113,7 @@ export default function AdminCreatePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify({ recommendation: rec, platformFormatId }),
+        body: JSON.stringify({ recommendation: rec, platformFormatId, imageProviderId }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error ?? "Generation failed");
@@ -215,11 +217,54 @@ export default function AdminCreatePage() {
             </div>
           </div>
 
-          {/* Step 2: AI Recommendations */}
+          {/* Step 2: Image Provider */}
+          <div className="bg-bg-surface border border-border-default rounded-xl p-5">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-3">
+              Step 2 — Image Provider
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {IMAGE_PROVIDERS.map((p) => {
+                const selected = imageProviderId === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setImageProviderId(p.id)}
+                    className={`flex items-start gap-3 px-3 py-3 rounded-lg border text-left transition-all ${
+                      selected
+                        ? "border-accent bg-accent/8 ring-1 ring-accent/20"
+                        : "border-border-default bg-bg-elevated hover:border-border-strong"
+                    }`}
+                  >
+                    <div className={`mt-0.5 w-3 h-3 rounded-full border-2 shrink-0 flex items-center justify-center ${selected ? "border-accent" : "border-border-strong"}`}>
+                      {selected && <div className="w-1.5 h-1.5 rounded-full bg-accent" />}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`font-semibold text-[12px] ${selected ? "text-text-primary" : "text-text-secondary"}`}>
+                          {p.label}
+                        </span>
+                        <span className={`font-mono text-[9px] px-1.5 py-0.5 rounded-full border ${
+                          p.provider === "gemini"
+                            ? "border-blue-500/30 bg-blue-500/10 text-blue-400"
+                            : "border-border-default bg-bg-base text-text-muted"
+                        }`}>
+                          {p.badge}
+                        </span>
+                      </div>
+                      <p className="font-mono text-[10px] text-text-muted mt-0.5 leading-relaxed line-clamp-1">{p.description}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Step 3: AI Recommendations */}
           <div className="bg-bg-surface border border-border-default rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted">
-                Step 2 — AI Recommendations
+                Step 3 — AI Recommendations
               </p>
               <button
                 type="button"
@@ -327,7 +372,7 @@ export default function AdminCreatePage() {
           {selected && (
             <div className="bg-bg-surface border border-border-default rounded-xl p-5">
               <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-4">
-                Step 3 — Generate
+                Step 4 — Generate
               </p>
               <div className="flex items-start gap-4 mb-4 p-4 bg-accent/5 border border-accent/20 rounded-xl">
                 <Sparkles size={16} className="text-accent shrink-0 mt-0.5" />
