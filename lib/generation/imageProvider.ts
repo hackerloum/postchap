@@ -41,17 +41,34 @@ export async function generateImage(
       console.warn("[ImageProvider] Gemini not configured — falling back to Freepik Seedream");
       return generateFreepikPrimary(prompt, freepikAspectRatio);
     }
-    try {
-      return await generateImageNanoBanana(prompt, freepikAspectRatio, provider.geminiModel!);
-    } catch (err) {
-      if (isGeminiQuotaError(err)) {
-        console.warn(
-          `[ImageProvider] Gemini quota exhausted for ${provider.geminiModel} — falling back to Freepik Seedream`
-        );
-        return generateFreepikPrimary(prompt, freepikAspectRatio);
-      }
-      throw err;
+
+    // Build a cascade of Gemini models to try in order.
+    // Start with the user's chosen model; if quota is exhausted, cascade through
+    // the remaining Gemini models (cheapest/most available last) before giving up.
+    const GEMINI_CASCADE = ["gemini-2.5-flash-image", "gemini-2.0-flash-image"];
+    const modelsToTry: string[] = [provider.geminiModel!];
+    for (const m of GEMINI_CASCADE) {
+      if (m !== provider.geminiModel) modelsToTry.push(m);
     }
+
+    for (const model of modelsToTry) {
+      try {
+        if (model !== provider.geminiModel) {
+          console.warn(`[ImageProvider] Cascading to Gemini model: ${model}`);
+        }
+        return await generateImageNanoBanana(prompt, freepikAspectRatio, model);
+      } catch (err) {
+        if (isGeminiQuotaError(err)) {
+          console.warn(`[ImageProvider] Gemini quota exhausted for ${model}`);
+          continue; // try next model in cascade
+        }
+        throw err; // non-quota errors bubble up immediately
+      }
+    }
+
+    // All Gemini models exhausted — fall back to Freepik
+    console.warn("[ImageProvider] All Gemini models quota-exhausted — falling back to Freepik Seedream");
+    return generateFreepikPrimary(prompt, freepikAspectRatio);
   }
 
   // Freepik: force mystic-only or seedream-first (default)
