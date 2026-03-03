@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { getClientIdToken } from "@/lib/auth-client";
 import { PLATFORM_FORMATS } from "@/lib/generation/platformFormats";
+import { IMAGE_PROVIDERS, DEFAULT_IMAGE_PROVIDER } from "@/lib/image-models";
 
 interface Recommendation {
   id: string;
@@ -370,6 +371,7 @@ export default function CreatePage() {
   const [templateTotal, setTemplateTotal] = useState<number | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | string | null>(null);
   const [platformFormatId, setPlatformFormatId] = useState<string>(PLATFORM_FORMATS[0].id);
+  const [imageProviderId, setImageProviderId] = useState<string>(DEFAULT_IMAGE_PROVIDER);
   const [suggestedSearches, setSuggestedSearches] = useState<string[]>([]);
   const [loadingSuggestedSearches, setLoadingSuggestedSearches] = useState(false);
   const [useTemplate, setUseTemplate] = useState(false);
@@ -669,6 +671,7 @@ export default function CreatePage() {
         brandKitId: selectedKit.id,
         mode,
         platformFormatId,
+        imageProviderId,
         recommendation: recommendationPayload,
         customTopic: useCustom && customTopic.trim() ? customTopic : null,
         templateId: mode === "template" ? (selectedTemplateId ?? null) : null,
@@ -947,6 +950,49 @@ export default function CreatePage() {
                       {shortLabel}
                     </span>
                     <span className="font-mono text-[10px] text-text-muted mt-0.5">{sub}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Image provider selector */}
+          <div className="bg-bg-surface border border-border-default rounded-2xl p-5">
+            <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-text-muted mb-4">
+              Image provider
+            </p>
+            <div className="grid grid-cols-1 gap-2">
+              {IMAGE_PROVIDERS.map((p) => {
+                const selected = imageProviderId === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setImageProviderId(p.id)}
+                    className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-left transition-all duration-150 ${
+                      selected
+                        ? "border-accent bg-accent/8 ring-1 ring-accent/20"
+                        : "border-border-default bg-bg-elevated hover:border-border-strong"
+                    }`}
+                  >
+                    <div className={`mt-0.5 w-3.5 h-3.5 rounded-full border-2 shrink-0 flex items-center justify-center ${selected ? "border-accent" : "border-border-strong"}`}>
+                      {selected && <div className="w-1.5 h-1.5 rounded-full bg-accent" />}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`font-semibold text-[13px] ${selected ? "text-text-primary" : "text-text-secondary"}`}>
+                          {p.label}
+                        </span>
+                        <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded-full border ${
+                          p.provider === "gemini"
+                            ? "border-blue-500/30 bg-blue-500/10 text-blue-400"
+                            : "border-border-default bg-bg-base text-text-muted"
+                        }`}>
+                          {p.badge}
+                        </span>
+                      </div>
+                      <p className="font-mono text-[11px] text-text-muted mt-0.5 leading-relaxed">{p.description}</p>
+                    </div>
                   </button>
                 );
               })}

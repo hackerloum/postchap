@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Image as ImageIcon } from "lucide-react";
 import { getClientIdToken } from "@/lib/auth-client";
+import { IMAGE_PROVIDERS, DEFAULT_IMAGE_PROVIDER } from "@/lib/image-models";
 import { getBrandKitsAction, type BrandKitItem } from "../brand-kits/actions";
 
 export function CreatePosterForm({ brandKits: initialKits }: { brandKits: BrandKitItem[] }) {
@@ -13,6 +14,7 @@ export function CreatePosterForm({ brandKits: initialKits }: { brandKits: BrandK
   const [theme, setTheme] = useState("");
   const [occasion, setOccasion] = useState("");
   const [customPrompt, setCustomPrompt] = useState("");
+  const [imageProviderId, setImageProviderId] = useState<string>(DEFAULT_IMAGE_PROVIDER);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -62,6 +64,7 @@ export function CreatePosterForm({ brandKits: initialKits }: { brandKits: BrandK
           occasion,
           customPrompt,
           posterSize: "1080x1080",
+          imageProviderId,
         }),
         signal: controller.signal,
       });
@@ -156,6 +159,20 @@ export function CreatePosterForm({ brandKits: initialKits }: { brandKits: BrandK
               <option value="tip">Tip of the day</option>
               <option value="milestone">Milestone / celebration</option>
               <option value="holiday">Holiday</option>
+            </select>
+          </div>
+          <div>
+            <label className="block font-mono text-[11px] text-text-muted mb-2">Image provider</label>
+            <select
+              value={imageProviderId}
+              onChange={(e) => setImageProviderId(e.target.value)}
+              className="w-full bg-bg-elevated border border-border-default rounded-lg px-3 py-2.5 text-sm text-text-primary outline-none focus:border-accent"
+            >
+              {IMAGE_PROVIDERS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  [{p.badge}] {p.label} — {p.description}
+                </option>
+              ))}
             </select>
           </div>
           <div>

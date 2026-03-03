@@ -1,8 +1,8 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { generateCopy } from "@/lib/generation/generateCopy";
+import { generateImage } from "@/lib/generation/imageProvider";
 import { generateImagePrompt } from "@/lib/generation/generateImagePrompt";
-import { generateImage } from "@/lib/freepik/generateImage";
 import { imageToPrompt } from "@/lib/freepik/imageToPrompt";
 import { improvePrompt } from "@/lib/freepik/improvePrompt";
 import { downloadResource } from "@/lib/freepik/resources";
@@ -107,7 +107,8 @@ export async function runGenerationForUser(
   recommendation?: Recommendation | null,
   templateId?: string | number | null,
   platformFormatId?: string | null,
-  inspirationImageUrl?: string | null
+  inspirationImageUrl?: string | null,
+  imageProviderId?: string | null
 ): Promise<RunGenerationResult> {
   const format = getPlatformFormat(platformFormatId);
   const db = getAdminDb();
@@ -212,7 +213,11 @@ export async function runGenerationForUser(
     }
   }
 
-  const { buffer: backgroundBuffer, imageHasText } = await generateImage(imagePrompt, format.freepikAspectRatio);
+  const { buffer: backgroundBuffer, imageHasText } = await generateImage(
+    imagePrompt,
+    format.freepikAspectRatio,
+    imageProviderId
+  );
 
   const finalBuffer = await compositePoster({
     backgroundBuffer,
