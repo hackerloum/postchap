@@ -139,7 +139,7 @@ function extractRetryDelay(err: unknown): number {
   try {
     const msg = err instanceof Error ? err.message : String(err);
     // The SDK serialises the full API error JSON as the message string
-    const parsed = JSON.parse(msg.startsWith("{") ? msg : (msg.match(/(\{.*\})/s)?.[1] ?? "{}"));
+    const parsed = JSON.parse(msg.startsWith("{") ? msg : (msg.match(/(\{[\s\S]*\})/)?.[1] ?? "{}"));
     const details: Array<Record<string, unknown>> =
       parsed?.error?.details ?? parsed?.details ?? [];
     for (const detail of details) {
