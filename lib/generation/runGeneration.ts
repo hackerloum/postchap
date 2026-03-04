@@ -71,6 +71,22 @@ function ensureRealisticHumanStyle(prompt: string): string {
   return prompt.trim().endsWith(suffix.trim()) ? prompt : prompt.trim() + suffix;
 }
 
+/** When the prompt mentions people and we have brand location, append representation so people match the brand's market. */
+function ensureRepresentationMatch(
+  prompt: string,
+  country?: string | null,
+  continent?: string | null
+): string {
+  if (!prompt || typeof prompt !== "string") return prompt;
+  const lower = prompt.toLowerCase();
+  const hasPerson =
+    /\b(woman|man|women|men|person|people|portrait|girl|boy|human|figure|child|face|holding|smiling)\b/.test(lower);
+  if (!hasPerson || (!country && !continent)) return prompt;
+  const place = [country, continent].filter(Boolean).join(", ") || "the brand's region";
+  const suffix = ` All people and faces must reflect the brand's market: ${place}. Local, authentic representation. Do not default to generic Western representation.`;
+  return prompt.trim().endsWith(suffix.trim()) ? prompt : prompt.trim() + suffix;
+}
+
 /** Remove template/format labels so they are never rendered on the poster (e.g. A4-learning, POSTER A4 TEMPLATE). */
 function stripTemplateLabelsFromPrompt(prompt: string): string {
   if (!prompt || typeof prompt !== "string") return prompt;
@@ -215,6 +231,12 @@ export async function runGenerationForUser(
       }
     }
   }
+
+  imagePrompt = ensureRepresentationMatch(
+    imagePrompt,
+    brandKit.brandLocation?.country,
+    brandKit.brandLocation?.continent
+  );
 
   const { buffer: backgroundBuffer, imageHasText, logoHandledByAI } = await generateImage(
     imagePrompt,

@@ -36,11 +36,11 @@ You are an expert at writing prompts for Seedream 4.5, an AI image model that ex
 Seedream 4.5 has superior typography rendering. Your prompt must describe the COMPLETE POSTER in English and follow these rules:
 
 ${hasBrandName
-  ? `1. INCLUDE TEXT EXPLICITLY — Write out the exact text to display: brand name, headline, tagline, CTA. Seedream can render them on the poster.`
+  ? `1. INCLUDE TEXT EXPLICITLY — Write out the exact text to display: brand name, headline, and CTA. Only include the tagline when it fits the concept (e.g. brand-identity or hero posters); for promos, events, or urgency-focused posters, omit the tagline to keep the layout clean. Seedream can render them on the poster.`
   : `1. LOGO-ONLY BRANDING — Do NOT include any brand name, wordmark, or company name as text in the image. The poster's only text is the headline, subheadline if present, and CTA. The brand identity is provided via a logo overlay composited after generation. TOP-LEFT DEAD ZONE: the top-left area (approximately 250px wide × 120px tall) must be completely empty — pure background only, no icons, no arrows, no triangles, no shapes, no decorative elements of any kind.`
 }
 
-2. SPECIFY TEXT PLACEMENT — Describe where each text appears: e.g. "headline in large bold type at center", "tagline at the bottom", "CTA button at bottom".
+2. SPECIFY TEXT PLACEMENT — Describe where each text appears: e.g. "headline in large bold type at center", "CTA button at bottom". Only mention tagline placement if you include the tagline (see rule 1).
 
 3. DEFINE COLOR PALETTE — Match brand colors: e.g. "rich dark brown and gold color palette", "dominant colors: [exact hex or names]".
 
@@ -52,9 +52,9 @@ ${hasBrandName
 
 6b. ABSOLUTELY NO LOGOS OR BRAND MARKS — The image must NOT contain any logo, wordmark, emblem, crest, icon, or brand symbol anywhere. This includes: on notebooks, devices, clothing, screens, papers, signs, boards, or any object a person is holding. If a person holds a sign or paper, it must be completely blank — no text, no logos, no marks on it. The real logo is composited on top after generation. Only the background scene, main visual subject, and the headline/CTA text may appear.
 
-7. DESCRIBE THE SUBJECT CLEARLY — What is the main visual element (product, person, scene, abstract) and style (photography, illustration, flat design).
+7. DESCRIBE THE SUBJECT CLEARLY — What is the main visual element (product, person, scene, abstract) and style (photography, illustration, flat design). When the poster includes people, faces, or human figures, describe them so they reflect the brand's market and country (e.g. East African person, person from Tanzania, West African woman). Use respectful, inclusive language. Do not default to generic Western representation — the audience should see themselves reflected.
 
-8. CRITICAL — TEXT ON POSTER: Only the exact headline, tagline, and CTA phrase must appear as visible text. NEVER include hex color codes, technical IDs, or variable names. Use color NAMES only (e.g. orange, gold, dark brown), never hex codes. Do not include any platform/product/service name unless it IS the brand name explicitly provided.
+8. CRITICAL — TEXT ON POSTER: Only the exact headline, CTA phrase, and optionally the tagline (only when you chose to include it) must appear as visible text. NEVER include hex color codes, technical IDs, or variable names. Use color NAMES only (e.g. orange, gold, dark brown), never hex codes. Do not include any platform/product/service name unless it IS the brand name explicitly provided.
 
 9. FULL-BLEED BACKGROUND: The main image must fill the entire poster from edge to edge. No separate colored bars, panels, or strips at the bottom. The background is one continuous visual extending to all edges.
 
@@ -72,6 +72,7 @@ Write the prompt in English only. Maximum 400 words. Return ONLY the prompt, no 
     .filter(Boolean)
     .join(", ");
   const country = brandKit.brandLocation?.country ?? "Africa";
+  const continent = brandKit.brandLocation?.continent ?? "";
   const industry = brandKit.industry ?? "business";
   const tagline = brandKit.tagline ?? "";
   const displayLang =
@@ -96,13 +97,13 @@ Content: ${recommendation.description}
 Text to display on poster (use exactly):
 - Headline: "${copy.headline}"
 - CTA: "${copy.cta}"
-${tagline ? `- Tagline: "${tagline}"` : ""}
+${tagline ? `- Tagline (optional — include only for brand/identity-style posters; omit for promos, events, urgency): "${tagline}"` : ""}
 `
     : `
 Text to display on poster (use exactly):
 - Headline: "${copy.headline}"
 - CTA: "${copy.cta}"
-${tagline ? `- Tagline: "${tagline}"` : ""}
+${tagline ? `- Tagline (optional — include only when it fits the concept; omit if it would clutter the poster): "${tagline}"` : ""}
 `;
 
   const userPrompt = `
@@ -111,7 +112,7 @@ Create a Seedream 4.5 prompt using this template structure:
 Create a professional social media poster${brandKit.brandName ? ` for ${brandKit.brandName}` : " (no brand name text — logo-only branding)"}.
 Brand colors (describe using color NAMES only in the prompt, e.g. orange/gold/dark — do not put hex codes like #xxxxx as text on the poster): ${colors}.
 Main headline: "${copy.headline}" — specify where it appears (e.g. centered at top, large bold).
-${tagline ? `Tagline: "${tagline}" — specify placement (e.g. below headline or at bottom).` : ""}
+${tagline ? `Tagline "${tagline}" is optional: include it only for brand-identity or hero-style posters where it fits naturally; for promo/event/urgency posters, omit the tagline and use only headline + CTA.` : ""}
 CTA: "${copy.cta}" — specify placement (e.g. button at bottom, bottom right).
 Visual subject: Describe the main visual (scene, product, or abstract) relevant to ${industry} in ${country}.
 Style: ${brandKit.tone ?? "professional"}, ${recommendation?.visualMood ?? "clean"}.
@@ -120,7 +121,8 @@ Lighting: e.g. studio lighting, warm ambient glow, soft shadows.
 Quality: professional, high-end advertising, clean layout, production-ready, no watermarks. Do NOT include any logo, emblem, or brand mark in the image — the user's logo is added separately. No logos on objects (notebooks, tablets, etc.). Full-bleed: the main background must extend to all four edges with no separate bottom panels or colored bars.
 
 Additional context:
-- Industry: ${industry}. Country/market: ${country}.
+- Industry: ${industry}. Country/market: ${country}${continent ? ` (${continent})` : ""}.
+- If the poster shows any people or human figures: they must be representative of the brand's market — ${country}${continent ? `, ${continent}` : ""}. Describe them accordingly in the prompt (e.g. East African, Tanzanian, Nigerian, local person) so the image reflects the local audience. Do not default to generic Western representation.
 ${brandKit.brandName ? `- Brand name to show on poster: "${brandKit.brandName}".` : "- NO brand name text on poster — the logo image handles all branding. Do NOT render any brand name, wordmark, or title text."}
 ${languageInstruction ? `\n${languageInstruction}\n` : ""}
 
