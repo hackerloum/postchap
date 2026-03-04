@@ -39,7 +39,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: { planId?: string; type?: string; paymentMethod?: "card" | "mobile"; phone_number?: string };
+  let body: {
+    planId?: string;
+    type?: string;
+    paymentMethod?: "card" | "mobile";
+    phone_number?: string;
+    billing?: {
+      phone_number?: string;
+      address?: string;
+      city?: string;
+      state?: string;
+      postcode?: string;
+    };
+  };
   try {
     body = await request.json();
   } catch {
@@ -152,15 +164,17 @@ export async function POST(request: NextRequest) {
       paymentData = { reference: res.reference };
     } else {
       const profilePhone = (userData.phoneNumber as string) ?? "";
-      const cardPhone = (body.phone_number ?? profilePhone).trim().replace(/\D/g, "");
+      const rawPhone = (body.billing?.phone_number ?? body.phone_number ?? profilePhone)
+        .trim()
+        .replace(/\D/g, "");
       let phone_number: string;
-      if (cardPhone.length >= 9) {
+      if (rawPhone.length >= 9) {
         phone_number =
           countryCode === "TZ"
-            ? (cardPhone.startsWith("255") ? cardPhone : cardPhone.replace(/^0/, "255"))
-            : cardPhone.startsWith("1") && cardPhone.length >= 11
-              ? cardPhone
-              : `1${cardPhone}`;
+            ? (rawPhone.startsWith("255") ? rawPhone : rawPhone.replace(/^0/, "255"))
+            : rawPhone.startsWith("1") && rawPhone.length >= 11
+              ? rawPhone
+              : `1${rawPhone}`;
       } else {
         phone_number = countryCode === "TZ" ? "255000000000" : "10000000000";
       }
@@ -173,10 +187,10 @@ export async function POST(request: NextRequest) {
           phone_number,
           customer: {
             ...customer,
-            address: "N/A",
-            city: "N/A",
-            state: "N/A",
-            postcode: "N/A",
+            address: body.billing?.address?.trim() || "N/A",
+            city: body.billing?.city?.trim() || "N/A",
+            state: body.billing?.state?.trim() || "N/A",
+            postcode: body.billing?.postcode?.trim() || "N/A",
           },
           webhook_url: webhookUrl,
           metadata,

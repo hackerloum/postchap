@@ -12,9 +12,72 @@ interface PricingModalProps {
   onClose: () => void;
   currentPlan: PlanId;
   countryCode?: string | null;
-  /** Pre-fill mobile money input from profile */
+  /** Pre-fill phone input from profile */
   profilePhoneNumber?: string | null;
   onPlanSelected?: () => void;
+}
+
+type BillingForm = {
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  postcode: string;
+};
+
+const EMPTY_BILLING: BillingForm = { phone: "", address: "", city: "", state: "", postcode: "" };
+
+const INPUT_CLS =
+  "w-full min-w-0 rounded-lg border border-border-default bg-bg-base px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50";
+
+function BillingFields({
+  value,
+  onChange,
+}: {
+  value: BillingForm;
+  onChange: (v: BillingForm) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <input
+        type="tel"
+        placeholder="Phone number (optional)"
+        value={value.phone}
+        onChange={(e) => onChange({ ...value, phone: e.target.value })}
+        className={INPUT_CLS}
+      />
+      <input
+        type="text"
+        placeholder="Billing address"
+        value={value.address}
+        onChange={(e) => onChange({ ...value, address: e.target.value })}
+        className={INPUT_CLS}
+      />
+      <div className="flex gap-2">
+        <input
+          type="text"
+          placeholder="City"
+          value={value.city}
+          onChange={(e) => onChange({ ...value, city: e.target.value })}
+          className={INPUT_CLS}
+        />
+        <input
+          type="text"
+          placeholder="State / Region"
+          value={value.state}
+          onChange={(e) => onChange({ ...value, state: e.target.value })}
+          className={INPUT_CLS}
+        />
+      </div>
+      <input
+        type="text"
+        placeholder="Postcode"
+        value={value.postcode}
+        onChange={(e) => onChange({ ...value, postcode: e.target.value })}
+        className={INPUT_CLS}
+      />
+    </div>
+  );
 }
 
 export function PricingModal({
@@ -48,11 +111,33 @@ export function PricingModal({
   const [paymentMessageDialog, setPaymentMessageDialog] = useState<string | null>(null);
   const [buyingPoster, setBuyingPoster] = useState(false);
 
+  // Card billing form state
+  const [cardBillingPlanId, setCardBillingPlanId] = useState<PlanId | null>(null);
+  const [cardBilling, setCardBilling] = useState<BillingForm>(EMPTY_BILLING);
+  const [posterBillingOpen, setPosterBillingOpen] = useState(false);
+  const [posterBilling, setPosterBilling] = useState<BillingForm>(EMPTY_BILLING);
+
   useEffect(() => {
     if (open && profilePhoneNumber) setMobilePhone(profilePhoneNumber);
   }, [open, profilePhoneNumber]);
 
-  async function handleSelectPlan(planId: PlanId, method: "card" | "mobile" = "card", phone?: string) {
+  function openCardBilling(planId: PlanId) {
+    setCardBilling({ ...EMPTY_BILLING, phone: profilePhoneNumber ?? "" });
+    setCardBillingPlanId(planId);
+    setSelectedPlanForMobile(null);
+  }
+
+  function openPosterBilling() {
+    setPosterBilling({ ...EMPTY_BILLING, phone: profilePhoneNumber ?? "" });
+    setPosterBillingOpen(true);
+  }
+
+  async function handleSelectPlan(
+    planId: PlanId,
+    method: "card" | "mobile" = "card",
+    phone?: string,
+    billing?: BillingForm
+  ) {
     if (planId === currentPlan) {
       onClose();
       return;
@@ -73,11 +158,22 @@ export function PricingModal({
         onClose();
         return;
       }
-      const body: { planId: string; paymentMethod: "card" | "mobile"; phone_number?: string } = {
-        planId,
-        paymentMethod: method,
-      };
+      const body: {
+        planId: string;
+        paymentMethod: "card" | "mobile";
+        phone_number?: string;
+        billing?: { phone_number?: string; address?: string; city?: string; state?: string; postcode?: string };
+      } = { planId, paymentMethod: method };
       if (method === "mobile" && phone) body.phone_number = phone;
+      if (method === "card" && billing) {
+        body.billing = {
+          ...(billing.phone && { phone_number: billing.phone }),
+          ...(billing.address && { address: billing.address }),
+          ...(billing.city && { city: billing.city }),
+          ...(billing.state && { state: billing.state }),
+          ...(billing.postcode && { postcode: billing.postcode }),
+        };
+      }
       const res = await fetch("/api/payments/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -105,16 +201,28 @@ export function PricingModal({
       setLoadingPlan(null);
       setSelectedPlanForMobile(null);
       setMobilePhone("");
+      setCardBillingPlanId(null);
+      setCardBilling(EMPTY_BILLING);
     }
   }
 
-  async function handleBuyOnePoster() {
+  async function handleBuyOnePoster(billing: BillingForm) {
     setBuyingPoster(true);
     try {
       const res = await fetch("/api/payments/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "poster", paymentMethod: "card" }),
+        body: JSON.stringify({
+          type: "poster",
+          paymentMethod: "card",
+          billing: {
+            ...(billing.phone && { phone_number: billing.phone }),
+            ...(billing.address && { address: billing.address }),
+            ...(billing.city && { city: billing.city }),
+            ...(billing.state && { state: billing.state }),
+            ...(billing.postcode && { postcode: billing.postcode }),
+          },
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Payment could not be started");
@@ -129,6 +237,8 @@ export function PricingModal({
       setPaymentMessageDialog(err instanceof Error ? err.message : "Payment failed");
     } finally {
       setBuyingPoster(false);
+      setPosterBillingOpen(false);
+      setPosterBilling(EMPTY_BILLING);
     }
   }
 
@@ -166,19 +276,47 @@ export function PricingModal({
         <div className="p-6 md:p-8">
           {/* Upsell hook: per-poster cost comparison */}
           {currentPlan === "free" && (
-            <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3">
-              <p className="font-mono text-[11px] text-text-secondary">
-                Pro = <span className="text-accent font-semibold">{proPerPosterLabel}</span> · Pay-per-poster = <span className="text-text-primary font-semibold">{perPosterPrice.label}/poster</span> · <span className="text-accent">Save 6x with monthly</span>
-              </p>
-              <button
-                type="button"
-                onClick={handleBuyOnePoster}
-                disabled={buyingPoster}
-                className="shrink-0 flex items-center gap-1.5 font-mono text-[11px] text-text-primary bg-bg-elevated border border-border-default rounded-lg px-3 py-1.5 hover:border-border-strong transition-colors disabled:opacity-50"
-              >
-                {buyingPoster ? <Loader2 size={11} className="animate-spin" /> : null}
-                Buy 1 poster · {perPosterPrice.label}
-              </button>
+            <div className="mb-6 flex flex-col gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <p className="font-mono text-[11px] text-text-secondary">
+                  Pro = <span className="text-accent font-semibold">{proPerPosterLabel}</span> · Pay-per-poster = <span className="text-text-primary font-semibold">{perPosterPrice.label}/poster</span> · <span className="text-accent">Save 6x with monthly</span>
+                </p>
+                {!posterBillingOpen && (
+                  <button
+                    type="button"
+                    onClick={openPosterBilling}
+                    disabled={buyingPoster}
+                    className="shrink-0 flex items-center gap-1.5 font-mono text-[11px] text-text-primary bg-bg-elevated border border-border-default rounded-lg px-3 py-1.5 hover:border-border-strong transition-colors disabled:opacity-50"
+                  >
+                    Buy 1 poster · {perPosterPrice.label}
+                  </button>
+                )}
+              </div>
+              {posterBillingOpen && (
+                <div className="flex flex-col gap-2 pt-1 border-t border-accent/10">
+                  <p className="font-mono text-[10px] text-text-muted">Billing details for 1-poster purchase</p>
+                  <BillingFields value={posterBilling} onChange={setPosterBilling} />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="secondary"
+                      className="flex-1"
+                      onClick={() => { setPosterBillingOpen(false); setPosterBilling(EMPTY_BILLING); }}
+                      disabled={buyingPoster}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="primary"
+                      className="flex-1 gap-1.5"
+                      onClick={() => handleBuyOnePoster(posterBilling)}
+                      disabled={buyingPoster}
+                    >
+                      {buyingPoster ? <Loader2 size={12} className="animate-spin" /> : null}
+                      Pay {perPosterPrice.label} →
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -195,6 +333,7 @@ export function PricingModal({
               const priceInfo = getPlanPriceForCountry(plan.id, countryCode);
               const showMobileOption = plan.id !== "free" && priceInfo.mobileMoney;
               const showMobileInput = selectedPlanForMobile === plan.id;
+              const showCardBilling = cardBillingPlanId === plan.id;
 
               return (
                 <div
@@ -274,8 +413,9 @@ export function PricingModal({
                       >
                         Select Free
                       </Button>
-                    ) : showMobileOption ? (
+                    ) : (
                       <div className="space-y-2">
+                        {/* Mobile money phone input */}
                         {showMobileInput && (
                           <div className="flex flex-col gap-2 min-w-0">
                             <input
@@ -283,7 +423,7 @@ export function PricingModal({
                               placeholder="07XX XXX XXX"
                               value={mobilePhone}
                               onChange={(e) => setMobilePhone(e.target.value)}
-                              className="w-full min-w-0 rounded-lg border border-border-default bg-bg-base px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
+                              className={INPUT_CLS}
                             />
                             <Button
                               variant="primary"
@@ -295,37 +435,65 @@ export function PricingModal({
                             </Button>
                           </div>
                         )}
-                        <div className="flex gap-2 min-w-0">
-                          <Button
-                            variant={isPro ? "primary" : "secondary"}
-                            className="flex-1 gap-1.5"
-                            disabled={loadingPlan !== null}
-                            onClick={() => setSelectedPlanForMobile(showMobileInput ? null : plan.id)}
-                          >
-                            <Smartphone size={14} />
-                            Mobile money
-                          </Button>
-                          <Button
-                            variant={isPro ? "primary" : "secondary"}
-                            className="flex-1 gap-1.5"
-                            disabled={loadingPlan !== null}
-                            onClick={() => handleSelectPlan(plan.id, "card")}
-                          >
-                            <CreditCard size={14} />
-                            Card
-                          </Button>
-                        </div>
+                        {/* Card billing form */}
+                        {showCardBilling && (
+                          <div className="flex flex-col gap-2 min-w-0 pt-1">
+                            <p className="font-mono text-[10px] text-text-muted">Billing details</p>
+                            <BillingFields value={cardBilling} onChange={setCardBilling} />
+                            <div className="flex gap-2">
+                              <Button
+                                variant="secondary"
+                                className="flex-1"
+                                disabled={loadingPlan !== null}
+                                onClick={() => { setCardBillingPlanId(null); setCardBilling(EMPTY_BILLING); }}
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                variant={isPro ? "primary" : "secondary"}
+                                className="flex-1 gap-1.5"
+                                disabled={loadingPlan !== null}
+                                onClick={() => handleSelectPlan(plan.id, "card", undefined, cardBilling)}
+                              >
+                                {loadingPlan === plan.id ? (
+                                  <Loader2 size={12} className="animate-spin" />
+                                ) : (
+                                  <CreditCard size={12} />
+                                )}
+                                {loadingPlan === plan.id ? "Redirecting…" : "Pay →"}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        {/* Payment method buttons — hidden when card billing form is open */}
+                        {!showCardBilling && (
+                          <div className={showMobileOption ? "flex gap-2 min-w-0" : ""}>
+                            {showMobileOption && (
+                              <Button
+                                variant={isPro ? "primary" : "secondary"}
+                                className="flex-1 gap-1.5"
+                                disabled={loadingPlan !== null}
+                                onClick={() => {
+                                  setSelectedPlanForMobile(showMobileInput ? null : plan.id);
+                                  setCardBillingPlanId(null);
+                                }}
+                              >
+                                <Smartphone size={14} />
+                                Mobile money
+                              </Button>
+                            )}
+                            <Button
+                              variant={isPro ? "primary" : "secondary"}
+                              className={showMobileOption ? "flex-1 gap-1.5" : "w-full gap-1.5"}
+                              disabled={loadingPlan !== null}
+                              onClick={() => openCardBilling(plan.id)}
+                            >
+                              <CreditCard size={14} />
+                              {showMobileOption ? "Card" : "Pay with card"}
+                            </Button>
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <Button
-                        variant={isPro ? "primary" : "secondary"}
-                        className="w-full gap-1.5"
-                        disabled={loadingPlan !== null}
-                        onClick={() => handleSelectPlan(plan.id, "card")}
-                      >
-                        <CreditCard size={14} />
-                        {loadingPlan === plan.id ? "Redirecting…" : "Pay with card"}
-                      </Button>
                     )}
                   </div>
                 </div>
