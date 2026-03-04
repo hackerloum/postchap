@@ -106,16 +106,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Trial completed (expired or used) and still on free: check purchased credits first
-  if (trial.trialCompleted && plan === "free") {
-    const userSnap = await getAdminDb().collection("users").doc(uid).get();
-    const trialCredits = (userSnap.data()?.posterCredits as number) ?? 0;
-    if (trialCredits >= 1) {
-      // Consume one credit and fall through to generation
-      await getAdminDb().collection("users").doc(uid).update({
-        posterCredits: FieldValue.increment(-1),
-      });
-    } else {
+  // Check purchased poster credits first — they bypass all plan limits.
+  // Read credits once here so we never double-consume between the two old gates.
+  const db = getAdminDb();
+  const userDoc = await db.collection("users").doc(uid).get();
+  const storedCredits = (userDoc.data()?.posterCredits as number) ?? 0;
+
+  if (storedCredits >= 1) {
+    // Consume one credit and fall through to generation — no further limit checks needed.
+    await db.collection("users").doc(uid).update({
+      posterCredits: FieldValue.increment(-1),
+    });
+  } else {
+    // No purchased credits — apply trial-completed gate and monthly plan limit.
+    if (trial.trialCompleted && plan === "free") {
       return NextResponse.json(
         {
           error: "Your free trial has ended. Upgrade to create more posters.",
@@ -124,32 +128,20 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
-  }
 
-  const limits = getPlanLimits(plan);
-  if (limits.postersPerMonth !== -1) {
-    const db = getAdminDb();
-    const now = new Date();
-    const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
-    const snap = await db
-      .collection("users")
-      .doc(uid)
-      .collection("posters")
-      .where("createdAt", ">=", Timestamp.fromDate(startOfMonth))
-      .count()
-      .get();
-    const count = snap.data().count;
-    if (count >= limits.postersPerMonth) {
-      // Check for purchased poster credits (one-time purchases)
-      const userSnap = await db.collection("users").doc(uid).get();
-      const posterCredits = (userSnap.data()?.posterCredits as number) ?? 0;
-      if (posterCredits >= 1) {
-        // Decrement credit and allow generation
-        await db.collection("users").doc(uid).update({
-          posterCredits: FieldValue.increment(-1),
-        });
-        // Fall through to generation below (do not return 403)
-      } else {
+    const limits = getPlanLimits(plan);
+    if (limits.postersPerMonth !== -1) {
+      const now = new Date();
+      const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
+      const snap = await db
+        .collection("users")
+        .doc(uid)
+        .collection("posters")
+        .where("createdAt", ">=", Timestamp.fromDate(startOfMonth))
+        .count()
+        .get();
+      const count = snap.data().count;
+      if (count >= limits.postersPerMonth) {
         return NextResponse.json(
           {
             error: "Poster limit reached for your plan. Upgrade to create more.",

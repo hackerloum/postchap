@@ -724,7 +724,10 @@ function CreatePageContent() {
       if (!res.ok) throw new Error("Failed to fetch recommendations");
 
       const data = await res.json();
-      setRecommendations(data.recommendations || []);
+      const recs = (data.recommendations || []) as Recommendation[];
+      setRecommendations(recs);
+      // Auto-select first recommendation so users can generate immediately
+      if (recs.length > 0) setSelectedRec(recs[0]);
     } catch {
       toast.error("Failed to load recommendations");
     } finally {
@@ -767,19 +770,9 @@ function CreatePageContent() {
       toast.error("Please select a brand kit");
       return;
     }
-    if (mode === "ai") {
-      if (!selectedRec && !(useCustom && customTopic.trim())) {
-        toast.error("Select a recommendation or write a brief");
-        return;
-      }
-    }
     if (mode === "template") {
       if (selectedTemplateId == null) {
         toast.error("Select a template to continue");
-        return;
-      }
-      if (!selectedRec && !(useCustom && customTopic.trim())) {
-        toast.error("Choose a content recommendation or write your own brief");
         return;
       }
     }
@@ -788,10 +781,6 @@ function CreatePageContent() {
       const hasUpload = inspirationImageUrl.trim().length > 0;
       if (!hasUrl && !hasUpload) {
         toast.error("Upload an image or paste a URL");
-        return;
-      }
-      if (!selectedRec && !(useCustom && customTopic.trim())) {
-        toast.error("Choose a content recommendation or write your own brief");
         return;
       }
     }
