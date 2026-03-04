@@ -89,6 +89,8 @@ No logo provided.
 
 ${logoInstruction}
 
+BOTTOM / CTA: Render the CTA as visible text or an integrated button (e.g. rounded pill, inline with the design). Do NOT add a standalone square, rectangle, or empty box at the bottom. The background and composition must extend full-bleed to the bottom edge with no separate panel or frame.
+
 BRAND COLORS (extracted from logo if provided):
 Primary:   ${brandKit.primaryColor ?? "derive from logo"}
 Secondary: ${brandKit.secondaryColor ?? "derive from logo"}

@@ -24,19 +24,27 @@ export function getNegativeConstraints(provider: string, hasLogo: boolean): stri
 
   // Seedream or Gemini WITH logo reference — different instructions
   if ((isSeedream || isGemini) && hasLogo) {
+    const bottomRule = isGemini
+      ? `
+- BOTTOM EDGE: Do NOT draw a separate square, rectangle, or box at the bottom. No empty placeholder shapes, no standalone geometric box, no footer frame. CTA must be integrated as text or a styled button — never a blank square. Full-bleed to the bottom edge.`
+      : "";
     return `NEGATIVE CONSTRAINTS:
 - Do NOT redraw or recreate the logo — use the reference exactly as provided
 - Do NOT add glow, outline, shadow, or effects to the logo
 - Do NOT place the logo anywhere except top-left
 - Do NOT render brand name as separate text if logo is present
 - No watermarks. No copyright symbols. No AI artifacts.
-- Only these text elements allowed: headline, subheadline, CTA`;
+- Only these text elements allowed: headline, subheadline, CTA${bottomRule}`;
   }
 
   // Seedream or Gemini WITHOUT logo — dead zone
+  const bottomRule = isGemini
+    ? `
+- BOTTOM EDGE: Do NOT draw a separate square, rectangle, or box at the bottom. No empty placeholder shapes. Full-bleed background to the bottom. CTA as text or integrated design, never a blank box.`
+    : "";
   return `STRICT NEGATIVE CONSTRAINTS:
 - TOP-LEFT CORNER IS A DEAD ZONE: 250px wide × 120px tall — pure background only
 - Do NOT render any logo, wordmark, brand mark, or symbol
 - Do NOT render the brand name as text
-- No watermarks. No copyright symbols.`;
+- No watermarks. No copyright symbols.${bottomRule}`;
 }
