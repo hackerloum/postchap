@@ -184,81 +184,16 @@ export async function compositePoster({
   }
 
   if (imageHasText) {
-    // When Gemini handled the full poster (logo + branding), it already rendered
-    // brand contact info inside the image. Adding a contact bar on top would
-    // duplicate the brand name and look wrong (e.g. "Chuo AI" appearing twice).
-    const contactParts: string[] = [];
-    if (!logoHandledByAI) {
-      if (brandKit.phoneNumber?.trim()) contactParts.push(brandKit.phoneNumber.trim());
-      if (brandKit.contactLocation?.trim()) contactParts.push(brandKit.contactLocation.trim());
-      if (brandKit.website?.trim()) contactParts.push(brandKit.website.trim());
-    }
-    const hasContactText = contactParts.length > 0;
-    const contactBarH = Math.round(44 * scale);
-
-    // Contact bar: only render when text is Latin-renderable by the server font stack.
-    // Non-Latin scripts (Arabic, CJK, etc.) produce □ box artifacts — skip entirely.
-    if (hasContactText) {
-      const line = contactParts.join("  |  ");
-      if (isLatinRenderable(line)) {
-        const contactSvg = `<svg width="${W}" height="${contactBarH}" xmlns="http://www.w3.org/2000/svg">
-          <rect width="${W}" height="${contactBarH}" fill="${secondary}" opacity="0.85"/>
-          <text x="${W / 2}" y="${contactBarH / 2 + 4}" text-anchor="middle"
-                font-family="${SERVER_FONT}"
-                font-size="${Math.round(12 * scale)}" fill="${primary}"
-                opacity="0.95" dominant-baseline="middle">${escapeXml(line)}</text>
-        </svg>`;
-        compositeInputs.push({
-          input: Buffer.from(contactSvg),
-          top: H - contactBarH,
-          left: 0,
-          blend: "over",
-        });
-      }
-      // Non-Latin contact text: silently skip — the AI-generated image already
-      // contains the brand identity in the correct script.
-    }
-
-    // Gemini CTA: only render the button when the text is Latin-renderable.
-    // Non-Latin CTA text would show as □ boxes — skip the entire overlay rather
-    // than drawing a blank rectangle with no readable label.
-    if (addCTAFromSharp && copy.cta && isLatinRenderable(copy.cta)) {
-      const ctaH = Math.round(48 * scale);
-      const ctaBottomMargin = Math.round(18 * scale);
-      const ctaY = hasContactText
-        ? H - contactBarH - ctaH - ctaBottomMargin
-        : H - ctaH - Math.round(PADDING * 1.5);
-      const ctaTextWidth = copy.cta.length * Math.round(13 * scale);
-      const ctaW = Math.min(ctaTextWidth + Math.round(56 * scale), W - PADDING * 2);
-      const backdropH = ctaH + Math.round(20 * scale);
-      const backdropY = ctaY - Math.round(10 * scale);
-
-      const ctaSvg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
-        <rect x="${PADDING - Math.round(8 * scale)}" y="${backdropY}"
-              width="${ctaW + Math.round(16 * scale)}" height="${backdropH}"
-              rx="${Math.round(12 * scale)}" fill="rgba(0,0,0,0.35)" />
-        <rect x="${PADDING}" y="${ctaY}"
-              width="${ctaW}" height="${ctaH}"
-              rx="${Math.round(8 * scale)}" fill="${primary}" />
-        <text x="${PADDING + Math.round(ctaW / 2)}" y="${ctaY + Math.round(ctaH / 2)}"
-              text-anchor="middle"
-              font-family="${SERVER_FONT}" font-weight="700"
-              font-size="${Math.round(18 * scale)}" fill="${secondary}"
-              dominant-baseline="middle">${escapeXml(copy.cta)}</text>
-      </svg>`;
-      compositeInputs.push({
-        input: Buffer.from(ctaSvg),
-        top: 0,
-        left: 0,
-        blend: "over",
-      });
-    }
-
+    // The AI model (Seedream or Gemini) already rendered all visible text
+    // (headline, CTA, brand name) directly in the image pixels.
+    // Sharp only adds the logo badge (image, not text) — no SVG text
+    // overlays at all. Vercel's serverless runtime has extremely limited
+    // fonts; even Latin-range characters render as □ boxes with librsvg.
     const finalBuffer = await sharp(bg)
       .composite(compositeInputs)
       .png({ quality: 95, compressionLevel: 6 })
       .toBuffer();
-    console.log("[sharp] Poster composited (imageHasText). Size:", finalBuffer.length);
+    console.log("[sharp] Poster composited (imageHasText, logo only). Size:", finalBuffer.length);
     return finalBuffer;
   }
 

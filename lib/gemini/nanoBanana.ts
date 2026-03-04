@@ -100,7 +100,7 @@ No logo provided.
 ${inspirationNote}
 ${logoInstruction}
 
-BOTTOM AREA — IMPORTANT: Do NOT draw any CTA button, rectangle, box, or placeholder area anywhere on the poster. The CTA button will be added precisely by post-processing. The design and background must bleed fully to every edge with no empty zones, no frames, and no geometric shapes acting as button placeholders.
+BOTTOM AREA — IMPORTANT: Render the CTA text naturally integrated into the composition as styled typography (e.g. bold text, or text with a small colored pill/underline). Do NOT draw a large standalone rectangle, box, or colored panel. The background must bleed fully to every edge. The CTA should look like part of the design, not a separate UI element.
 
 BRAND COLORS (extracted from logo if provided):
 Primary:   ${brandKit.primaryColor ?? "derive from logo"}

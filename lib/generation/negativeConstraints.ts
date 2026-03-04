@@ -30,7 +30,7 @@ export function getNegativeConstraints(provider: string, hasLogo: boolean, brand
   if ((isSeedream || isGemini) && hasLogo) {
     const bottomRule = isGemini
       ? `
-- BOTTOM AREA: Do NOT draw any CTA button, rectangle, box, rounded shape, or placeholder. The CTA is added by post-processing. Design must bleed fully to every edge — no empty zones, no geometric frames.`
+- BOTTOM AREA: Do NOT draw a large standalone rectangle, box, or colored panel for the CTA. Render CTA as integrated styled text. Background must bleed to all edges.`
       : "";
     return `NEGATIVE CONSTRAINTS:
 - Do NOT redraw or recreate the logo — use the reference exactly as provided
@@ -38,13 +38,13 @@ export function getNegativeConstraints(provider: string, hasLogo: boolean, brand
 - Do NOT place the logo anywhere except top-left
 - Do NOT render brand name as separate text anywhere — the logo already represents the brand${brandNameRule}
 - No watermarks. No copyright symbols. No AI artifacts.
-- Only these text elements allowed: headline, subheadline${bottomRule}`;
+- Only these text elements allowed: headline, subheadline, CTA phrase${bottomRule}`;
   }
 
   // Seedream or Gemini WITHOUT logo — dead zone
   const bottomRule = isGemini
     ? `
-- BOTTOM AREA: Do NOT draw any CTA button, rectangle, box, rounded shape, or placeholder. The CTA is added by post-processing. Design must bleed fully to every edge with no empty zones.`
+- BOTTOM AREA: Do NOT draw a large standalone rectangle, box, or colored panel for the CTA. Render CTA as integrated styled text. Background must bleed to all edges.`
     : "";
   return `STRICT NEGATIVE CONSTRAINTS:
 - TOP-LEFT CORNER IS A DEAD ZONE: 250px wide × 120px tall — pure background only
