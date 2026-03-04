@@ -401,12 +401,16 @@ export default function CreatePage() {
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
   const [countryCode, setCountryCode] = useState<string | null>(null);
   const [profilePhoneNumber, setProfilePhoneNumber] = useState<string | null>(null);
+  const [postersThisMonth, setPostersThisMonth] = useState(0);
+  const [postersLimit, setPostersLimit] = useState<number | null>(null);
 
   useEffect(() => {
     loadBrandKits();
   }, []);
 
-  const limitReached = trial.trialCompleted && plan === "free";
+  const limitReached =
+    (trial.trialCompleted && plan === "free") ||
+    (plan === "free" && postersLimit != null && postersLimit > 0 && postersThisMonth >= postersLimit);
   const hasOpenedLimitModal = useRef(false);
 
   useEffect(() => {
@@ -497,6 +501,9 @@ export default function CreatePage() {
         });
         setCountryCode(meData.countryCode ?? null);
         setProfilePhoneNumber(meData.phoneNumber ?? null);
+        const usage = meData.usage ?? {};
+        setPostersThisMonth(usage.postersThisMonth ?? 0);
+        setPostersLimit(usage.postersLimit ?? null);
       }
     } catch {
       toast.error("Failed to load brand kits");
