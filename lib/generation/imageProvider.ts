@@ -72,8 +72,9 @@ export async function generateImage(
       ? buildGeminiPromptWithLogo(prompt, brandKit)
       : prompt;
 
-    // Append provider-specific negative constraints
-    const negativeConstraints = getNegativeConstraints(resolvedId, hasLogo);
+    // Append provider-specific negative constraints (include brand name so Gemini
+    // doesn't render it as standalone text alongside the logo)
+    const negativeConstraints = getNegativeConstraints(resolvedId, hasLogo, brandKit?.brandName);
     const finalPrompt = negativeConstraints
       ? `${geminiPrompt}\n\n${negativeConstraints}`
       : geminiPrompt;

@@ -67,6 +67,29 @@ function escapeXml(str: string): string {
     .replace(/'/g, "&apos;");
 }
 
+/**
+ * Returns true when every character in the string falls within the
+ * Latin, Latin Extended-A/B or Latin Extended Additional Unicode blocks
+ * (U+0000–U+024F, U+1E00–U+1EFF).  Characters outside these ranges
+ * (Arabic, Swahili with Arabic script, CJK, Devanagari, etc.) cannot be
+ * reliably rendered by the server's SVG/librsvg stack, which only has
+ * basic Latin fonts available.  When the text contains non-Latin chars we
+ * skip the text element in the SVG overlay to avoid the □ box artifacts.
+ */
+function isLatinRenderable(text: string): boolean {
+  return [...text].every((ch) => {
+    const cp = ch.codePointAt(0) ?? 0;
+    return (
+      cp <= 0x024f ||                       // Basic Latin + Latin Extended A/B
+      (cp >= 0x1e00 && cp <= 0x1eff) ||    // Latin Extended Additional
+      cp === 0x20 || cp === 0xa0            // space / non-breaking space
+    );
+  });
+}
+
+/** Font stack that is available on server-side Linux (Vercel / Amazon Linux). */
+const SERVER_FONT = "'Liberation Sans', 'FreeSans', 'DejaVu Sans', Arial, Helvetica, sans-serif";
+
 async function downloadImage(url: string): Promise<Buffer | null> {
   try {
     const res = await fetch(url);
@@ -158,16 +181,31 @@ export async function compositePoster({
   }
 
   if (imageHasText) {
+    // When Gemini handled the full poster (logo + branding), it already rendered
+    // brand contact info inside the image. Adding a contact bar on top would
+    // duplicate the brand name and look wrong (e.g. "Chuo AI" appearing twice).
     const contactParts: string[] = [];
-    if (brandKit.phoneNumber?.trim()) contactParts.push(brandKit.phoneNumber.trim());
-    if (brandKit.contactLocation?.trim()) contactParts.push(brandKit.contactLocation.trim());
-    if (brandKit.website?.trim()) contactParts.push(brandKit.website.trim());
+    if (!logoHandledByAI) {
+      if (brandKit.phoneNumber?.trim()) contactParts.push(brandKit.phoneNumber.trim());
+      if (brandKit.contactLocation?.trim()) contactParts.push(brandKit.contactLocation.trim());
+      if (brandKit.website?.trim()) contactParts.push(brandKit.website.trim());
+    }
     const hasContactText = contactParts.length > 0;
     const contactBarH = Math.round(44 * scale);
 
     if (hasContactText) {
       const line = contactParts.join("  |  ");
-      const contactSvg = `<svg width="${W}" height="${contactBarH}" xmlns="http://www.w3.org/2000/svg"><rect width="${W}" height="${contactBarH}" fill="${secondary}" opacity="0.85"/><text x="${W / 2}" y="${contactBarH / 2 + 4}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${Math.round(12 * scale)}" fill="${primary}" opacity="0.95" dominant-baseline="middle">${escapeXml(line)}</text></svg>`;
+      const contactRenderable = isLatinRenderable(line);
+      const contactTextEl = contactRenderable
+        ? `<text x="${W / 2}" y="${contactBarH / 2 + 4}" text-anchor="middle"
+                font-family="${SERVER_FONT}"
+                font-size="${Math.round(12 * scale)}" fill="${primary}"
+                opacity="0.95" dominant-baseline="middle">${escapeXml(line)}</text>`
+        : "";
+      const contactSvg = `<svg width="${W}" height="${contactBarH}" xmlns="http://www.w3.org/2000/svg">
+        <rect width="${W}" height="${contactBarH}" fill="${secondary}" opacity="0.85"/>
+        ${contactTextEl}
+      </svg>`;
       compositeInputs.push({
         input: Buffer.from(contactSvg),
         top: H - contactBarH,
@@ -180,15 +218,26 @@ export async function compositePoster({
     if (addCTAFromSharp && copy.cta) {
       const ctaH = Math.round(48 * scale);
       const ctaBottomMargin = Math.round(18 * scale);
-      // Position CTA above the contact bar (if any), with a small gap
       const ctaY = hasContactText
         ? H - contactBarH - ctaH - ctaBottomMargin
         : H - ctaH - Math.round(PADDING * 1.5);
       const ctaTextWidth = copy.cta.length * Math.round(13 * scale);
       const ctaW = Math.min(ctaTextWidth + Math.round(56 * scale), W - PADDING * 2);
-      // Semi-transparent backdrop so the button is always readable over Gemini's artwork
       const backdropH = ctaH + Math.round(20 * scale);
       const backdropY = ctaY - Math.round(10 * scale);
+
+      // Only render the CTA text when the font can handle the script.
+      // Non-Latin scripts (Arabic, CJK, etc.) render as □ boxes with the
+      // server's limited font stack — skip the text element in that case.
+      const ctaTextRenderable = isLatinRenderable(copy.cta);
+      const ctaTextEl = ctaTextRenderable
+        ? `<text x="${PADDING + Math.round(ctaW / 2)}" y="${ctaY + Math.round(ctaH / 2)}"
+                text-anchor="middle"
+                font-family="${SERVER_FONT}" font-weight="700"
+                font-size="${Math.round(18 * scale)}" fill="${secondary}"
+                dominant-baseline="middle">${escapeXml(copy.cta)}</text>`
+        : "";
+
       const ctaSvg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
         <rect x="${PADDING - Math.round(8 * scale)}" y="${backdropY}"
               width="${ctaW + Math.round(16 * scale)}" height="${backdropH}"
@@ -196,11 +245,7 @@ export async function compositePoster({
         <rect x="${PADDING}" y="${ctaY}"
               width="${ctaW}" height="${ctaH}"
               rx="${Math.round(8 * scale)}" fill="${primary}" />
-        <text x="${PADDING + Math.round(ctaW / 2)}" y="${ctaY + Math.round(ctaH / 2)}"
-              text-anchor="middle"
-              font-family="Arial, Helvetica, sans-serif" font-weight="700"
-              font-size="${Math.round(18 * scale)}" fill="${secondary}"
-              dominant-baseline="middle">${escapeXml(copy.cta)}</text>
+        ${ctaTextEl}
       </svg>`;
       compositeInputs.push({
         input: Buffer.from(ctaSvg),
@@ -284,7 +329,7 @@ export async function compositePoster({
   <text
     x="${PADDING}"
     y="${Math.round(56 * scaleY)}"
-    font-family="Arial, Helvetica, sans-serif"
+    font-family="${SERVER_FONT}"
     font-weight="700"
     font-size="${Math.round(22 * scale)}"
     letter-spacing="3"
@@ -305,7 +350,7 @@ export async function compositePoster({
   <text
     x="${PADDING}"
     y="${panelY + Math.round(80 * scaleY)}"
-    font-family="Arial, Helvetica, sans-serif"
+    font-family="${SERVER_FONT}"
     font-weight="900"
     font-size="${hl1Size}"
     fill="#FFFFFF"
@@ -316,7 +361,7 @@ export async function compositePoster({
   <text
     x="${PADDING}"
     y="${panelY + Math.round(150 * scaleY)}"
-    font-family="Arial, Helvetica, sans-serif"
+    font-family="${SERVER_FONT}"
     font-weight="900"
     font-size="${hl2Size}"
     fill="${primary}"
@@ -328,7 +373,7 @@ export async function compositePoster({
   <text
     x="${PADDING}"
     y="${subheadY}"
-    font-family="Arial, Helvetica, sans-serif"
+    font-family="${SERVER_FONT}"
     font-weight="400"
     font-size="${subSize}"
     fill="rgba(255,255,255,0.75)"
@@ -340,7 +385,7 @@ export async function compositePoster({
   <text
     x="${PADDING}"
     y="${bodyY1}"
-    font-family="Arial, Helvetica, sans-serif"
+    font-family="${SERVER_FONT}"
     font-size="${bodySize}"
     fill="rgba(255,255,255,0.6)"
     letter-spacing="0.2"
@@ -350,7 +395,7 @@ export async function compositePoster({
   <text
     x="${PADDING}"
     y="${bodyY2}"
-    font-family="Arial, Helvetica, sans-serif"
+    font-family="${SERVER_FONT}"
     font-size="${bodySize}"
     fill="rgba(255,255,255,0.6)"
   >${bl2}</text>
@@ -367,7 +412,7 @@ export async function compositePoster({
   <text
     x="${PADDING + Math.round(24 * scale)}"
     y="${ctaY + Math.round(ctaH / 2)}"
-    font-family="Arial, Helvetica, sans-serif"
+    font-family="${SERVER_FONT}"
     font-weight="700"
     font-size="${Math.round(18 * scale)}"
     fill="${secondary}"
@@ -378,19 +423,19 @@ export async function compositePoster({
   <text
     x="${PADDING}"
     y="${hashtagY}"
-    font-family="Arial, Helvetica, sans-serif"
+    font-family="${SERVER_FONT}"
     font-size="${Math.round(14 * scale)}"
     fill="${primary}"
     opacity="0.5"
     letter-spacing="0.5"
   >${hashtags}</text>
   ` : ""}
-  ${hasContact && contactLine ? `
+  ${hasContact && contactLine && isLatinRenderable(contactLine) ? `
   <text
     x="${W / 2}"
     y="${contactY}"
     text-anchor="middle"
-    font-family="Arial, Helvetica, sans-serif"
+    font-family="${SERVER_FONT}"
     font-size="${Math.round(12 * scale)}"
     fill="${primary}"
     opacity="0.7"

@@ -8,7 +8,7 @@
  *    (keep top-left empty for Sharp logo badge composite)
  */
 
-export function getNegativeConstraints(provider: string, hasLogo: boolean): string {
+export function getNegativeConstraints(provider: string, hasLogo: boolean, brandName?: string): string {
   const isMystic = provider === "freepik:mystic";
   const isSeedream = provider === "freepik:seedream";
   const isGemini = provider.startsWith("gemini:");
@@ -22,6 +22,10 @@ export function getNegativeConstraints(provider: string, hasLogo: boolean): stri
 - No watermarks. No copyright symbols.`;
   }
 
+  const brandNameRule = brandName
+    ? `\n- CRITICAL: The brand name "${brandName}" MUST NOT appear as standalone text anywhere in the image. The logo IS the brand identity.`
+    : "";
+
   // Seedream or Gemini WITH logo reference — different instructions
   if ((isSeedream || isGemini) && hasLogo) {
     const bottomRule = isGemini
@@ -32,7 +36,7 @@ export function getNegativeConstraints(provider: string, hasLogo: boolean): stri
 - Do NOT redraw or recreate the logo — use the reference exactly as provided
 - Do NOT add glow, outline, shadow, or effects to the logo
 - Do NOT place the logo anywhere except top-left
-- Do NOT render brand name as separate text if logo is present
+- Do NOT render brand name as separate text anywhere — the logo already represents the brand${brandNameRule}
 - No watermarks. No copyright symbols. No AI artifacts.
 - Only these text elements allowed: headline, subheadline${bottomRule}`;
   }
@@ -45,6 +49,6 @@ export function getNegativeConstraints(provider: string, hasLogo: boolean): stri
   return `STRICT NEGATIVE CONSTRAINTS:
 - TOP-LEFT CORNER IS A DEAD ZONE: 250px wide × 120px tall — pure background only
 - Do NOT render any logo, wordmark, brand mark, or symbol
-- Do NOT render the brand name as text
+- Do NOT render the brand name as text${brandNameRule}
 - No watermarks. No copyright symbols.${bottomRule}`;
 }
