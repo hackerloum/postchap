@@ -34,6 +34,11 @@ interface CompositeInput {
    * Sharp skips the logo badge overlay to avoid double-rendering.
    */
   logoHandledByAI?: boolean;
+  /**
+   * When true (Gemini images), Gemini was told NOT to draw a CTA box.
+   * Sharp adds the CTA button precisely on top of the generated image.
+   */
+  addCTAFromSharp?: boolean;
 }
 
 function wrapText(text: string, maxChars: number): string[] {
@@ -83,6 +88,7 @@ export async function compositePoster({
   width: inputW,
   height: inputH,
   logoHandledByAI = false,
+  addCTAFromSharp = false,
 }: CompositeInput): Promise<Buffer> {
   const W = inputW ?? BASE;
   const H = inputH ?? BASE;
@@ -152,17 +158,15 @@ export async function compositePoster({
   }
 
   if (imageHasText) {
-    const hasContactText =
-      (brandKit.phoneNumber && brandKit.phoneNumber.trim()) ||
-      (brandKit.contactLocation && brandKit.contactLocation.trim()) ||
-      (brandKit.website && brandKit.website.trim());
+    const contactParts: string[] = [];
+    if (brandKit.phoneNumber?.trim()) contactParts.push(brandKit.phoneNumber.trim());
+    if (brandKit.contactLocation?.trim()) contactParts.push(brandKit.contactLocation.trim());
+    if (brandKit.website?.trim()) contactParts.push(brandKit.website.trim());
+    const hasContactText = contactParts.length > 0;
+    const contactBarH = Math.round(44 * scale);
+
     if (hasContactText) {
-      const parts: string[] = [];
-      if (brandKit.phoneNumber?.trim()) parts.push(brandKit.phoneNumber.trim());
-      if (brandKit.contactLocation?.trim()) parts.push(brandKit.contactLocation.trim());
-      if (brandKit.website?.trim()) parts.push(brandKit.website.trim());
-      const line = parts.join("  |  ");
-      const contactBarH = Math.round(44 * scale);
+      const line = contactParts.join("  |  ");
       const contactSvg = `<svg width="${W}" height="${contactBarH}" xmlns="http://www.w3.org/2000/svg"><rect width="${W}" height="${contactBarH}" fill="${secondary}" opacity="0.85"/><text x="${W / 2}" y="${contactBarH / 2 + 4}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${Math.round(12 * scale)}" fill="${primary}" opacity="0.95" dominant-baseline="middle">${escapeXml(line)}</text></svg>`;
       compositeInputs.push({
         input: Buffer.from(contactSvg),
@@ -171,6 +175,41 @@ export async function compositePoster({
         blend: "over",
       });
     }
+
+    // Gemini is told not to draw a CTA box — Sharp places it here instead.
+    if (addCTAFromSharp && copy.cta) {
+      const ctaH = Math.round(48 * scale);
+      const ctaBottomMargin = Math.round(18 * scale);
+      // Position CTA above the contact bar (if any), with a small gap
+      const ctaY = hasContactText
+        ? H - contactBarH - ctaH - ctaBottomMargin
+        : H - ctaH - Math.round(PADDING * 1.5);
+      const ctaTextWidth = copy.cta.length * Math.round(13 * scale);
+      const ctaW = Math.min(ctaTextWidth + Math.round(56 * scale), W - PADDING * 2);
+      // Semi-transparent backdrop so the button is always readable over Gemini's artwork
+      const backdropH = ctaH + Math.round(20 * scale);
+      const backdropY = ctaY - Math.round(10 * scale);
+      const ctaSvg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+        <rect x="${PADDING - Math.round(8 * scale)}" y="${backdropY}"
+              width="${ctaW + Math.round(16 * scale)}" height="${backdropH}"
+              rx="${Math.round(12 * scale)}" fill="rgba(0,0,0,0.35)" />
+        <rect x="${PADDING}" y="${ctaY}"
+              width="${ctaW}" height="${ctaH}"
+              rx="${Math.round(8 * scale)}" fill="${primary}" />
+        <text x="${PADDING + Math.round(ctaW / 2)}" y="${ctaY + Math.round(ctaH / 2)}"
+              text-anchor="middle"
+              font-family="Arial, Helvetica, sans-serif" font-weight="700"
+              font-size="${Math.round(18 * scale)}" fill="${secondary}"
+              dominant-baseline="middle">${escapeXml(copy.cta)}</text>
+      </svg>`;
+      compositeInputs.push({
+        input: Buffer.from(ctaSvg),
+        top: 0,
+        left: 0,
+        blend: "over",
+      });
+    }
+
     const finalBuffer = await sharp(bg)
       .composite(compositeInputs)
       .png({ quality: 95, compressionLevel: 6 })

@@ -238,16 +238,20 @@ export async function runGenerationForUser(
     brandKit.brandLocation?.continent
   );
 
-  const { buffer: backgroundBuffer, imageHasText, logoHandledByAI } = await generateImage(
+  const { buffer: backgroundBuffer, imageHasText, logoHandledByAI, addCTAFromSharp } = await generateImage(
     imagePrompt,
     format.freepikAspectRatio,
     imageProviderId,
     {
-      brandName:      brandKit.brandName,
-      logoUrl:        brandKit.logoUrl,
-      primaryColor:   brandKit.primaryColor,
-      secondaryColor: brandKit.secondaryColor,
-      accentColor:    brandKit.accentColor,
+      brandName:          brandKit.brandName,
+      logoUrl:            brandKit.logoUrl,
+      primaryColor:       brandKit.primaryColor,
+      secondaryColor:     brandKit.secondaryColor,
+      accentColor:        brandKit.accentColor,
+      // Pass inspiration image so Gemini can copy the layout directly from the visual reference
+      inspirationImageUrl: (inspirationImageUrl != null && String(inspirationImageUrl).trim() !== "")
+        ? String(inspirationImageUrl).trim()
+        : undefined,
     }
   );
 
@@ -273,6 +277,7 @@ export async function runGenerationForUser(
     },
     imageHasText,
     logoHandledByAI,
+    addCTAFromSharp,
     width:  format.width,
     height: format.height,
   });

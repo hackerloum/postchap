@@ -28,6 +28,11 @@ export type ImageGenResult = {
   imageHasText: boolean;
   /** True when Gemini integrated the logo — Sharp should skip re-compositing it */
   logoHandledByAI: boolean;
+  /**
+   * True when Gemini generated the image — Sharp must add the CTA button overlay.
+   * Gemini is told NOT to draw a CTA box, so Sharp places it precisely instead.
+   */
+  addCTAFromSharp?: boolean;
 };
 
 export { IMAGE_PROVIDERS, DEFAULT_IMAGE_PROVIDER } from "@/lib/image-models";

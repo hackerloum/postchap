@@ -31,6 +31,11 @@ export interface ImageGenResult {
   imageHasText: boolean;
   /** True when Gemini received and integrated the logo — Sharp should skip re-compositing it */
   logoHandledByAI: boolean;
+  /**
+   * True when Sharp must add the CTA button overlay after generation.
+   * Gemini is told NOT to draw a CTA box/rectangle — Sharp places it precisely instead.
+   */
+  addCTAFromSharp: boolean;
 }
 
 export interface GeminiBrandKit {
@@ -40,6 +45,8 @@ export interface GeminiBrandKit {
   secondaryColor?: string;
   accentColor?: string;
   samplePosterUrl?: string;
+  /** When provided, Gemini receives the inspiration image as inline data and copies its exact layout */
+  inspirationImageUrl?: string;
 }
 
 function getGeminiAspectRatio(freepikAspectRatio: string): string {
@@ -85,11 +92,15 @@ No logo provided.
 - This zone will be used for brand name text overlay in post-processing
 `.trim();
 
-  return `${basePrompt}
+  const inspirationNote = brandKit?.inspirationImageUrl
+    ? `\nINSPIRATION LAYOUT: The inspiration image was provided above — mirror its exact spatial layout, visual hierarchy, element positions, and compositional grid. Do NOT copy the inspiration's text, brand identity, or colors; only its layout structure.\n`
+    : "";
 
+  return `${basePrompt}
+${inspirationNote}
 ${logoInstruction}
 
-BOTTOM / CTA: Render the CTA as visible text or an integrated button (e.g. rounded pill, inline with the design). Do NOT add a standalone square, rectangle, or empty box at the bottom. The background and composition must extend full-bleed to the bottom edge with no separate panel or frame.
+BOTTOM AREA — IMPORTANT: Do NOT draw any CTA button, rectangle, box, or placeholder area anywhere on the poster. The CTA button will be added precisely by post-processing. The design and background must bleed fully to every edge with no empty zones, no frames, and no geometric shapes acting as button placeholders.
 
 BRAND COLORS (extracted from logo if provided):
 Primary:   ${brandKit.primaryColor ?? "derive from logo"}
@@ -136,6 +147,18 @@ export async function generateImageNanaBanana(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const parts: any[] = [];
   let logoSentToAI = false;
+
+  // Part 0 — Inspiration image (if provided) — send BEFORE logo so Gemini understands layout first
+  if (brandKit?.inspirationImageUrl) {
+    const inspiration = await imageUrlToInlineData(brandKit.inspirationImageUrl);
+    if (inspiration) {
+      parts.push({ inlineData: { mimeType: inspiration.mimeType, data: inspiration.data } });
+      parts.push({
+        text: `LAYOUT REFERENCE (the image above): Study this poster's exact spatial layout — the position of visual elements, headline zone, body text zone, and brand mark placement. Mirror this exact compositional grid and visual hierarchy in the new poster. Do NOT copy its text, colors, logo, or brand identity — only the layout structure and spatial arrangement.`,
+      });
+      console.log("[NanaBanana] Inspiration image sent as inline layout reference");
+    }
+  }
 
   // Part 1 — Logo reference (if exists)
   if (brandKit?.logoUrl) {
@@ -234,7 +257,7 @@ Apply the same structural approach with ${brandKit.brandName ?? "this brand"}'s 
     if (part.inlineData?.data) {
       const buffer = Buffer.from(part.inlineData.data, "base64");
       console.log("[NanaBanana] Success:", buffer.length, "bytes");
-      return { buffer, imageHasText: true, logoHandledByAI: logoSentToAI };
+      return { buffer, imageHasText: true, logoHandledByAI: logoSentToAI, addCTAFromSharp: true };
     }
   }
 
