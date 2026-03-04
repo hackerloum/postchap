@@ -18,13 +18,16 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get("error");
   const errorReason = searchParams.get("error_reason");
 
+  const state = searchParams.get("state") ?? ""; // return path e.g. /admin/create
+  const returnTo = state.startsWith("/admin") ? state : "/dashboard/settings";
+
   if (error || !code) {
     const status = errorReason === "user_denied" ? "cancelled" : "error";
-    return NextResponse.redirect(new URL(`/dashboard/settings?instagram=${status}`, APP_URL));
+    return NextResponse.redirect(new URL(`${returnTo}?instagram=${status}`, APP_URL));
   }
 
   if (usedCodes.has(code)) {
-    return NextResponse.redirect(new URL("/dashboard/settings?instagram=connected", APP_URL));
+    return NextResponse.redirect(new URL(`${returnTo}?instagram=connected`, APP_URL));
   }
   usedCodes.add(code);
   setTimeout(() => usedCodes.delete(code), 60_000);
@@ -110,9 +113,9 @@ export async function GET(request: NextRequest) {
       { merge: true }
     );
 
-    return NextResponse.redirect(new URL("/dashboard/settings?instagram=connected", APP_URL));
+    return NextResponse.redirect(new URL(`${returnTo}?instagram=connected`, APP_URL));
   } catch (err) {
     console.error("[Instagram callback] Unexpected error:", err);
-    return NextResponse.redirect(new URL("/dashboard/settings?instagram=error", APP_URL));
+    return NextResponse.redirect(new URL(`${returnTo}?instagram=error`, APP_URL));
   }
 }

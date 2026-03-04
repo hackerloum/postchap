@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   Sparkles,
@@ -54,6 +55,7 @@ const GENERATION_STEPS = [
 ];
 
 export default function AdminCreatePage() {
+  const searchParams = useSearchParams();
   const [platformFormatId, setPlatformFormatId] = useState("instagram_square");
   const [imageProviderId, setImageProviderId] = useState<string>(DEFAULT_IMAGE_PROVIDER);
   const [useImprovePrompt, setUseImprovePrompt] = useState(false);
@@ -69,6 +71,30 @@ export default function AdminCreatePage() {
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [selectedPost, setSelectedPost] = useState<AdminPost | null>(null);
   const [postingHistoryItem, setPostingHistoryItem] = useState<string | null>(null);
+  const [instagramConnected, setInstagramConnected] = useState(false);
+  const [instagramUsername, setInstagramUsername] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/me", { credentials: "same-origin" })
+      .then((r) => r.ok && r.json())
+      .then((d) => {
+        if (d?.instagram?.connected) {
+          setInstagramConnected(true);
+          setInstagramUsername(d.instagram.username ?? null);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Toast when returning from Instagram OAuth
+  useEffect(() => {
+    const status = searchParams.get("instagram");
+    if (status === "connected") {
+      toast.success("Instagram connected. You can post from here.");
+    } else if (status === "error" || status === "cancelled") {
+      if (status === "error") toast.error("Instagram connection failed.");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetch("/api/admin/posts", { credentials: "same-origin" })
@@ -424,6 +450,27 @@ export default function AdminCreatePage() {
 
         {/* Right: Preview */}
         <div className="space-y-4">
+          {/* Instagram connection for admin */}
+          <div className="bg-bg-surface border border-border-default rounded-xl p-4">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-2">
+              Instagram
+            </p>
+            {instagramConnected ? (
+              <p className="font-medium text-[13px] text-text-primary flex items-center gap-2">
+                <Instagram size={14} className="text-[#E4405F]" />
+                Connected as @{instagramUsername ?? "Instagram"}
+              </p>
+            ) : (
+              <a
+                href="/api/social/connect/instagram?returnTo=/admin/create"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-[#f09433] to-[#bc1888] text-white font-semibold text-[12px] px-3 py-2 rounded-lg hover:opacity-90 transition-all"
+              >
+                <Instagram size={14} />
+                Connect Instagram
+              </a>
+            )}
+          </div>
+
           <div className="bg-bg-surface border border-border-default rounded-xl p-4">
             <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-3">
               Preview
@@ -479,7 +526,7 @@ export default function AdminCreatePage() {
                   <button
                     type="button"
                     onClick={handlePostToInstagram}
-                    disabled={postingToInstagram}
+                    disabled={postingToInstagram || !instagramConnected}
                     className="flex-1 flex items-center justify-center gap-1.5 bg-gradient-to-r from-[#f09433] to-[#bc1888] text-white font-semibold text-[13px] py-3 rounded-xl hover:opacity-90 transition-all disabled:opacity-50"
                   >
                     {postingToInstagram ? (
@@ -487,7 +534,7 @@ export default function AdminCreatePage() {
                     ) : (
                       <Instagram size={13} />
                     )}
-                    Post to Instagram
+                    {instagramConnected ? "Post to Instagram" : "Connect Instagram first"}
                   </button>
                   <a
                     href={result.imageUrl}
@@ -622,7 +669,7 @@ export default function AdminCreatePage() {
             <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
-                disabled={postingHistoryItem === selectedPost.id}
+                disabled={postingHistoryItem === selectedPost.id || !instagramConnected}
                 onClick={() =>
                   handlePostHistoryToInstagram(
                     selectedPost,
@@ -636,7 +683,7 @@ export default function AdminCreatePage() {
                 ) : (
                   <Instagram size={12} />
                 )}
-                Post to Instagram
+                {instagramConnected ? "Post to Instagram" : "Connect first"}
               </button>
               <a
                 href={selectedPost.imageUrl}

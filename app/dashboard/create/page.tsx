@@ -406,11 +406,21 @@ export default function CreatePage() {
     loadBrandKits();
   }, []);
 
+  const limitReached = trial.trialCompleted && plan === "free";
+  const hasOpenedLimitModal = useRef(false);
+
   useEffect(() => {
-    if (selectedKit) {
+    if (selectedKit && !limitReached) {
       loadRecommendations(selectedKit.id);
     }
-  }, [selectedKit?.id]);
+  }, [selectedKit?.id, limitReached]);
+
+  useEffect(() => {
+    if (limitReached && !hasOpenedLimitModal.current) {
+      hasOpenedLimitModal.current = true;
+      setPricingModalOpen(true);
+    }
+  }, [limitReached]);
 
   useEffect(() => {
     if (selectedKit?.id) {
@@ -935,6 +945,26 @@ export default function CreatePage() {
             </p>
           </div>
         </div>
+
+        {/* Limit reached: show upgrade gate and open pricing modal */}
+        {limitReached && (
+          <div className="mt-6 rounded-2xl border border-accent/30 bg-accent/10 p-6 text-center">
+            <p className="font-semibold text-[16px] text-text-primary">
+              You&apos;ve used your free poster
+            </p>
+            <p className="font-mono text-[12px] text-text-muted mt-1">
+              Upgrade to keep creating posters with AI recommendations and premium models.
+            </p>
+            <button
+              type="button"
+              onClick={() => setPricingModalOpen(true)}
+              className="mt-4 bg-accent text-black font-semibold text-[14px] px-6 py-3 rounded-xl hover:bg-accent-dim transition-colors"
+            >
+              Upgrade to continue
+            </button>
+          </div>
+        )}
+
         {/* Generation mode tabs — directly under header */}
         <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mt-6 mb-2">
           Generation mode
@@ -1221,12 +1251,24 @@ export default function CreatePage() {
               </div>
               <button
                 type="button"
-                onClick={() => selectedKit && loadRecommendations(selectedKit.id)}
-                disabled={loadingRecs}
+                onClick={() => {
+                  if (limitReached) {
+                    setPricingModalOpen(true);
+                    return;
+                  }
+                  if (selectedKit) loadRecommendations(selectedKit.id);
+                }}
+                disabled={loadingRecs && !limitReached}
                 className="flex items-center gap-1.5 font-mono text-[11px] text-text-muted hover:text-text-primary bg-bg-elevated border border-border-default rounded-lg px-3 py-1.5 transition-colors disabled:opacity-40"
               >
-                <RefreshCw size={11} className={loadingRecs ? "animate-spin" : ""} />
-                Refresh
+                {limitReached ? (
+                  <>Upgrade to use</>
+                ) : (
+                  <>
+                    <RefreshCw size={11} className={loadingRecs ? "animate-spin" : ""} />
+                    Refresh
+                  </>
+                )}
               </button>
             </div>
 
@@ -1241,7 +1283,7 @@ export default function CreatePage() {
             {!loadingRecs && recommendations.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3">
                 {recommendations.map((rec, index) => {
-                  const isLocked = plan === "free" && index >= 2;
+                  const isLocked = limitReached || (plan === "free" && index >= 2);
                   const isSelected = !isLocked && selectedRec?.id === rec.id && !useCustom;
                   const urgencyStyle: Record<string, string> = {
                     high: "text-error bg-error/10 border-error/20",
@@ -1486,13 +1528,14 @@ export default function CreatePage() {
             )}
             <button
               type="button"
-              onClick={handleGenerate}
+              onClick={limitReached ? () => setPricingModalOpen(true) : handleGenerate}
               disabled={
-                generating ||
+                !limitReached &&
+                (generating ||
                 !selectedPlatform ||
                 (mode === "ai" && !selectedRec && !(useCustom && customTopic.trim())) ||
                 (mode === "template" && (selectedTemplateId == null || (!selectedRec && !(useCustom && customTopic.trim())))) ||
-                (mode === "inspiration" && (!inspirationUrl.trim() && !inspirationImageUrl.trim() || (!selectedRec && !(useCustom && customTopic.trim()))))
+                (mode === "inspiration" && (!inspirationUrl.trim() && !inspirationImageUrl.trim() || (!selectedRec && !(useCustom && customTopic.trim())))))
               }
               className="w-full bg-accent text-black font-semibold text-[14px] py-3.5 rounded-xl hover:bg-accent-dim transition-all duration-200 active:scale-[0.99] min-h-[52px] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
@@ -1500,6 +1543,10 @@ export default function CreatePage() {
                 <>
                   <Loader2 size={16} className="animate-spin" />
                   <span className="font-mono text-[12px]">{generationStep || "Generating..."}</span>
+                </>
+              ) : limitReached ? (
+                <>
+                  Upgrade to continue
                 </>
               ) : (
                 <>
@@ -1532,13 +1579,14 @@ export default function CreatePage() {
       <div className="fixed left-0 right-0 px-4 pt-3 pb-4 bg-bg-base/95 backdrop-blur border-t border-border-subtle md:hidden z-40" style={{ bottom: "calc(56px + env(safe-area-inset-bottom, 0px))" }}>
         <button
           type="button"
-          onClick={handleGenerate}
+          onClick={limitReached ? () => setPricingModalOpen(true) : handleGenerate}
           disabled={
-            generating ||
+            !limitReached &&
+            (generating ||
             !selectedPlatform ||
             (mode === "ai" && !selectedRec && !(useCustom && customTopic.trim())) ||
             (mode === "template" && (selectedTemplateId == null || (!selectedRec && !(useCustom && customTopic.trim())))) ||
-            (mode === "inspiration" && (!inspirationUrl.trim() && !inspirationImageUrl.trim() || (!selectedRec && !(useCustom && customTopic.trim()))))
+            (mode === "inspiration" && (!inspirationUrl.trim() && !inspirationImageUrl.trim() || (!selectedRec && !(useCustom && customTopic.trim())))))
           }
           className="w-full bg-accent text-black font-semibold text-[15px] py-4 rounded-xl hover:bg-accent-dim transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[56px]"
         >
@@ -1547,6 +1595,8 @@ export default function CreatePage() {
               <Loader2 size={18} className="animate-spin" />
               <span className="font-mono text-[13px]">{generationStep || "Generating..."}</span>
             </>
+          ) : limitReached ? (
+            "Upgrade to continue"
           ) : (
             <>
               <Sparkles size={18} />

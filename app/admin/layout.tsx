@@ -11,6 +11,7 @@ import {
   Palette,
   Settings,
   ExternalLink,
+  Instagram,
 } from "lucide-react";
 
 const NAV = [
@@ -70,7 +71,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
 
-        <div className="px-3 py-4 border-t border-border-subtle">
+        <div className="px-3 py-4 border-t border-border-subtle space-y-0.5">
+          <a
+            href="/api/social/connect/instagram?returnTo=/admin/create"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors"
+          >
+            <Instagram size={13} />
+            Connect Instagram
+          </a>
           <Link
             href="/dashboard"
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors"

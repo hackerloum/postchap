@@ -24,6 +24,10 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Optional return path after OAuth (e.g. /admin/create); only allow /admin paths
+  const returnTo = request.nextUrl.searchParams.get("returnTo") ?? "";
+  const state = returnTo.startsWith("/admin") ? returnTo : "";
+
   // Instagram Business Login — match exact URL format Meta dashboard generates
   const params = new URLSearchParams({
     force_reauth: "true",
@@ -32,6 +36,7 @@ export async function GET(request: NextRequest) {
     response_type: "code",
     scope: "instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights",
   });
+  if (state) params.set("state", state);
 
   const oauthUrl = `https://www.instagram.com/oauth/authorize?${params.toString()}`;
   return NextResponse.redirect(oauthUrl);
