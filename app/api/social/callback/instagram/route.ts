@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
+import { getAdminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
+import { verifyRequestAuth } from "@/lib/firebase/verify-auth";
 
 const APP_ID = process.env.FACEBOOK_APP_ID!;
 const APP_SECRET = (process.env.INSTAGRAM_APP_SECRET ?? process.env.FACEBOOK_APP_SECRET)!;
@@ -32,12 +33,9 @@ export async function GET(request: NextRequest) {
   usedCodes.add(code);
   setTimeout(() => usedCodes.delete(code), 60_000);
 
-  const token = request.cookies.get("__session")?.value;
-  if (!token) return NextResponse.redirect(new URL("/login", APP_URL));
-
   let uid: string;
   try {
-    const decoded = await getAdminAuth().verifyIdToken(token);
+    const decoded = await verifyRequestAuth(request);
     uid = decoded.uid;
   } catch {
     return NextResponse.redirect(new URL("/login", APP_URL));

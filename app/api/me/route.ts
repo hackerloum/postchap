@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
+import { getAdminDb } from "@/lib/firebase/admin";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getPlanLimits } from "@/lib/plans";
 import { isValidPlanId } from "@/lib/plans";
 import { getTrialState } from "@/lib/trial";
+import { verifyRequestAuth } from "@/lib/firebase/verify-auth";
 
 async function getUid(request: NextRequest): Promise<{ uid: string; isAdmin: boolean }> {
-  const header = request.headers.get("Authorization");
-  const token =
-    header?.startsWith("Bearer ")
-      ? header.replace("Bearer ", "")
-      : request.cookies.get("__session")?.value;
-  if (!token) throw new Error("Unauthorized");
-  const decoded = await getAdminAuth().verifyIdToken(token);
+  const decoded = await verifyRequestAuth(request);
   return { uid: decoded.uid, isAdmin: decoded.isAdmin === true };
 }
 

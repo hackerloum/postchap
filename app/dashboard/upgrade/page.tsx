@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { getAdminAuth } from "@/lib/firebase/admin";
+import { verifyCookieAuth } from "@/lib/firebase/verify-auth";
 import { getUserPlan } from "@/lib/user-plan";
 import { PricingPlans } from "@/components/pricing/PricingPlans";
 import type { PlanId } from "@/components/pricing/PricingPlans";
@@ -12,7 +12,7 @@ export default async function UpgradePage() {
     const cookieStore = await cookies();
     const token = cookieStore.get("__session")?.value;
     if (token) {
-      const decoded = await getAdminAuth().verifyIdToken(token);
+      const decoded = await verifyCookieAuth(token);
       const plan = await getUserPlan(decoded.uid);
       currentPlan = plan;
     }

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
+import { verifyCookieAuth } from "@/lib/firebase/verify-auth";
 import { getPlanLimits } from "@/lib/plans";
 import { getUserPlan } from "@/lib/user-plan";
 
@@ -25,12 +26,13 @@ export type BrandKitItem = {
 
 async function getUidFromCookieOrToken(clientToken?: string | null): Promise<string | null> {
   try {
-    const token =
-      clientToken && clientToken.trim()
-        ? clientToken.trim()
-        : (await cookies()).get("__session")?.value;
-    if (!token) return null;
-    const decoded = await getAdminAuth().verifyIdToken(token);
+    if (clientToken && clientToken.trim()) {
+      const decoded = await getAdminAuth().verifyIdToken(clientToken.trim());
+      return decoded.uid;
+    }
+    const cookieToken = (await cookies()).get("__session")?.value;
+    if (!cookieToken) return null;
+    const decoded = await verifyCookieAuth(cookieToken);
     return decoded.uid;
   } catch {
     return null;

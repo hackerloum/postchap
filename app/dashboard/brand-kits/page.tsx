@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { getAdminDb } from "@/lib/firebase/admin";
+import { verifyCookieAuth } from "@/lib/firebase/verify-auth";
 import { getPlanLimits } from "@/lib/plans";
 import { getUserPlan } from "@/lib/user-plan";
 import { BrandKitsList } from "./BrandKitsList";
@@ -46,8 +47,7 @@ export default async function BrandKitsPage() {
     const cookieStore = await cookies();
     const token = cookieStore.get("__session")?.value;
     if (token) {
-      const { getAdminAuth } = await import("@/lib/firebase/admin");
-      const decoded = await getAdminAuth().verifyIdToken(token);
+      const decoded = await verifyCookieAuth(token);
       brandKits = await getBrandKits(decoded.uid);
       const plan = await getUserPlan(decoded.uid);
       brandKitLimit = getPlanLimits(plan).brandKits;

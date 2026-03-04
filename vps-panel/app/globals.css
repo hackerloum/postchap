@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0f0f12;
+  --card: #18181c;
+  --border: #2a2a2e;
+  --text: #fafafa;
+  --muted: #71717a;
+  --accent: #3b82f6;
+  --danger: #ef4444;
+  --success: #22c55e;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+a { color: var(--accent); }
+a:hover { text-decoration: underline; }

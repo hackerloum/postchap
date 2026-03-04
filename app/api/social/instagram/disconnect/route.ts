@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
+import { getAdminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
+import { verifyRequestAuth } from "@/lib/firebase/verify-auth";
 
 async function getUid(request: NextRequest): Promise<string> {
-  const header = request.headers.get("Authorization");
-  const token = header?.startsWith("Bearer ")
-    ? header.replace("Bearer ", "")
-    : request.cookies.get("__session")?.value;
-  if (!token) throw new Error("Unauthorized");
-  const decoded = await getAdminAuth().verifyIdToken(token);
+  const decoded = await verifyRequestAuth(request);
   return decoded.uid;
 }
 

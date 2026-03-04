@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminAuth } from "@/lib/firebase/admin";
 import { getUserPlan } from "@/lib/user-plan";
 import { listResources } from "@/lib/freepik/resources";
+import { verifyRequestAuth } from "@/lib/firebase/verify-auth";
 
 async function verifyAuth(request: NextRequest): Promise<string> {
-  const header = request.headers.get("Authorization");
-  const token =
-    header?.startsWith("Bearer ")
-      ? header.replace("Bearer ", "")
-      : request.cookies.get("__session")?.value;
-  if (!token) throw new Error("Unauthorized");
-  const decoded = await getAdminAuth().verifyIdToken(token);
+  const decoded = await verifyRequestAuth(request);
   return decoded.uid;
 }
 

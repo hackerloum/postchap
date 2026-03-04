@@ -1,4 +1,5 @@
 import { getAdminDb } from "@/lib/firebase/admin";
+import { verifyCookieAuth } from "@/lib/firebase/verify-auth";
 import { cookies } from "next/headers";
 import { DashboardContent } from "./DashboardContent";
 
@@ -40,8 +41,7 @@ export default async function DashboardPage() {
     const cookieStore = await cookies();
     const token = cookieStore.get("__session")?.value;
     if (token) {
-      const { getAdminAuth } = await import("@/lib/firebase/admin");
-      const decoded = await getAdminAuth().verifyIdToken(token);
+      const decoded = await verifyCookieAuth(token);
       brandKits = await getBrandKits(decoded.uid);
     }
   } catch {

@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminAuth } from "@/lib/firebase/admin";
 import { uploadLogoToCloudinary } from "@/lib/uploadToCloudinary";
+import { verifyRequestAuth } from "@/lib/firebase/verify-auth";
+
+async function getUid(request: NextRequest): Promise<string> {
+  const decoded = await verifyRequestAuth(request);
+  return decoded.uid;
+}
 
 export async function POST(request: NextRequest) {
   let uid: string;
   try {
-    const header = request.headers.get("Authorization");
-    const token = header?.startsWith("Bearer ")
-      ? header.replace("Bearer ", "")
-      : request.cookies.get("__session")?.value;
-    if (!token) throw new Error("No token");
-    const decoded = await getAdminAuth().verifyIdToken(token);
-    uid = decoded.uid;
+    uid = await getUid(request);
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
