@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { Timestamp } from "firebase-admin/firestore";
+import { getRecommendationsForBrandKit } from "@/lib/generation/generateRecommendations";
 import { runGenerationForUser } from "@/lib/generation/runGeneration";
 import { getNextRunAfter } from "@/lib/schedule/nextRunAt";
 
@@ -95,11 +96,39 @@ export async function GET(request: NextRequest) {
       results.push({ uid, success: false, error: "No brandKitId" });
       continue;
     }
+
+    const time = (data.time as string) ?? "08:00";
+    const timezone = (data.timezone as string) ?? "Africa/Lagos";
+    const nextDate = getNextRunAfter(new Date(), time, timezone);
+    const advanceNextRun = async () => {
+      await db.collection("schedules").doc(uid).update({
+        nextRunAt: Timestamp.fromDate(nextDate),
+        updatedAt: Timestamp.now(),
+      }).catch(() => {});
+    };
+
+    let recommendations: Awaited<ReturnType<typeof getRecommendationsForBrandKit>>;
     try {
-      await runGenerationForUser(uid, brandKitId, null);
-      const time = (data.time as string) ?? "08:00";
-      const timezone = (data.timezone as string) ?? "Africa/Lagos";
-      const nextDate = getNextRunAfter(new Date(), time, timezone);
+      recommendations = await getRecommendationsForBrandKit(db, uid, brandKitId);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn("[cron scheduled-generation] Skipping", uid, "no recommendations:", message);
+      results.push({ uid, success: false, error: "No recommendations" });
+      await advanceNextRun();
+      continue;
+    }
+
+    if (!recommendations?.length) {
+      console.warn("[cron scheduled-generation] Skipping", uid, "no recommendations (empty list)");
+      results.push({ uid, success: false, error: "No recommendations" });
+      await advanceNextRun();
+      continue;
+    }
+
+    const rec = recommendations[Math.floor(Math.random() * recommendations.length)];
+
+    try {
+      await runGenerationForUser(uid, brandKitId, rec);
       await db.collection("schedules").doc(uid).update({
         lastRunAt: Timestamp.now(),
         nextRunAt: Timestamp.fromDate(nextDate),
@@ -111,13 +140,7 @@ export async function GET(request: NextRequest) {
       const message = err instanceof Error ? err.message : String(err);
       console.error("[cron scheduled-generation] Failed", uid, message);
       results.push({ uid, success: false, error: message });
-      const time = (data.time as string) ?? "08:00";
-      const timezone = (data.timezone as string) ?? "Africa/Lagos";
-      const nextDate = getNextRunAfter(new Date(), time, timezone);
-      await db.collection("schedules").doc(uid).update({
-        nextRunAt: Timestamp.fromDate(nextDate),
-        updatedAt: Timestamp.now(),
-      }).catch(() => {});
+      await advanceNextRun();
     }
   }
 

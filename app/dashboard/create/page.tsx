@@ -22,7 +22,7 @@ import { toast } from "sonner";
 import { getClientIdToken } from "@/lib/auth-client";
 import { getAuthClient } from "@/lib/firebase/client";
 import { PLATFORM_FORMATS } from "@/lib/generation/platformFormats";
-import { IMAGE_PROVIDERS, DEFAULT_IMAGE_PROVIDER } from "@/lib/image-models";
+import { IMAGE_PROVIDERS, DEFAULT_IMAGE_PROVIDER, isProviderLockedForPlan } from "@/lib/image-models";
 import { PricingModal } from "@/components/PricingModal";
 import { getPerPosterPriceForCountry } from "@/lib/pricing";
 import type { PlanId } from "@/lib/plans";
@@ -500,6 +500,13 @@ function CreatePageContent() {
     }
   }, [selectedKit?.id]);
 
+  // If current plan doesn't allow the selected provider (e.g. downgraded from Business), reset to default.
+  useEffect(() => {
+    if (isProviderLockedForPlan(imageProviderId, plan)) {
+      setImageProviderId(DEFAULT_IMAGE_PROVIDER);
+    }
+  }, [plan]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // When switching to template mode, clear static selection and run initial Freepik search if no results yet
   useEffect(() => {
     if (mode !== "template") return;
@@ -861,6 +868,9 @@ function CreatePageContent() {
         if (res.status === 403 && (err.code === "TRIAL_LIMIT_REACHED" || /trial/i.test(err.error ?? ""))) {
           setPricingModalOpen(true);
           toast.error("Upgrade to create more posters.");
+        } else if (res.status === 403 && err.code === "PROVIDER_LOCKED") {
+          setPricingModalOpen(true);
+          toast.error("Nano Banana 2 and Pro require the Business plan.");
         } else {
           toast.error(err.error || "Generation failed");
         }
@@ -1183,23 +1193,32 @@ function CreatePageContent() {
             <div className="grid grid-cols-1 gap-2">
               {IMAGE_PROVIDERS.map((p) => {
                 const selected = imageProviderId === p.id;
+                const providerLocked = isProviderLockedForPlan(p.id, plan);
                 return (
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => setImageProviderId(p.id)}
+                    onClick={() => {
+                      if (providerLocked) {
+                        setPricingModalOpen(true);
+                        return;
+                      }
+                      setImageProviderId(p.id);
+                    }}
                     className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-left transition-all duration-150 ${
-                      selected
-                        ? "border-accent bg-accent/8 ring-1 ring-accent/20"
-                        : "border-border-default bg-bg-elevated hover:border-border-strong"
+                      providerLocked
+                        ? "border-border-subtle bg-bg-elevated/50 opacity-80 hover:opacity-100 cursor-pointer"
+                        : selected
+                          ? "border-accent bg-accent/8 ring-1 ring-accent/20"
+                          : "border-border-default bg-bg-elevated hover:border-border-strong"
                     }`}
                   >
-                    <div className={`mt-0.5 w-3.5 h-3.5 rounded-full border-2 shrink-0 flex items-center justify-center ${selected ? "border-accent" : "border-border-strong"}`}>
-                      {selected && <div className="w-1.5 h-1.5 rounded-full bg-accent" />}
+                    <div className={`mt-0.5 w-3.5 h-3.5 rounded-full border-2 shrink-0 flex items-center justify-center ${providerLocked ? "border-border-strong" : selected ? "border-accent" : "border-border-strong"}`}>
+                      {providerLocked ? <Lock size={10} className="text-text-muted" /> : selected && <div className="w-1.5 h-1.5 rounded-full bg-accent" />}
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`font-semibold text-[13px] ${selected ? "text-text-primary" : "text-text-secondary"}`}>
+                        <span className={`font-semibold text-[13px] ${providerLocked ? "text-text-muted" : selected ? "text-text-primary" : "text-text-secondary"}`}>
                           {p.label}
                         </span>
                         <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded-full border ${
@@ -1209,8 +1228,15 @@ function CreatePageContent() {
                         }`}>
                           {p.badge}
                         </span>
+                        {providerLocked && (
+                          <span className="font-mono text-[9px] px-1.5 py-0.5 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                            Business
+                          </span>
+                        )}
                       </div>
-                      <p className="font-mono text-[11px] text-text-muted mt-0.5 leading-relaxed">{p.description}</p>
+                      <p className="font-mono text-[11px] text-text-muted mt-0.5 leading-relaxed">
+                        {providerLocked ? "Upgrade to Business to use this model." : p.description}
+                      </p>
                     </div>
                   </button>
                 );

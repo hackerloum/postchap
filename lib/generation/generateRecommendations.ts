@@ -6,6 +6,8 @@
  */
 
 import { getFirestore } from "firebase-admin/firestore";
+import OpenAI from "openai";
+import type { Recommendation } from "@/types/generation";
 
 type Firestore = ReturnType<typeof getFirestore>;
 
@@ -589,4 +591,89 @@ ${previousThemes.map((t, i) => `  ${i + 1}. "${t}"`).join("\n")}
 Generate concepts that are completely unrelated to the above.
 `
   );
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SERVER-SIDE: get recommendations for cron or API
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * Load brand kit, generate 6 recommendations via OpenAI, persist themes, return array.
+ * Used by POST /api/recommendations (with auth) and by the scheduled-generation cron (no user token).
+ * Requires OPENAI_API_KEY. Throws on missing brand kit or API key.
+ */
+export async function getRecommendationsForBrandKit(
+  db: Firestore,
+  uid: string,
+  brandKitId: string
+): Promise<Recommendation[]> {
+  const snap = await db
+    .collection("users")
+    .doc(uid)
+    .collection("brand_kits")
+    .doc(brandKitId)
+    .get();
+
+  if (!snap.exists) {
+    throw new Error("Brand kit not found");
+  }
+
+  const kit = snap.data() as Record<string, unknown>;
+  const brandKit = {
+    brandName: (kit.brandName as string) ?? "",
+    industry: (kit.industry as string) ?? "",
+    tone: (kit.tone as string) ?? "professional",
+    language: (kit.language as string) ?? "English",
+    targetAudience: (kit.targetAudience as string) ?? "general",
+    brandLocation: (kit.brandLocation as {
+      country?: string;
+      city?: string;
+      continent?: string;
+      currency?: string;
+      languages?: string[];
+    }) ?? {},
+  };
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY not set");
+  }
+
+  const openai = new OpenAI({ apiKey });
+  const previousThemes = await getPreviousThemes(db, uid, brandKitId);
+  let systemPrompt = buildRecommendationSystemPrompt(brandKit, false);
+  systemPrompt = injectDeduplication(systemPrompt, previousThemes);
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    temperature: 1.0,
+    top_p: 0.95,
+    max_tokens: 2000,
+    messages: [
+      { role: "system", content: systemPrompt },
+      {
+        role: "user",
+        content: `Generate exactly 6 poster concepts for ${brandKit.brandName}. Return raw JSON array only.`,
+      },
+    ],
+  });
+
+  const raw = response.choices[0]?.message?.content ?? "[]";
+  const cleaned = raw.replace(/```json/g, "").replace(/```/g, "").trim();
+
+  let recommendations: Recommendation[];
+  try {
+    const parsed = JSON.parse(cleaned) as unknown[];
+    recommendations = Array.isArray(parsed) ? (parsed as Recommendation[]) : [];
+  } catch {
+    console.error("[getRecommendationsForBrandKit] Parse error:", cleaned.slice(0, 300));
+    throw new Error("Failed to parse AI response");
+  }
+
+  const themes = recommendations
+    .map((r) => r.theme ?? "")
+    .filter(Boolean);
+  await saveThemes(db, uid, brandKitId, themes);
+
+  return recommendations;
 }

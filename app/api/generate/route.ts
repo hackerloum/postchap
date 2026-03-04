@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { Timestamp, FieldValue } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { runGenerationForUser } from "@/lib/generation/runGeneration";
-import { getPlanLimits } from "@/lib/plans";
+import { getPlanLimits, type PlanId } from "@/lib/plans";
 import { getUserPlan } from "@/lib/user-plan";
+import { isProviderLockedForPlan } from "@/lib/image-models";
 import { getTrialState, incrementTrialPostCount } from "@/lib/trial";
 import type { Recommendation } from "@/types/generation";
 import { verifyRequestAuth } from "@/lib/firebase/verify-auth";
@@ -151,6 +152,18 @@ export async function POST(request: NextRequest) {
         );
       }
     }
+  }
+
+  // Nano Banana 2 and Pro are business-only; reject if user is on free or pro.
+  const requestedProvider = imageProviderId ?? null;
+  if (requestedProvider && isProviderLockedForPlan(requestedProvider, plan as PlanId)) {
+    return NextResponse.json(
+      {
+        error: "Nano Banana 2 and Pro are available on the Business plan. Upgrade to unlock.",
+        code: "PROVIDER_LOCKED",
+      },
+      { status: 403 }
+    );
   }
 
   try {
