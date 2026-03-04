@@ -16,11 +16,14 @@ import {
   Link2,
   X,
   Instagram,
+  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getClientIdToken } from "@/lib/auth-client";
 import { PLATFORM_FORMATS } from "@/lib/generation/platformFormats";
 import { IMAGE_PROVIDERS, DEFAULT_IMAGE_PROVIDER } from "@/lib/image-models";
+import { PricingModal } from "@/components/PricingModal";
+import type { PlanId } from "@/lib/plans";
 
 interface Recommendation {
   id: string;
@@ -381,6 +384,23 @@ export default function CreatePage() {
   const [inspirationImageUrl, setInspirationImageUrl] = useState("");
   const [inspirationPreview, setInspirationPreview] = useState<string | null>(null);
   const [uploadingInspiration, setUploadingInspiration] = useState(false);
+  const [plan, setPlan] = useState<PlanId>("free");
+  const [trial, setTrial] = useState<{
+    active: boolean;
+    postsRemaining: 0 | 1;
+    endsAt: number | null;
+    modelLockedToSeedream: boolean;
+    trialCompleted: boolean;
+  }>({
+    active: false,
+    postsRemaining: 0,
+    endsAt: null,
+    modelLockedToSeedream: false,
+    trialCompleted: false,
+  });
+  const [pricingModalOpen, setPricingModalOpen] = useState(false);
+  const [countryCode, setCountryCode] = useState<string | null>(null);
+  const [profilePhoneNumber, setProfilePhoneNumber] = useState<string | null>(null);
 
   useEffect(() => {
     loadBrandKits();
@@ -457,6 +477,16 @@ export default function CreatePage() {
       if (meRes.ok) {
         const meData = await meRes.json();
         setInstagramConnected(meData.instagram?.connected === true);
+        setPlan((meData.plan as PlanId) ?? "free");
+        setTrial(meData.trial ?? {
+          active: false,
+          postsRemaining: 0,
+          endsAt: null,
+          modelLockedToSeedream: false,
+          trialCompleted: false,
+        });
+        setCountryCode(meData.countryCode ?? null);
+        setProfilePhoneNumber(meData.phoneNumber ?? null);
       }
     } catch {
       toast.error("Failed to load brand kits");
@@ -672,7 +702,7 @@ export default function CreatePage() {
         brandKitId: selectedKit.id,
         mode,
         platformFormatId,
-        imageProviderId,
+        imageProviderId: trial.modelLockedToSeedream ? "freepik:seedream" : imageProviderId,
         useImprovePrompt,
         recommendation: recommendationPayload,
         customTopic: useCustom && customTopic.trim() ? customTopic : null,
@@ -707,12 +737,21 @@ export default function CreatePage() {
       setGenerationStep("Compositing final poster...");
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as { error?: string }).error || "Generation failed");
+        const err = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
+        if (res.status === 403 && (err.code === "TRIAL_LIMIT_REACHED" || /trial/i.test(err.error ?? ""))) {
+          setPricingModalOpen(true);
+          toast.error("Upgrade to create more posters.");
+        } else {
+          toast.error(err.error || "Generation failed");
+        }
+        return;
       }
 
       const data = (await res.json()) as { posterId?: string; imageUrl?: string };
       toast.success("Poster generated successfully!");
+      if (trial.modelLockedToSeedream) {
+        setTrial((prev) => ({ ...prev, active: false, postsRemaining: 0, modelLockedToSeedream: false, trialCompleted: true }));
+      }
       if (instagramConnected && data.posterId && data.imageUrl) {
         setGeneratedPoster({ posterId: data.posterId, imageUrl: data.imageUrl });
       } else {
@@ -963,6 +1002,15 @@ export default function CreatePage() {
             <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-text-muted mb-4">
               Image provider
             </p>
+            {trial.active && trial.modelLockedToSeedream ? (
+              <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-accent/30 bg-accent/5">
+                <Lock size={16} className="text-accent shrink-0" />
+                <div>
+                  <p className="font-semibold text-[13px] text-text-primary">Premium model (Seedream)</p>
+                  <p className="font-mono text-[11px] text-text-muted mt-0.5">Your free trial uses our best model.</p>
+                </div>
+              </div>
+            ) : (
             <div className="grid grid-cols-1 gap-2">
               {IMAGE_PROVIDERS.map((p) => {
                 const selected = imageProviderId === p.id;
@@ -999,6 +1047,7 @@ export default function CreatePage() {
                 );
               })}
             </div>
+            )}
 
             {/* Optional: Enhance prompt with Freepik (AI Pick mode) */}
             {mode === "ai" && (
@@ -1191,8 +1240,9 @@ export default function CreatePage() {
 
             {!loadingRecs && recommendations.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3">
-                {recommendations.map((rec) => {
-                  const isSelected = selectedRec?.id === rec.id && !useCustom;
+                {recommendations.map((rec, index) => {
+                  const isLocked = plan === "free" && index >= 2;
+                  const isSelected = !isLocked && selectedRec?.id === rec.id && !useCustom;
                   const urgencyStyle: Record<string, string> = {
                     high: "text-error bg-error/10 border-error/20",
                     medium: "text-warning bg-warning/10 border-warning/20",
@@ -1204,16 +1254,28 @@ export default function CreatePage() {
                       key={rec.id}
                       type="button"
                       onClick={() => {
+                        if (isLocked) {
+                          setPricingModalOpen(true);
+                          return;
+                        }
                         setSelectedRec(rec);
                         setUseCustom(false);
                       }}
                       className={`
-                        text-left rounded-xl border p-4 transition-all duration-150 space-y-2.5
-                        ${isSelected
-                          ? "border-accent bg-accent/5 ring-1 ring-accent/20"
-                          : "border-border-default bg-bg-elevated hover:border-border-strong hover:bg-bg-elevated/80"}
+                        text-left rounded-xl border p-4 transition-all duration-150 space-y-2.5 relative
+                        ${isLocked
+                          ? "border-border-subtle bg-bg-elevated/50 opacity-75 hover:opacity-90 cursor-pointer"
+                          : isSelected
+                            ? "border-accent bg-accent/5 ring-1 ring-accent/20"
+                            : "border-border-default bg-bg-elevated hover:border-border-strong hover:bg-bg-elevated/80"}
                       `}
                     >
+                      {isLocked && (
+                        <div className="absolute top-3 right-3 flex items-center gap-1 font-mono text-[9px] text-text-muted">
+                          <Lock size={10} />
+                          Upgrade to use
+                        </div>
+                      )}
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5">
                           <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
@@ -1398,6 +1460,30 @@ export default function CreatePage() {
                 )}
               </div>
             ) : null}
+            {trial.active && (
+              <div className="rounded-xl border border-accent/20 bg-accent/5 px-3 py-2.5 space-y-0.5">
+                <p className="font-mono text-[11px] text-text-secondary">
+                  {trial.endsAt != null
+                    ? `Trial ends in ${Math.max(0, Math.ceil((trial.endsAt - Date.now()) / (24 * 60 * 60 * 1000)))} days`
+                    : "Free trial"}
+                </p>
+                <p className="font-semibold text-[12px] text-accent">
+                  {trial.postsRemaining > 0 ? "1 free post remaining" : "Trial used"}
+                </p>
+              </div>
+            )}
+            {trial.trialCompleted && plan === "free" && (
+              <div className="rounded-xl border border-border-default bg-bg-elevated px-3 py-2.5">
+                <p className="font-mono text-[11px] text-text-muted">Trial used — upgrade to keep creating.</p>
+                <button
+                  type="button"
+                  onClick={() => setPricingModalOpen(true)}
+                  className="mt-2 font-semibold text-[12px] text-accent hover:underline"
+                >
+                  Upgrade
+                </button>
+              </div>
+            )}
             <button
               type="button"
               onClick={handleGenerate}
@@ -1469,6 +1555,18 @@ export default function CreatePage() {
           )}
         </button>
       </div>
+
+      <PricingModal
+        open={pricingModalOpen}
+        onClose={() => setPricingModalOpen(false)}
+        currentPlan={plan}
+        countryCode={countryCode}
+        profilePhoneNumber={profilePhoneNumber}
+        onPlanSelected={() => {
+          setPricingModalOpen(false);
+          loadBrandKits();
+        }}
+      />
     </div>
   );
 }

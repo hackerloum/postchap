@@ -26,6 +26,8 @@ export async function POST(request: NextRequest) {
         plan: "free",
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
+        trialStartedAt: FieldValue.serverTimestamp(),
+        trialPostCount: 0,
       });
     }
 
