@@ -97,6 +97,7 @@ export async function GET(request: NextRequest) {
       countryCode: data.countryCode ?? null,
       currency: data.currency ?? null,
       instagram,
+      posterCredits: (data.posterCredits as number) ?? 0,
       trial: {
         active: trial.active,
         postsRemaining: trial.postsRemaining,

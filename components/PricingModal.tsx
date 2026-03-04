@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Check, X, Smartphone, CreditCard } from "lucide-react";
+import { Check, X, Smartphone, CreditCard, Loader2 } from "lucide-react";
 import { PLANS, type PlanId } from "@/lib/plans";
-import { getPlanPriceForCountry } from "@/lib/pricing";
+import { getPlanPriceForCountry, getPerPosterPriceForCountry, getPlanEffectivePerPosterLabel } from "@/lib/pricing";
 import { Button } from "@/components/ui/Button";
 
 interface PricingModalProps {
@@ -46,6 +46,7 @@ export function PricingModal({
   const [selectedPlanForMobile, setSelectedPlanForMobile] = useState<PlanId | null>(null);
   const [mobilePhone, setMobilePhone] = useState("");
   const [paymentMessageDialog, setPaymentMessageDialog] = useState<string | null>(null);
+  const [buyingPoster, setBuyingPoster] = useState(false);
 
   useEffect(() => {
     if (open && profilePhoneNumber) setMobilePhone(profilePhoneNumber);
@@ -107,7 +108,34 @@ export function PricingModal({
     }
   }
 
+  async function handleBuyOnePoster() {
+    setBuyingPoster(true);
+    try {
+      const res = await fetch("/api/payments/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "poster", paymentMethod: "card" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Payment could not be started");
+      if (data.payment_url) {
+        window.location.href = data.payment_url;
+        return;
+      }
+      if (data.message) {
+        setPaymentMessageDialog(data.message);
+      }
+    } catch (err) {
+      setPaymentMessageDialog(err instanceof Error ? err.message : "Payment failed");
+    } finally {
+      setBuyingPoster(false);
+    }
+  }
+
   if (!open) return null;
+
+  const perPosterPrice = getPerPosterPriceForCountry(countryCode);
+  const proPerPosterLabel = getPlanEffectivePerPosterLabel("pro", countryCode);
 
   const modalContent = (
     <div
@@ -136,6 +164,23 @@ export function PricingModal({
           </button>
         </div>
         <div className="p-6 md:p-8">
+          {/* Upsell hook: per-poster cost comparison */}
+          {currentPlan === "free" && (
+            <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3">
+              <p className="font-mono text-[11px] text-text-secondary">
+                Pro = <span className="text-accent font-semibold">{proPerPosterLabel}</span> · Pay-per-poster = <span className="text-text-primary font-semibold">{perPosterPrice.label}/poster</span> · <span className="text-accent">Save 6x with monthly</span>
+              </p>
+              <button
+                type="button"
+                onClick={handleBuyOnePoster}
+                disabled={buyingPoster}
+                className="shrink-0 flex items-center gap-1.5 font-mono text-[11px] text-text-primary bg-bg-elevated border border-border-default rounded-lg px-3 py-1.5 hover:border-border-strong transition-colors disabled:opacity-50"
+              >
+                {buyingPoster ? <Loader2 size={11} className="animate-spin" /> : null}
+                Buy 1 poster · {perPosterPrice.label}
+              </button>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {PLANS.map((plan) => {
               const limits = plan.limits;

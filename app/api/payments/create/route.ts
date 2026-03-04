@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
 import { isValidPlanId, type PlanId } from "@/lib/plans";
-import { getPaymentCurrencyAndAmount, isTanzania } from "@/lib/pricing";
+import { getPaymentCurrencyAndAmount, getPerPosterPaymentCurrencyAndAmount, isTanzania } from "@/lib/pricing";
 import { createCardPayment, createMobilePayment } from "@/lib/snippe";
 
 async function getUid(request: NextRequest): Promise<string> {
@@ -39,27 +39,33 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: { planId?: string; paymentMethod?: "card" | "mobile"; phone_number?: string };
+  let body: { planId?: string; type?: string; paymentMethod?: "card" | "mobile"; phone_number?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  const planId = body.planId as string | undefined;
-  if (!planId || !isValidPlanId(planId)) {
-    return NextResponse.json(
-      { error: "Invalid plan. Must be pro or business." },
-      { status: 400 }
-    );
+  const isPosterPurchase = body.type === "poster";
+
+  // Validate: must be either a poster purchase OR a valid plan
+  if (!isPosterPurchase) {
+    const planId = body.planId as string | undefined;
+    if (!planId || !isValidPlanId(planId)) {
+      return NextResponse.json(
+        { error: "Invalid plan. Must be pro or business." },
+        { status: 400 }
+      );
+    }
+    if (planId === "free") {
+      return NextResponse.json(
+        { error: "Use PATCH /api/me to set Free plan." },
+        { status: 400 }
+      );
+    }
   }
 
-  if (planId === "free") {
-    return NextResponse.json(
-      { error: "Use PATCH /api/me to set Free plan." },
-      { status: 400 }
-    );
-  }
+  const planId = isPosterPurchase ? null : (body.planId as PlanId);
 
   const db = getAdminDb();
   const userSnap = await db.collection("users").doc(uid).get();
@@ -91,19 +97,28 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const { currency, amount } = getPaymentCurrencyAndAmount(planId as PlanId, countryCode);
-  if (amount < 500 && currency === "TZS") {
+  // Determine amount/currency: poster one-time vs plan subscription
+  const { currency, amount } = isPosterPurchase
+    ? getPerPosterPaymentCurrencyAndAmount(countryCode)
+    : getPaymentCurrencyAndAmount(planId as PlanId, countryCode);
+
+  if (amount < 100 && currency === "USD") {
     return NextResponse.json(
-      { error: "Plan not available for payment." },
+      { error: "Payment amount too low." },
       { status: 400 }
     );
   }
 
   const base = getBaseUrl(request);
-  const redirectUrl = `${base}/dashboard?payment=success`;
+  // Poster purchase: redirect back to create page so they can generate immediately
+  const redirectUrl = isPosterPurchase
+    ? `${base}/dashboard/create?payment=poster`
+    : `${base}/dashboard?payment=success`;
   const cancelUrl = `${base}/dashboard?payment=cancelled`;
   const webhookUrl = `${base}/api/webhooks/snippe`;
-  const idempotencyKey = `plan-${uid}-${planId}-${paymentMethod}-${Math.floor(Date.now() / 1000)}`;
+  const idempotencyKey = isPosterPurchase
+    ? `poster-${uid}-${paymentMethod}-${Math.floor(Date.now() / 1000)}`
+    : `plan-${uid}-${planId}-${paymentMethod}-${Math.floor(Date.now() / 1000)}`;
 
   const customer = {
     firstname: firstname || "Customer",
@@ -111,6 +126,10 @@ export async function POST(request: NextRequest) {
     email: email || "customer@example.com",
     country: countryCode === "TZ" ? "TZ" : "US",
   };
+
+  const metadata: Record<string, string> = isPosterPurchase
+    ? { user_id: uid, type: "poster" }
+    : { user_id: uid, plan_id: planId as string };
 
   let paymentData: { reference: string; payment_url?: string };
   try {
@@ -125,7 +144,7 @@ export async function POST(request: NextRequest) {
           phone_number: phone,
           customer,
           webhook_url: webhookUrl,
-          metadata: { user_id: uid, plan_id: planId },
+          metadata,
           idempotencyKey,
         },
         apiKey
@@ -147,7 +166,7 @@ export async function POST(request: NextRequest) {
       }
       paymentData = await createCardPayment(
         {
-          amount: currency === "USD" ? amount : amount,
+          amount,
           currency,
           redirect_url: redirectUrl,
           cancel_url: cancelUrl,
@@ -160,7 +179,7 @@ export async function POST(request: NextRequest) {
             postcode: "N/A",
           },
           webhook_url: webhookUrl,
-          metadata: { user_id: uid, plan_id: planId },
+          metadata,
           idempotencyKey,
         },
         apiKey
@@ -176,7 +195,7 @@ export async function POST(request: NextRequest) {
 
   await db.collection("payments").doc(paymentData.reference).set({
     userId: uid,
-    planId: planId as PlanId,
+    ...(isPosterPurchase ? { type: "poster" } : { planId: planId as PlanId }),
     status: "pending",
     amount,
     currency,

@@ -107,3 +107,64 @@ export function getPaymentCurrencyAndAmount(
 export function isTanzania(countryCode: string | undefined | null): boolean {
   return (countryCode ?? "").toUpperCase() === "TZ";
 }
+
+/**
+ * Per-poster (one-time) pricing. Priced above Pro's effective per-poster rate ($0.24) to incentivise monthly.
+ * USD: $1.49 (149 cents). TZS: 3,700 (no decimals).
+ * Other countries use USD card.
+ */
+const PER_POSTER_PRICING: Record<string, { currency: string; amountMinor: number; mobileMoney: boolean }> = {
+  TZ: { currency: "TZS", amountMinor: 3_700, mobileMoney: true },
+};
+const PER_POSTER_USD_MINOR = 149; // $1.49 in cents
+
+export interface PerPosterPrice {
+  currency: string;
+  amountMinor: number;
+  label: string;
+  mobileMoney: boolean;
+}
+
+/** Get the per-poster one-time price for a user's country. */
+export function getPerPosterPriceForCountry(
+  countryCode: string | undefined | null
+): PerPosterPrice {
+  const code = (countryCode ?? "US").toUpperCase();
+  const row = PER_POSTER_PRICING[code];
+  if (row) {
+    return { ...row, label: formatAmount(row.amountMinor, row.currency) };
+  }
+  return {
+    currency: "USD",
+    amountMinor: PER_POSTER_USD_MINOR,
+    label: formatAmount(PER_POSTER_USD_MINOR, "USD"),
+    mobileMoney: false,
+  };
+}
+
+/** For Snippe: per-poster payment currency and amount. */
+export function getPerPosterPaymentCurrencyAndAmount(
+  countryCode: string | undefined | null
+): { currency: string; amount: number } {
+  const code = (countryCode ?? "US").toUpperCase();
+  if (code === "TZ") return { currency: "TZS", amount: 3_700 };
+  return { currency: "USD", amount: PER_POSTER_USD_MINOR };
+}
+
+/**
+ * For the upsell hook: return the effective per-poster cost of a monthly plan.
+ * Pro: $12 / 50 = $0.24. Displayed as a short string.
+ */
+export function getPlanEffectivePerPosterLabel(
+  planId: "pro" | "business",
+  countryCode: string | undefined | null
+): string {
+  const monthly = getPlanPriceForCountry(planId, countryCode);
+  const postersPerMonth = planId === "pro" ? 50 : 200;
+  if (monthly.currency === "USD") {
+    const perPost = monthly.amountMinor / 100 / postersPerMonth;
+    return `$${perPost.toFixed(2)}/poster`;
+  }
+  const perPost = Math.round(monthly.amountMinor / postersPerMonth);
+  return `${formatAmount(perPost, monthly.currency)}/poster`;
+}

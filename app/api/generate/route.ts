@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Timestamp } from "firebase-admin/firestore";
+import { Timestamp, FieldValue } from "firebase-admin/firestore";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin";
 import { runGenerationForUser } from "@/lib/generation/runGeneration";
 import { getPlanLimits } from "@/lib/plans";
@@ -124,9 +124,10 @@ export async function POST(request: NextRequest) {
 
   const limits = getPlanLimits(plan);
   if (limits.postersPerMonth !== -1) {
+    const db = getAdminDb();
     const now = new Date();
     const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
-    const snap = await getAdminDb()
+    const snap = await db
       .collection("users")
       .doc(uid)
       .collection("posters")
@@ -135,13 +136,24 @@ export async function POST(request: NextRequest) {
       .get();
     const count = snap.data().count;
     if (count >= limits.postersPerMonth) {
-      return NextResponse.json(
-        {
-          error: "Poster limit reached for your plan. Upgrade to create more.",
-          code: "POSTER_LIMIT_REACHED",
-        },
-        { status: 403 }
-      );
+      // Check for purchased poster credits (one-time purchases)
+      const userSnap = await db.collection("users").doc(uid).get();
+      const posterCredits = (userSnap.data()?.posterCredits as number) ?? 0;
+      if (posterCredits >= 1) {
+        // Decrement credit and allow generation
+        await db.collection("users").doc(uid).update({
+          posterCredits: FieldValue.increment(-1),
+        });
+        // Fall through to generation below (do not return 403)
+      } else {
+        return NextResponse.json(
+          {
+            error: "Poster limit reached for your plan. Upgrade to create more.",
+            code: "POSTER_LIMIT_REACHED",
+          },
+          { status: 403 }
+        );
+      }
     }
   }
 

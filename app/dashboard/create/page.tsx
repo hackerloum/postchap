@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import {
   Sparkles,
@@ -23,6 +23,7 @@ import { getClientIdToken } from "@/lib/auth-client";
 import { PLATFORM_FORMATS } from "@/lib/generation/platformFormats";
 import { IMAGE_PROVIDERS, DEFAULT_IMAGE_PROVIDER } from "@/lib/image-models";
 import { PricingModal } from "@/components/PricingModal";
+import { getPerPosterPriceForCountry } from "@/lib/pricing";
 import type { PlanId } from "@/lib/plans";
 
 interface Recommendation {
@@ -346,8 +347,9 @@ function InspirationInput({
   );
 }
 
-export default function CreatePage() {
+function CreatePageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [mode, setMode] = useState<GenerateMode>("ai");
   const [brandKits, setBrandKits] = useState<BrandKit[]>([]);
@@ -403,14 +405,32 @@ export default function CreatePage() {
   const [profilePhoneNumber, setProfilePhoneNumber] = useState<string | null>(null);
   const [postersThisMonth, setPostersThisMonth] = useState(0);
   const [postersLimit, setPostersLimit] = useState<number | null>(null);
+  const [posterCredits, setPosterCredits] = useState(0);
+  const [buyingPoster, setBuyingPoster] = useState(false);
 
   useEffect(() => {
     loadBrandKits();
   }, []);
 
+  // Handle ?payment=poster return from payment
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    if (payment === "poster") {
+      toast.success("Poster credit added! You can now generate one more poster.");
+      // Refresh me to get updated posterCredits
+      fetch("/api/me", { credentials: "same-origin" })
+        .then((r) => r.ok && r.json())
+        .then((d) => {
+          if (d?.posterCredits != null) setPosterCredits(d.posterCredits);
+        })
+        .catch(() => {});
+    }
+  }, [searchParams]);
+
   const limitReached =
-    (trial.trialCompleted && plan === "free") ||
-    (plan === "free" && postersLimit != null && postersLimit > 0 && postersThisMonth >= postersLimit);
+    posterCredits === 0 &&
+    ((trial.trialCompleted && plan === "free") ||
+    (plan === "free" && postersLimit != null && postersLimit > 0 && postersThisMonth >= postersLimit));
   const hasOpenedLimitModal = useRef(false);
 
   useEffect(() => {
@@ -504,11 +524,40 @@ export default function CreatePage() {
         const usage = meData.usage ?? {};
         setPostersThisMonth(usage.postersThisMonth ?? 0);
         setPostersLimit(usage.postersLimit ?? null);
+        setPosterCredits(meData.posterCredits ?? 0);
       }
     } catch {
       toast.error("Failed to load brand kits");
     } finally {
       setLoadingKits(false);
+    }
+  }
+
+  async function handleBuyPoster() {
+    setBuyingPoster(true);
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/payments/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          type: "poster",
+          paymentMethod: "card",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Payment could not be started");
+      if (data.payment_url) {
+        window.location.href = data.payment_url;
+        return;
+      }
+      if (data.message) {
+        toast.success(data.message);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Payment failed");
+    } finally {
+      setBuyingPoster(false);
     }
   }
 
@@ -953,22 +1002,55 @@ export default function CreatePage() {
           </div>
         </div>
 
+        {/* Poster credits badge — show when user has purchased credits */}
+        {posterCredits > 0 && !limitReached && (
+          <div className="mt-4 flex items-center gap-2 text-accent bg-accent/10 border border-accent/20 rounded-xl px-4 py-2.5 w-fit">
+            <Sparkles size={13} />
+            <span className="font-mono text-[12px] font-semibold">
+              {posterCredits} purchased poster credit{posterCredits !== 1 ? "s" : ""} available
+            </span>
+          </div>
+        )}
+
         {/* Limit reached: show upgrade gate and open pricing modal */}
         {limitReached && (
-          <div className="mt-6 rounded-2xl border border-accent/30 bg-accent/10 p-6 text-center">
-            <p className="font-semibold text-[16px] text-text-primary">
-              You&apos;ve used your free poster
+          <div className="mt-6 rounded-2xl border border-border-default bg-bg-surface p-6 text-center space-y-4">
+            <div>
+              <p className="font-semibold text-[16px] text-text-primary">
+                You&apos;ve used your free posters
+              </p>
+              <p className="font-mono text-[12px] text-text-muted mt-1">
+                Upgrade to keep creating — or buy a single poster if you&apos;re not ready to subscribe.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setPricingModalOpen(true)}
+                className="w-full sm:w-auto bg-accent text-black font-semibold text-[14px] px-6 py-3 rounded-xl hover:bg-accent-dim transition-colors"
+              >
+                Upgrade to Pro
+              </button>
+              <button
+                type="button"
+                onClick={handleBuyPoster}
+                disabled={buyingPoster}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-bg-elevated border border-border-default text-text-primary font-semibold text-[13px] px-5 py-3 rounded-xl hover:border-border-strong transition-colors disabled:opacity-50"
+              >
+                {buyingPoster ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : null}
+                Buy 1 poster · {getPerPosterPriceForCountry(countryCode).label}
+              </button>
+            </div>
+            <p className="font-mono text-[10px] text-text-muted">
+              Pro = {(() => {
+                const proPrice = getPerPosterPriceForCountry(countryCode);
+                return proPrice.currency === "TZS"
+                  ? "30,000 TZS/mo for 50 posters (~600 TZS each)"
+                  : "$12/mo for 50 posters (~$0.24 each)";
+              })()}. Save {getPerPosterPriceForCountry(countryCode).currency === "TZS" ? "6x" : "6x"} with monthly.
             </p>
-            <p className="font-mono text-[12px] text-text-muted mt-1">
-              Upgrade to keep creating posters with AI recommendations and premium models.
-            </p>
-            <button
-              type="button"
-              onClick={() => setPricingModalOpen(true)}
-              className="mt-4 bg-accent text-black font-semibold text-[14px] px-6 py-3 rounded-xl hover:bg-accent-dim transition-colors"
-            >
-              Upgrade to continue
-            </button>
           </div>
         )}
 
@@ -1625,5 +1707,19 @@ export default function CreatePage() {
         }}
       />
     </div>
+  );
+}
+
+export default function CreatePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-bg-base flex items-center justify-center">
+          <Loader2 size={18} className="animate-spin text-accent" />
+        </div>
+      }
+    >
+      <CreatePageContent />
+    </Suspense>
   );
 }

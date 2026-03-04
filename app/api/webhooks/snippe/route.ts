@@ -61,8 +61,16 @@ export async function POST(request: NextRequest) {
 
   if (eventType === "payment.completed" && data.status === "completed") {
     const userId = paymentData.userId as string;
-    const planId = paymentData.planId as string;
-    if (userId && (planId === "pro" || planId === "business")) {
+    const planId = paymentData.planId as string | undefined;
+    const paymentType = paymentData.type as string | undefined;
+
+    if (userId && paymentType === "poster") {
+      // One-time poster credit: increment by 1
+      await db.collection("users").doc(userId).set(
+        { posterCredits: FieldValue.increment(1), updatedAt: FieldValue.serverTimestamp() },
+        { merge: true }
+      );
+    } else if (userId && (planId === "pro" || planId === "business")) {
       await db.collection("users").doc(userId).set(
         { plan: planId, updatedAt: FieldValue.serverTimestamp() },
         { merge: true }
