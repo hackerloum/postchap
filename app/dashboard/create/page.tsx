@@ -535,17 +535,17 @@ function CreatePageContent() {
   }, [mode]);
 
   async function getToken(): Promise<string> {
-    // getClientIdToken calls getIdToken(forceRefresh) which itself waits for
-    // Firebase auth to restore from IndexedDB. If the user is truly signed out
-    // we redirect; otherwise we always get a valid token even on fresh page loads.
+    // getClientIdToken returns from module-level cache (0 ms) when the token
+    // has > 5 min left, so this is effectively free for most button clicks.
     const token = await getClientIdToken();
     if (!token) {
-      // One more chance: wait up to 3s for Firebase to finish initialising
-      // before concluding the user is really logged out.
+      // Token not in cache yet (cold start or auth not resolved).
+      // Wait up to 3 s for Firebase to finish restoring auth from IndexedDB.
       const waited = await new Promise<string | null>((resolve) => {
         const auth = getAuthClient();
         if (auth.currentUser) {
-          auth.currentUser.getIdToken(true).then(resolve).catch(() => resolve(null));
+          // Use cached token (forceRefresh=false) — network call only if expired.
+          auth.currentUser.getIdToken(false).then(resolve).catch(() => resolve(null));
           return;
         }
         const timeout = setTimeout(() => resolve(null), 3000);
@@ -553,7 +553,7 @@ function CreatePageContent() {
           clearTimeout(timeout);
           unsub();
           if (user) {
-            user.getIdToken(true).then(resolve).catch(() => resolve(null));
+            user.getIdToken(false).then(resolve).catch(() => resolve(null));
           } else {
             resolve(null);
           }
@@ -837,19 +837,15 @@ function CreatePageContent() {
         ...(inspirationImageUrlValue ? { inspirationImageUrl: inspirationImageUrlValue } : {}),
       };
 
-      setGenerationStep("Analyzing your brand...");
-      await new Promise((r) => setTimeout(r, 800));
-
-      setGenerationStep("Writing copy with AI...");
-      await new Promise((r) => setTimeout(r, 600));
-
       setGenerationStep(
         mode === "inspiration" && (inspirationUrl.trim() || inspirationImageUrl.trim())
-          ? "Using your image as style reference..."
+          ? "Analyzing style reference & writing copy..."
           : mode === "template"
-            ? "Using your chosen style..."
-            : "Generating background image..."
+            ? "Analyzing template & writing copy..."
+            : "Writing copy & generating image..."
       );
+      // Minimal yield so React paints the step message before the blocking fetch.
+      await new Promise((r) => setTimeout(r, 50));
 
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -859,8 +855,6 @@ function CreatePageContent() {
         },
         body: JSON.stringify(payload),
       });
-
-      setGenerationStep("Compositing final poster...");
 
       if (!res.ok) {
         const err = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
