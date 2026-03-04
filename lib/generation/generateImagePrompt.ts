@@ -36,13 +36,13 @@ You are an expert at writing prompts for Seedream 4.5, an AI image model that ex
 Seedream 4.5 has superior typography rendering. Your prompt must describe the COMPLETE POSTER in English and follow these rules:
 
 ${hasBrandName
-  ? `1. INCLUDE TEXT EXPLICITLY — Write out the exact text to display: brand name, headline, and CTA. Only include the tagline when it fits the concept (e.g. brand-identity or hero posters); for promos, events, or urgency-focused posters, omit the tagline to keep the layout clean. Seedream can render them on the poster.`
-  : `1. LOGO-ONLY BRANDING — Do NOT include any brand name, wordmark, or company name as text in the image. The poster's only text is the headline, subheadline if present, and CTA. The brand identity is provided via a logo overlay composited after generation. TOP-LEFT DEAD ZONE: the top-left area (approximately 250px wide × 120px tall) must be completely empty — pure background only, no icons, no arrows, no triangles, no shapes, no decorative elements of any kind.`
+  ? `1. INCLUDE TEXT EXPLICITLY — Write out the exact text to display: brand name, headline, and action-button text. Only include the tagline when it fits the concept (e.g. brand-identity or hero posters); for promos, events, or urgency-focused posters, omit the tagline to keep the layout clean. Seedream can render them on the poster.`
+  : `1. LOGO-ONLY BRANDING — Do NOT include any brand name, wordmark, or company name as text in the image. The poster's only visible text is the headline and action-button text. The brand identity is provided via a logo overlay composited after generation. TOP-LEFT DEAD ZONE: the top-left area (approximately 250px wide × 120px tall) must be completely empty — pure background only, no icons, no arrows, no triangles, no shapes, no decorative elements of any kind.`
 }
 
-2. SPECIFY TEXT PLACEMENT — Describe where each text appears: e.g. "headline in large bold type at center", "CTA button at bottom". Only mention tagline placement if you include the tagline (see rule 1).
+2. SPECIFY TEXT PLACEMENT — Describe where each text appears: e.g. "headline in large bold type at the top", "action button at bottom-left". Use natural prose, never field labels.
 
-3. DEFINE COLOR PALETTE — Match brand colors: e.g. "rich dark brown and gold color palette", "dominant colors: [exact hex or names]".
+3. DEFINE COLOR PALETTE — Match brand colors: e.g. "rich dark brown and gold color palette". Use color names only, never hex codes.
 
 4. DESCRIBE COMPOSITION & LAYOUT — "Clean modern layout", "subject centered", "minimalist design", "balanced negative space".
 
@@ -50,16 +50,18 @@ ${hasBrandName
 
 6. ADD QUALITY KEYWORDS — "Professional", "high-end advertising quality", "premium feel", "production-ready", "commercial quality", "no watermarks".
 
-6b. ABSOLUTELY NO LOGOS OR BRAND MARKS — The image must NOT contain any logo, wordmark, emblem, crest, icon, or brand symbol anywhere. This includes: on notebooks, devices, clothing, screens, papers, signs, boards, or any object a person is holding. If a person holds a sign or paper, it must be completely blank — no text, no logos, no marks on it. The real logo is composited on top after generation. Only the background scene, main visual subject, and the headline/CTA text may appear.
+6b. ABSOLUTELY NO LOGOS OR BRAND MARKS — The image must NOT contain any logo, wordmark, emblem, crest, icon, or brand symbol anywhere. This includes: on notebooks, devices, clothing, screens, papers, signs, boards, or any object a person is holding. If a person holds a sign or paper, it must be completely blank — no text, no logos, no marks on it. The real logo is composited on top after generation. Only the background scene, main visual subject, and the headline/action-button text may appear.
 
 7. DESCRIBE THE SUBJECT CLEARLY — What is the main visual element (product, person, scene, abstract) and style (photography, illustration, flat design). When the poster includes people, faces, or human figures, describe them so they reflect the brand's market and country (e.g. East African person, person from Tanzania, West African woman). Use respectful, inclusive language. Do not default to generic Western representation — the audience should see themselves reflected.
 
-8. CRITICAL — TEXT ON POSTER: Only the exact headline, CTA phrase, and optionally the tagline (only when you chose to include it) must appear as visible text. NEVER include hex color codes, technical IDs, or variable names. Use color NAMES only (e.g. orange, gold, dark brown), never hex codes. Do not include any platform/product/service name unless it IS the brand name explicitly provided.
+8. CRITICAL — FORBIDDEN LABEL WORDS: NEVER write the literal words "Subheadline", "CTA", "Headline:", "Body text", "Body copy", "Tagline:" or any JSON field name as visible text in the prompt. Seedream renders everything literally — if you write the word "Subheadline" in the prompt, Seedream will print "Subheadline" on the poster. Instead describe the content naturally: instead of "Subheadline: maximize your learning", write "below the headline in smaller italic text: 'maximize your learning'". The action button must be described as "a button with the text '...'" or "an oval button labeled '...'", NEVER as "CTA: ..." or "CTA button text: ...".
 
-9. FULL-BLEED BACKGROUND: The main image must fill the entire poster from edge to edge. No separate colored bars, panels, or strips at the bottom. The background is one continuous visual extending to all edges.
+9. ONLY EXACT TEXT ON POSTER: Only the exact headline, action-button phrase, and optionally the tagline may appear as visible text. NEVER include hex color codes, technical IDs, or variable names. Use color NAMES only. Do not include any platform/product/service name unless it IS the brand name explicitly provided.
 
-10. CLEAN BOTTOM EDGE: No footer artifacts, no small symbols or patterns at the bottom edge, no watermark symbols.
-${styleNotes ? `\n11. ADDITIONAL BRAND DIRECTION: ${styleNotes}` : ""}
+10. FULL-BLEED BACKGROUND: The main image must fill the entire poster from edge to edge. No separate colored bars, panels, or strips at the bottom. The background is one continuous visual extending to all edges.
+
+11. CLEAN BOTTOM EDGE: No footer artifacts, no small symbols or patterns at the bottom edge, no watermark symbols.
+${styleNotes ? `\n12. ADDITIONAL BRAND DIRECTION: ${styleNotes}` : ""}
 
 Write the prompt in English only. Maximum 400 words. Return ONLY the prompt, no explanation or quotes around the whole thing.
 `.trim();
@@ -107,28 +109,29 @@ ${tagline ? `- Tagline (optional — include only when it fits the concept; omit
 `;
 
   const userPrompt = `
-Create a Seedream 4.5 prompt using this template structure:
+Generate a Seedream 4.5 image generation prompt for this poster:
 
-Create a professional social media poster${brandKit.brandName ? ` for ${brandKit.brandName}` : " (no brand name text — logo-only branding)"}.
-Brand colors (describe using color NAMES only in the prompt, e.g. orange/gold/dark — do not put hex codes like #xxxxx as text on the poster): ${colors}.
-Main headline: "${copy.headline}" — specify where it appears (e.g. centered at top, large bold).
-${tagline ? `Tagline "${tagline}" is optional: include it only for brand-identity or hero-style posters where it fits naturally; for promo/event/urgency posters, omit the tagline and use only headline + CTA.` : ""}
-CTA: "${copy.cta}" — specify placement (e.g. button at bottom, bottom right).
-Visual subject: Describe the main visual (scene, product, or abstract) relevant to ${industry} in ${country}.
-Style: ${brandKit.tone ?? "professional"}, ${recommendation?.visualMood ?? "clean"}.
-Background: Describe the background (e.g. gradient, photo, minimal).
-Lighting: e.g. studio lighting, warm ambient glow, soft shadows.
-Quality: professional, high-end advertising, clean layout, production-ready, no watermarks. Do NOT include any logo, emblem, or brand mark in the image — the user's logo is added separately. No logos on objects (notebooks, tablets, etc.). Full-bleed: the main background must extend to all four edges with no separate bottom panels or colored bars.
+Brand: ${brandKit.brandName ? `"${brandKit.brandName}"` : "(no brand name — logo-only)"}.
+Brand colors (use names only, no hex): ${colors}.
+Industry: ${industry}. Country/market: ${country}${continent ? ` (${continent})` : ""}.
+Style/tone: ${brandKit.tone ?? "professional"}, ${recommendation?.visualMood ?? "clean"}.
+${tagline ? `Tagline (optional — use only for brand/identity-style posters): "${tagline}"` : ""}
 
-Additional context:
-- Industry: ${industry}. Country/market: ${country}${continent ? ` (${continent})` : ""}.
-- If the poster shows any people or human figures: they must be representative of the brand's market — ${country}${continent ? `, ${continent}` : ""}. Describe them accordingly in the prompt (e.g. East African, Tanzanian, Nigerian, local person) so the image reflects the local audience. Do not default to generic Western representation.
-${brandKit.brandName ? `- Brand name to show on poster: "${brandKit.brandName}".` : "- NO brand name text on poster — the logo image handles all branding. Do NOT render any brand name, wordmark, or title text."}
+EXACT TEXT TO DISPLAY ON POSTER:
+- Large headline text: "${copy.headline}"
+- Action button text: "${copy.cta}"
+${tagline ? `- Tagline (only include if appropriate for this poster type): "${tagline}"` : ""}
+
+IMPORTANT: In your prompt, refer to these as natural descriptions — e.g. "large bold headline '${copy.headline}' at the top", "a rounded action button with the label '${copy.cta}' at the bottom-left". NEVER write the word 'Subheadline', 'CTA', 'Headline:', or any field label as literal text — Seedream will print them on the poster.
+
+Visual subject: Describe the main visual relevant to ${industry} in ${country}.
+If people are shown: they must represent the brand's local market — ${country}${continent ? `, ${continent}` : ""}. No generic Western appearance.
+${brandKit.brandName ? `Brand name "${brandKit.brandName}" must appear as text on the poster.` : "NO brand name text — logo handles all branding."}
+
 ${languageInstruction ? `\n${languageInstruction}\n` : ""}
-
 ${recContext}
 
-Write the complete poster prompt now. Be specific about text placement, colors, and composition. Max 400 words. Output only the prompt.
+Write the complete Seedream prompt now. Natural prose, max 400 words, output only the prompt.
 `.trim();
 
   const response = await openai.chat.completions.create({
@@ -141,11 +144,22 @@ Write the complete poster prompt now. Be specific about text placement, colors, 
     max_tokens: 800,
   });
 
-  const prompt = response.choices[0]?.message?.content?.trim() ?? "";
+  let prompt = response.choices[0]?.message?.content?.trim() ?? "";
 
   if (!prompt) {
-    return `Professional social media poster${brandKit.brandName ? ` for ${brandKit.brandName}` : ""}, a ${industry} brand in ${country}. Color scheme: ${colors}. Bold typography displaying "${copy.headline}" at center.${brandKit.brandName ? ` Brand name "${brandKit.brandName}" at top.` : " No brand name text — logo handles all branding."} CTA "${copy.cta}" at bottom. Clean modern layout. Professional, high-end advertising quality, production-ready, no watermarks.`;
+    return `Professional social media poster${brandKit.brandName ? ` for ${brandKit.brandName}` : ""}, a ${industry} brand in ${country}. Color scheme: ${colors}. Bold typography displaying "${copy.headline}" at center.${brandKit.brandName ? ` Brand name "${brandKit.brandName}" at top.` : " No brand name text — logo handles all branding."} Action button labeled "${copy.cta}" at the bottom-left. Clean modern layout. Professional, high-end advertising quality, production-ready, no watermarks.`;
   }
+
+  // Safety net: strip any leaked field-label words that Seedream would render literally.
+  // These patterns catch "CTA:", "Subheadline:", "Headline:", "Body text:" etc.
+  prompt = prompt
+    .replace(/\bCTA\s*:/gi, "action button:")
+    .replace(/\bCall[- ]to[- ]Action\s*:/gi, "action button:")
+    .replace(/\bSubheadline\s*:/gi, "supporting text:")
+    .replace(/\bSub[- ]headline\s*:/gi, "supporting text:")
+    .replace(/\bHeadline\s*:/gi, "main text:")
+    .replace(/\bBody\s*(text|copy)\s*:/gi, "description text:")
+    .replace(/\bTagline\s*:/gi, "tagline text:");
 
   console.log("[ImagePrompt] Generated:", prompt.slice(0, 150));
   return prompt;

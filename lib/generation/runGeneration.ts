@@ -177,12 +177,12 @@ export async function runGenerationForUser(
     "CRITICAL style for any people or human figures: render in realistic, photographic, or high-quality refined digital art style. Do NOT use cartoon, anime, manga, or simplistic illustration for humans. Professional advertising quality.";
 
   const baseCustomizations = [
-    "Preserve the exact layout and design: position of headline, CTA button, main visual, and any sections. Match the composition and structure of the reference.",
-    `Replace all text with: headline "${copy.headline}", CTA "${copy.cta}", brand name "${brandKit.brandName ?? ""}".`,
+    "Preserve the exact layout and design: position of headline, action button, main visual, and any sections. Match the composition and structure of the reference.",
+    `Replace all text with: headline text "${copy.headline}", action button label "${copy.cta}", brand name "${brandKit.brandName ?? ""}". NEVER write the words 'CTA', 'Subheadline', 'Headline:', 'Body text' or any field label as visible text on the poster.`,
     `Use brand colors: ${colorDescription}. Describe colors by name only (e.g. orange, dark blue), never write hex codes or color codes on the poster.`,
     "Keep the same layout, style, and composition. No logos or emblems in the image; the brand logo will be added separately.",
     "Do not include any platform name, product name, or service name (e.g. Chuo AI, Artmaster) — only the user's brand name may appear.",
-    "CRITICAL: Only the user's brand name, headline, and CTA may appear as text on the poster. Do not reproduce any other text or logos from a reference.",
+    "CRITICAL: Only the user's brand name, headline, and action button text may appear as text on the poster. Do not reproduce any other text or logos from a reference.",
     HUMAN_STYLE_RULE,
   ];
 
