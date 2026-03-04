@@ -77,14 +77,17 @@ function escapeXml(str: string): string {
  * skip the text element in the SVG overlay to avoid the □ box artifacts.
  */
 function isLatinRenderable(text: string): boolean {
-  return [...text].every((ch) => {
-    const cp = ch.codePointAt(0) ?? 0;
-    return (
-      cp <= 0x024f ||                       // Basic Latin + Latin Extended A/B
-      (cp >= 0x1e00 && cp <= 0x1eff) ||    // Latin Extended Additional
-      cp === 0x20 || cp === 0xa0            // space / non-breaking space
-    );
-  });
+  for (let i = 0; i < text.length; i++) {
+    const cp = text.codePointAt(i) ?? 0;
+    const inRange =
+      cp <= 0x024f ||
+      (cp >= 0x1e00 && cp <= 0x1eff) ||
+      cp === 0x20 ||
+      cp === 0xa0;
+    if (!inRange) return false;
+    if (cp >= 0x10000) i++; // surrogate pair: skip second code unit
+  }
+  return true;
 }
 
 /** Font stack that is available on server-side Linux (Vercel / Amazon Linux). */
