@@ -5,8 +5,66 @@ import { SessionRefresher } from "@/app/dashboard/SessionRefresher";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ArtMaster Platform",
-  description: "Automated daily poster generation for your brand",
+  metadataBase: new URL("https://artmasterpro.com"),
+  title: {
+    template: "%s | ArtMaster",
+    default: "ArtMaster — AI Poster Generator for African Businesses",
+  },
+  description:
+    "ArtMaster generates professional social media posters every day, tailored to your brand. Set up your brand kit once — get daily AI-crafted posters automatically. Built for Africa, used worldwide.",
+  keywords: [
+    "AI poster generator",
+    "social media poster maker Africa",
+    "automated brand posters",
+    "daily Instagram posts",
+    "AI marketing tool Tanzania",
+    "AI marketing tool Kenya",
+    "AI marketing tool Nigeria",
+    "brand kit poster generator",
+    "poster maker Africa",
+    "social media automation Africa",
+    "no designer needed",
+    "Canva alternative Africa",
+  ],
+  authors: [{ name: "ArtMaster", url: "https://artmasterpro.com" }],
+  creator: "ArtMaster",
+  publisher: "ArtMaster",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://artmasterpro.com",
+    siteName: "ArtMaster",
+    title: "ArtMaster — AI Poster Generator for African Businesses",
+    description:
+      "Generate stunning daily social media posters tailored to your brand. Set up once, post every day. Built for Africa.",
+    images: [
+      {
+        url: "/og/default.png",
+        width: 1200,
+        height: 630,
+        alt: "ArtMaster — AI Poster Generator",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ArtMaster — AI Poster Generator for African Businesses",
+    description:
+      "Generate stunning daily social media posters tailored to your brand.",
+    images: ["/og/default.png"],
+    creator: "@artmasterpro",
+    site: "@artmasterpro",
+  },
   icons: {
     icon: [
       { url: "/favicon/favicon.ico", sizes: "any" },
@@ -16,6 +74,10 @@ export const metadata: Metadata = {
     apple: "/favicon/apple-touch-icon.png",
   },
   manifest: "/favicon/site.webmanifest",
+  alternates: { canonical: "https://artmasterpro.com" },
+  verification: {
+    google: "googlea2b9b8ae9ae8f569",
+  },
 };
 
 export default function RootLayout({
