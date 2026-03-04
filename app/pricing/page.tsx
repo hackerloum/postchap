@@ -1,8 +1,30 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { PricingPlans } from "@/components/pricing/PricingPlans";
 import { CookiePreferencesLink } from "@/components/CookiePreferencesLink";
+
+export const metadata: Metadata = {
+  title: "Pricing — Affordable AI Poster Plans | ArtMaster",
+  description:
+    "Start free, upgrade when ready. ArtMaster's Pro plan ($12/mo) gives you 60 AI posters per month. Business plan ($24/mo) is unlimited. Built for African SMBs.",
+  alternates: { canonical: "https://artmasterpro.com/pricing" },
+  openGraph: {
+    title: "ArtMaster Pricing — Free, Pro & Business Plans",
+    description:
+      "Free, Pro, and Business plans for daily AI social media poster generation. African-first pricing.",
+    url: "https://artmasterpro.com/pricing",
+    images: [
+      {
+        url: "/og/pricing.png",
+        width: 1200,
+        height: 630,
+        alt: "ArtMaster pricing plans",
+      },
+    ],
+  },
+};
 
 const NAV_ITEMS = [
   { label: "Features", href: "/#features" },

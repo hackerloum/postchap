@@ -2,8 +2,11 @@ import Link from "next/link";
 import { CookiePreferencesLink } from "@/components/CookiePreferencesLink";
 
 export const metadata = {
-  title: "Privacy & Cookies | ArtMaster",
-  description: "How ArtMaster uses cookies and handles your data.",
+  title: "Privacy & Cookie Policy — ArtMaster",
+  description:
+    "Read ArtMaster's privacy policy. Understand how we collect, use, and protect your personal data and how cookies are used on artmasterpro.com.",
+  alternates: { canonical: "https://artmasterpro.com/privacy" },
+  robots: { index: true, follow: false },
 };
 
 export default function PrivacyPage() {

@@ -2,8 +2,11 @@ import Link from "next/link";
 import { CheckCircle } from "lucide-react";
 
 export const metadata = {
-  title: "Data Deletion | ArtMaster",
-  description: "Data deletion request status for ArtMaster.",
+  title: "Data Deletion — ArtMaster",
+  description:
+    "Request deletion of your ArtMaster account data in compliance with Meta and GDPR requirements.",
+  alternates: { canonical: "https://artmasterpro.com/data-deletion" },
+  robots: { index: true, follow: false },
 };
 
 export default function DataDeletionPage({

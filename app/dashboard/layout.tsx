@@ -1,5 +1,10 @@
+import type { Metadata } from "next";
 import { SessionRefresher } from "./SessionRefresher";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false, noarchive: true },
+};
 
 export default function DashboardLayout({
   children,

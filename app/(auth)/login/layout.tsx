@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Set Up Your Brand Kit — ArtMaster",
+  title: "Sign In — ArtMaster",
   description:
-    "Configure your brand colors, logo, tone, and audience in minutes.",
+    "Sign in to your ArtMaster account to manage your brand kits and AI-generated social media posters.",
   robots: { index: false, follow: false },
 };
 
-export default function OnboardingLayout({
+export default function LoginLayout({
   children,
 }: {
   children: React.ReactNode;

@@ -1,8 +1,11 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Terms of Service | ArtMaster",
-  description: "Terms and conditions for using the ArtMaster platform.",
+  title: "Terms of Service — ArtMaster",
+  description:
+    "Read the terms and conditions governing your use of ArtMaster — the AI-powered daily poster generation platform.",
+  alternates: { canonical: "https://artmasterpro.com/terms" },
+  robots: { index: true, follow: false },
 };
 
 export default function TermsPage() {
