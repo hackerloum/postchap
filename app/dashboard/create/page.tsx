@@ -412,19 +412,40 @@ function CreatePageContent() {
     loadBrandKits();
   }, []);
 
-  // Handle ?payment=poster return from payment
+  // Handle ?payment=poster return from payment. Poll until the Snippe webhook
+  // has fired and posterCredits is incremented (webhook fires async, may take a few seconds).
   useEffect(() => {
     const payment = searchParams.get("payment");
-    if (payment === "poster") {
-      toast.success("Poster credit added! You can now generate one more poster.");
-      // Refresh me to get updated posterCredits
-      fetch("/api/me", { credentials: "same-origin" })
-        .then((r) => r.ok && r.json())
-        .then((d) => {
-          if (d?.posterCredits != null) setPosterCredits(d.posterCredits);
-        })
-        .catch(() => {});
+    if (payment !== "poster") return;
+
+    toast.success("Payment received! Activating your poster credit…");
+
+    let attempts = 0;
+    let cancelled = false;
+
+    async function poll() {
+      if (cancelled) return;
+      attempts++;
+      try {
+        const r = await fetch("/api/me", { credentials: "same-origin" });
+        if (r.ok) {
+          const d = await r.json();
+          const credits = (d?.posterCredits as number) ?? 0;
+          if (credits > 0) {
+            setPosterCredits(credits);
+            toast.success("Poster credit ready — you can generate now!");
+            return;
+          }
+        }
+      } catch {}
+      // Retry up to 8 times with growing delays (2s, 3s, 4s … 9s)
+      if (attempts < 8) {
+        setTimeout(poll, (attempts + 1) * 1000);
+      }
     }
+
+    poll();
+    return () => { cancelled = true; };
   }, [searchParams]);
 
   const limitReached =
@@ -432,6 +453,10 @@ function CreatePageContent() {
     ((trial.trialCompleted && plan === "free") ||
     (plan === "free" && postersLimit != null && postersLimit > 0 && postersThisMonth >= postersLimit));
   const hasOpenedLimitModal = useRef(false);
+  // Don't auto-open the pricing modal when the user just returned from a payment
+  // redirect — the webhook may not have fired yet so posterCredits could still
+  // be 0 even though they paid. The polling effect above will update credits.
+  const returningFromPayment = searchParams.get("payment") === "poster";
 
   useEffect(() => {
     if (selectedKit && !limitReached) {
@@ -440,11 +465,11 @@ function CreatePageContent() {
   }, [selectedKit?.id, limitReached]);
 
   useEffect(() => {
-    if (limitReached && !hasOpenedLimitModal.current) {
+    if (limitReached && !hasOpenedLimitModal.current && !returningFromPayment) {
       hasOpenedLimitModal.current = true;
       setPricingModalOpen(true);
     }
-  }, [limitReached]);
+  }, [limitReached, returningFromPayment]);
 
   useEffect(() => {
     if (selectedKit?.id) {
@@ -1033,13 +1058,9 @@ function CreatePageContent() {
               </button>
               <button
                 type="button"
-                onClick={handleBuyPoster}
-                disabled={buyingPoster}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-bg-elevated border border-border-default text-text-primary font-semibold text-[13px] px-5 py-3 rounded-xl hover:border-border-strong transition-colors disabled:opacity-50"
+                onClick={() => setPricingModalOpen(true)}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-bg-elevated border border-border-default text-text-primary font-semibold text-[13px] px-5 py-3 rounded-xl hover:border-border-strong transition-colors"
               >
-                {buyingPoster ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : null}
                 Buy 1 poster · {getPerPosterPriceForCountry(countryCode).label}
               </button>
             </div>

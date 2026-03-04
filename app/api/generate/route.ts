@@ -106,15 +106,24 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Trial completed (expired or used) and still on free: 0 poster limit
+  // Trial completed (expired or used) and still on free: check purchased credits first
   if (trial.trialCompleted && plan === "free") {
-    return NextResponse.json(
-      {
-        error: "Your free trial has ended. Upgrade to create more posters.",
-        code: "TRIAL_LIMIT_REACHED",
-      },
-      { status: 403 }
-    );
+    const userSnap = await getAdminDb().collection("users").doc(uid).get();
+    const trialCredits = (userSnap.data()?.posterCredits as number) ?? 0;
+    if (trialCredits >= 1) {
+      // Consume one credit and fall through to generation
+      await getAdminDb().collection("users").doc(uid).update({
+        posterCredits: FieldValue.increment(-1),
+      });
+    } else {
+      return NextResponse.json(
+        {
+          error: "Your free trial has ended. Upgrade to create more posters.",
+          code: "TRIAL_LIMIT_REACHED",
+        },
+        { status: 403 }
+      );
+    }
   }
 
   const limits = getPlanLimits(plan);
