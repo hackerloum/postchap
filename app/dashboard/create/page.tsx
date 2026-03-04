@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { getClientIdToken } from "@/lib/auth-client";
+import { getAuthClient } from "@/lib/firebase/client";
 import { PLATFORM_FORMATS } from "@/lib/generation/platformFormats";
 import { IMAGE_PROVIDERS, DEFAULT_IMAGE_PROVIDER } from "@/lib/image-models";
 import { PricingModal } from "@/components/PricingModal";
@@ -408,9 +409,25 @@ function CreatePageContent() {
   const [posterCredits, setPosterCredits] = useState(0);
   const [buyingPoster, setBuyingPoster] = useState(false);
 
+  // Wait for Firebase auth to fully initialise before loading data.
+  // auth.currentUser is null for a brief moment after a fresh page load
+  // (e.g. returning from the Snippe payment redirect), which caused getToken()
+  // to see null and redirect to /login — signing the user out unintentionally.
   useEffect(() => {
-    loadBrandKits();
-  }, []);
+    const auth = getAuthClient();
+    let resolved = false;
+    const unsub = auth.onAuthStateChanged((user) => {
+      if (resolved) return;
+      resolved = true;
+      unsub();
+      if (user) {
+        loadBrandKits();
+      } else {
+        router.push("/login");
+      }
+    });
+    return () => unsub();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle ?payment=poster return from payment. Poll until the Snippe webhook
   // has fired and posterCredits is incremented (webhook fires async, may take a few seconds).
@@ -427,7 +444,11 @@ function CreatePageContent() {
       if (cancelled) return;
       attempts++;
       try {
-        const r = await fetch("/api/me", { credentials: "same-origin" });
+        const token = await getClientIdToken();
+        const headers: Record<string, string> = token
+          ? { Authorization: `Bearer ${token}` }
+          : {};
+        const r = await fetch("/api/me", { headers });
         if (r.ok) {
           const d = await r.json();
           const credits = (d?.posterCredits as number) ?? 0;
@@ -527,7 +548,7 @@ function CreatePageContent() {
       const token = await getToken();
       const [kitsRes, meRes] = await Promise.all([
         fetch("/api/brand-kits", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("/api/me", { credentials: "same-origin" }),
+        fetch("/api/me", { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       const data = await kitsRes.json();
       const kits = (data.kits || []) as BrandKit[];
