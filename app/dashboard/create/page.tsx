@@ -384,6 +384,7 @@ function CreatePageContent() {
   const [templateTotal, setTemplateTotal] = useState<number | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | string | null>(null);
   const [platformFormatId, setPlatformFormatId] = useState<string>(PLATFORM_FORMATS[0].id);
+  const [posterLanguage, setPosterLanguage] = useState<string>("en");
   const [imageProviderId, setImageProviderId] = useState<string>(DEFAULT_IMAGE_PROVIDER);
   const [useImprovePrompt, setUseImprovePrompt] = useState(false);
   const [suggestedSearches, setSuggestedSearches] = useState<string[]>([]);
@@ -887,6 +888,7 @@ function CreatePageContent() {
         brandKitId: selectedKit.id,
         mode,
         platformFormatId,
+        posterLanguage: posterLanguage !== "en" ? posterLanguage : undefined,
         imageProviderId: trial.modelLockedToSeedream ? "freepik:seedream" : imageProviderId,
         useImprovePrompt,
         recommendation: mode === "product" ? null : recommendationPayload,
@@ -1221,6 +1223,35 @@ function CreatePageContent() {
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Language for this poster */}
+          <div className="bg-bg-surface border border-border-default rounded-2xl p-5">
+            <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-text-muted mb-4">
+              Language for this poster
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              {[
+                { code: "en", label: "English" },
+                { code: "sw", label: "Swahili" },
+                { code: "fr", label: "French" },
+                { code: "ha", label: "Hausa" },
+                { code: "yo", label: "Yoruba" },
+              ].map(({ code, label }) => (
+                <button
+                  key={code}
+                  type="button"
+                  onClick={() => setPosterLanguage(code)}
+                  className={`px-3 py-2 rounded-xl border font-medium text-[12px] transition-all duration-150 ${
+                    posterLanguage === code
+                      ? "border-accent bg-accent/8 ring-1 ring-accent/20 text-text-primary"
+                      : "border-border-default bg-bg-elevated text-text-secondary hover:border-border-strong"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
 

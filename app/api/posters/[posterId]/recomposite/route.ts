@@ -104,10 +104,11 @@ export async function POST(
     const height = (d.height as number) ?? 1080;
 
     // Re-run compositing with merged copy on existing background.
-    // For recomposite we always treat the image as already having AI-drawn text
-    // and let Sharp re-overlay all the copy elements fresh.
+    // Use imageHasText: false so Sharp draws the full overlay (headline, body, CTA, hashtags)
+    // with the updated copy — the gradient panel covers the lower area.
     const finalBuffer = await compositePoster({
       backgroundBuffer,
+      imageHasText: false,
       brandKit: {
         brandName:       (kit.brandName       as string) ?? "",
         primaryColor:    (kit.primaryColor     as string) ?? "#E8FF47",

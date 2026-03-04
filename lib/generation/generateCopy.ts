@@ -7,21 +7,44 @@ interface ProductContext {
   overrides?: ProductOverrides | null;
 }
 
+/** Language code to display name (for multi-language poster generation). */
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: "English",
+  sw: "Swahili",
+  fr: "French",
+  ha: "Hausa",
+  yo: "Yoruba",
+  ar: "Arabic",
+  pt: "Portuguese",
+};
+
 export async function generateCopy(
   brandKit: BrandKit,
   occasionContext?: OccasionContext | null,
   recommendation?: Recommendation | null,
-  productContext?: ProductContext | null
+  productContext?: ProductContext | null,
+  platformFormatId?: string | null,
+  posterLanguage?: string | null
 ): Promise<CopyData> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("Copy generation is not available. Please try again later.");
   const openai = new OpenAI({ apiKey });
 
+  const isWhatsApp = platformFormatId === "whatsapp_status";
+  const platformNote = isWhatsApp
+    ? `
+CRITICAL — WhatsApp Status format:
+- Headline: MAXIMUM 6 words. Must be readable on a 5-inch phone screen at small size.
+- CTA: Use phone number (e.g. Call 0712 345 678) or WhatsApp link (e.g. Chat on WhatsApp). No generic CTAs like "Learn More".
+- Subheadline: keep short (max 8 words) for mobile viewing.
+- Body: concise. High contrast mentally — viewed in bright sunlight.`
+    : "";
+
   const systemPrompt = `You are a senior copywriter at a top creative agency.
 You write social media poster copy that is sharp, specific, and on-brand. Never write generic content.
 Every word must be tailored to the exact brand below.
 Output ONLY valid JSON. No explanation. No markdown. No code blocks. Just the raw JSON object.
-JSON format: { "headline": "max 6 words", "subheadline": "max 12 words", "body": "2-3 lines", "cta": "max 4 words", "hashtags": ["#tag1", "#tag2"] } (8-12 tags)`;
+JSON format: { "headline": "${isWhatsApp ? "max 6 words" : "max 6 words"}", "subheadline": "${isWhatsApp ? "max 8 words" : "max 12 words"}", "body": "2-3 lines", "cta": "max 4 words", "hashtags": ["#tag1", "#tag2"] } (8-12 tags)${platformNote}`;
 
   const brandContext = `BRAND: Name: ${brandKit.brandName} Industry: ${brandKit.industry} Tagline: ${brandKit.tagline || "none"} Tone: ${brandKit.tone} Language: ${brandKit.language ?? "en"} Target: ${brandKit.targetAudience || "general"} Country: ${brandKit.brandLocation?.country || "Global"} Continent: ${brandKit.brandLocation?.continent || "Global"} Currency: ${brandKit.brandLocation?.currency || "USD"} Languages: ${brandKit.brandLocation?.languages?.join(", ") || "English"} Style: ${brandKit.styleNotes || "none"} Sample: ${brandKit.sampleContent || "none"}`;
 
@@ -45,6 +68,11 @@ Stay on this specific theme.
     : occasionContext
       ? `OCCASION (write specifically for this): Name: ${occasionContext.name} Category: ${occasionContext.category ?? ""} Visual mood: ${occasionContext.visualMood ?? ""} Tone: ${occasionContext.messagingTone ?? ""}. CRITICAL: Copy MUST reference ${occasionContext.name} in ${brandKit.brandLocation?.country ?? "their market"}.`
       : `No specific occasion. Write evergreen content for ${brandKit.brandName}.`;
+
+  const languageOverride =
+    posterLanguage && posterLanguage !== "en"
+      ? `CRITICAL — LANGUAGE: Write ALL copy in ${LANGUAGE_NAMES[posterLanguage] ?? posterLanguage}. Headline, subheadline, CTA, and hashtags must be in ${LANGUAGE_NAMES[posterLanguage] ?? posterLanguage}. Do NOT translate from English — write natively as a ${LANGUAGE_NAMES[posterLanguage] ?? posterLanguage} speaker would.`
+      : "";
 
   // Product-mode: override the content direction with product context
   let userPrompt: string;
@@ -74,11 +102,12 @@ COPY RULES FOR THIS INTENT:
 ${intentRules[intent]}
 
 ${brandContext}
+${languageOverride ? `\n${languageOverride}\n` : ""}
 
 Write product poster copy for ${brandKit.brandName}. Return only the JSON object.`;
     userPrompt = productPrompt;
   } else {
-    userPrompt = `${brandContext}\n${occasionSection}\nWrite copy for ${brandKit.brandName}. Return only the JSON object.`;
+    userPrompt = `${brandContext}\n${occasionSection}${languageOverride ? `\n${languageOverride}\n` : ""}\nWrite copy for ${brandKit.brandName}. Return only the JSON object.`;
   }
 
   const response = await openai.chat.completions.create({

@@ -21,7 +21,9 @@ export async function generateImagePrompt(
   brandKit: BrandKit,
   copy: CopyData,
   _occasionContext?: OccasionContext | null,
-  recommendation?: Recommendation | null
+  recommendation?: Recommendation | null,
+  platformFormatId?: string | null,
+  posterLanguage?: string | null
 ): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("Image prompt generation is not available. Please try again later.");
@@ -61,7 +63,16 @@ ${hasBrandName
 10. FULL-BLEED BACKGROUND: The main image must fill the entire poster from edge to edge. No separate colored bars, panels, or strips at the bottom. The background is one continuous visual extending to all edges.
 
 11. CLEAN BOTTOM EDGE: No footer artifacts, no small symbols or patterns at the bottom edge, no watermark symbols.
-${styleNotes ? `\n12. ADDITIONAL BRAND DIRECTION: ${styleNotes}` : ""}
+${platformFormatId === "whatsapp_status"
+    ? `
+12. WHATSAPP STATUS FORMAT (9:16 vertical) — CRITICAL:
+- Text must be EXTRA LARGE — readable on a 5-inch phone screen at small size.
+- Maximum 6 words in headline. No fine detail — compression destroys small text.
+- High contrast background — viewed in bright sunlight, often outdoors.
+- Bold, simple typography. No subtle gradients or thin fonts.
+- CTA: phone number or WhatsApp link — must be clearly legible.`
+    : ""}
+${styleNotes ? `\n13. ADDITIONAL BRAND DIRECTION: ${styleNotes}` : ""}
 
 Write the prompt in English only. Maximum 400 words. Return ONLY the prompt, no explanation or quotes around the whole thing.
 `.trim();
@@ -83,9 +94,12 @@ Write the prompt in English only. Maximum 400 words. Return ONLY the prompt, no 
     "en";
   const copyInOtherLanguage = isNonEnglishDisplay(displayLang);
 
-  const languageInstruction = copyInOtherLanguage
+  const effectiveLang = posterLanguage ?? displayLang;
+  const copyInNonEnglish = isNonEnglishDisplay(effectiveLang) || copyInOtherLanguage;
+
+  const languageInstruction = copyInNonEnglish
     ? `
-IMPORTANT — The headline and CTA may be in another language (e.g. Swahili). In your English prompt, specify the EXACT text to display in quotes so Seedream can render it correctly. Example: "The headline 'Karibu Dukani' displayed prominently at the top in bold sans-serif", "CTA button text 'Soma Zaidi' at the bottom". Do not translate the copy; use the exact headline and CTA text as given below.
+IMPORTANT — The headline and CTA may be in another language (e.g. Swahili, Hausa). In your English prompt, specify the EXACT text to display in quotes so Seedream can render it correctly. Example: "The headline 'Karibu Dukani' displayed prominently at the top in bold sans-serif", "CTA button text 'Soma Zaidi' at the bottom". Use a font that renders ${effectiveLang} characters correctly. Do not translate the copy; use the exact headline and CTA text as given below.
 `.trim()
     : "";
 

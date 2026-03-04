@@ -8,6 +8,7 @@ import { getClientIdToken, refreshSessionCookie } from "@/lib/auth-client";
 import { getBrandKitsAction, type BrandKitItem } from "./brand-kits/actions";
 import { BrandIntelligenceSection } from "./BrandIntelligenceSection";
 import { RecentPosters } from "@/components/dashboard/RecentPosters";
+import { OccasionBanner } from "@/components/dashboard/OccasionBanner";
 import { BrandKitCard } from "@/components/dashboard/BrandKitCard";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { Sparkles, Zap, Palette, Instagram } from "lucide-react";
@@ -229,6 +230,8 @@ export function DashboardContent({ initialKits }: Props) {
           Generate poster
         </Link>
       </div>
+
+      <OccasionBanner />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         {[

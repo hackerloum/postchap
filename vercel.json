@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/scheduled-generation",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/scheduled-posts",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/occasion-alerts",
+      "schedule": "0 6 * * *"
     }
   ]
 }

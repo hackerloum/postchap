@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
     productId?: string | null;
     productIntent?: ProductIntent | null;
     productOverrides?: ProductOverrides | null;
+    posterLanguage?: string | null;
   };
   try {
     body = await request.json();
@@ -53,6 +54,7 @@ export async function POST(request: NextRequest) {
     productId,
     productIntent,
     productOverrides,
+    posterLanguage,
   } = body;
 
   if (!brandKitId) {
@@ -76,7 +78,11 @@ export async function POST(request: NextRequest) {
         platformFormatId ?? null,
         inspirationImageUrl ?? null,
         "freepik:seedream",
-        useImprovePrompt
+        useImprovePrompt,
+        productId ?? null,
+        productIntent ?? null,
+        productOverrides ?? null,
+        posterLanguage ?? null
       );
       await incrementTrialPostCount(uid);
       return NextResponse.json({
@@ -184,7 +190,8 @@ export async function POST(request: NextRequest) {
       useImprovePrompt,
       productId ?? null,
       productIntent ?? null,
-      productOverrides ?? null
+      productOverrides ?? null,
+      posterLanguage ?? null
     );
     return NextResponse.json({
       success: true,

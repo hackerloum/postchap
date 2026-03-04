@@ -128,7 +128,8 @@ export async function runGenerationForUser(
   useImprovePrompt?: boolean,
   productId?: string | null,
   productIntent?: ProductIntent | null,
-  productOverrides?: ProductOverrides | null
+  productOverrides?: ProductOverrides | null,
+  posterLanguage?: string | null
 ): Promise<RunGenerationResult> {
   const format = getPlatformFormat(platformFormatId);
   const db = getAdminDb();
@@ -196,7 +197,7 @@ export async function runGenerationForUser(
     ? { product, intent: productIntent ?? "showcase" as ProductIntent, overrides: productOverrides ?? null }
     : null;
 
-  const copy: CopyData = await generateCopy(brandKit, null, product ? null : (recommendation ?? null), productContext);
+  const copy: CopyData = await generateCopy(brandKit, null, product ? null : (recommendation ?? null), productContext, platformFormatId, posterLanguage ?? kitData.language);
 
   let imagePrompt: string;
 
@@ -273,7 +274,8 @@ export async function runGenerationForUser(
       "Photographic or high-quality digital art style. Clean, production-ready poster quality.",
     ].filter(Boolean).join(" ");
   } else {
-    imagePrompt = await generateImagePrompt(brandKit, copy, null, recommendation ?? null);
+    const effectiveLang = posterLanguage ?? kitData.language;
+    imagePrompt = await generateImagePrompt(brandKit, copy, null, recommendation ?? null, platformFormatId, effectiveLang);
     const shouldImprove =
       useImprovePrompt === true || (useImprovePrompt !== false && process.env.USE_FREEPIK_IMPROVE_PROMPT === "true");
     if (shouldImprove) {

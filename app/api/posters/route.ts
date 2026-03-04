@@ -31,6 +31,8 @@ export async function GET(request: NextRequest) {
       const d = doc.data();
       const copy = d.copy ?? {};
       const createdAt = d.createdAt?.toMillis?.() ?? null;
+      const scheduledFor = d.scheduledFor?.toMillis?.() ?? null;
+      const postedAt = d.postedAt?.toMillis?.() ?? null;
       return {
         id: doc.id,
         imageUrl: d.imageUrl ?? null,
@@ -51,6 +53,10 @@ export async function GET(request: NextRequest) {
         platformFormatId: d.platformFormatId ?? null,
         width: d.width ?? 1080,
         height: d.height ?? 1080,
+        postStatus: d.postStatus ?? (d.postedToInstagram ? "posted" : null),
+        scheduledFor,
+        postedAt,
+        instagramPostId: d.instagramPostId ?? null,
         createdAt,
       };
     });

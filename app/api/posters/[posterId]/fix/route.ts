@@ -181,6 +181,7 @@ export async function POST(
 
       const finalBuffer = await compositePoster({
         backgroundBuffer,
+        imageHasText: false,
         brandKit: {
           brandName:       (kit.brandName       as string) ?? "",
           primaryColor:    (kit.primaryColor     as string) ?? "#E8FF47",

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
+import { FieldValue } from "firebase-admin/firestore";
 import { verifyRequestAuth } from "@/lib/firebase/verify-auth";
 
 async function getUidFromRequest(request: NextRequest): Promise<string> {
@@ -58,6 +59,16 @@ export async function GET(
     const contentType = res.headers.get("Content-Type") || "image/png";
     const buffer = Buffer.from(await res.arrayBuffer());
     const filename = `poster-${posterId}.png`;
+
+    await getAdminDb()
+      .collection("users")
+      .doc(uid)
+      .collection("posters")
+      .doc(posterId)
+      .update({
+        downloadCount: FieldValue.increment(1),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
     const inline = request.nextUrl.searchParams.get("inline") === "1";
 
     return new NextResponse(buffer, {

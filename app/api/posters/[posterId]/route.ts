@@ -42,6 +42,8 @@ export async function GET(
     const d = doc.data()!;
     const copy = d.copy ?? {};
     const createdAt = d.createdAt?.toMillis?.() ?? null;
+    const scheduledFor = d.scheduledFor?.toMillis?.() ?? null;
+    const postedAt = d.postedAt?.toMillis?.() ?? null;
 
     return NextResponse.json({
       id: doc.id,
@@ -64,6 +66,10 @@ export async function GET(
       platformFormatId: d.platformFormatId ?? null,
       width: d.width ?? 1080,
       height: d.height ?? 1080,
+      postStatus: d.postStatus ?? (d.postedToInstagram ? "posted" : null),
+      scheduledFor,
+      postedAt,
+      instagramPostId: d.instagramPostId ?? null,
       createdAt,
     });
   } catch (error) {

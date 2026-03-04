@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
+import { FieldValue } from "firebase-admin/firestore";
 import { verifyRequestAuth } from "@/lib/firebase/verify-auth";
 
 async function getUid(request: NextRequest): Promise<string> {
@@ -130,7 +131,16 @@ export async function POST(request: NextRequest) {
         .doc(uid)
         .collection("posters")
         .doc(body.posterId)
-        .set({ instagramPostId: publishData.id, postedToInstagram: true }, { merge: true });
+        .set(
+          {
+            instagramPostId: publishData.id,
+            postedToInstagram: true,
+            postStatus: "posted",
+            postedAt: FieldValue.serverTimestamp(),
+            scheduledFor: FieldValue.delete(),
+          },
+          { merge: true }
+        );
     }
 
     return NextResponse.json({
@@ -140,8 +150,21 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     console.error("[Instagram post] Error:", err);
+    const errMsg = err instanceof Error ? err.message : "Failed to post to Instagram. Please try again.";
+    if (body.posterId) {
+      try {
+        await getAdminDb()
+          .collection("users")
+          .doc(uid)
+          .collection("posters")
+          .doc(body.posterId)
+          .set({ postStatus: "failed", postError: errMsg }, { merge: true });
+      } catch (e) {
+        console.warn("[Instagram post] Failed to update poster status:", e);
+      }
+    }
     return NextResponse.json(
-      { error: "Failed to post to Instagram. Please try again." },
+      { error: errMsg },
       { status: 500 }
     );
   }

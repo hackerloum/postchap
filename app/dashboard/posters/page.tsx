@@ -17,6 +17,7 @@ import {
   Pencil,
   X,
   RefreshCw,
+  CalendarClock,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -35,6 +36,10 @@ interface Poster {
   topic?: string;
   status: string;
   version: number;
+  postStatus?: string | null;
+  scheduledFor?: number | null;
+  postedAt?: number | null;
+  instagramPostId?: string | null;
   createdAt: number | null;
 }
 
@@ -106,6 +111,11 @@ function PostersPageContent() {
   const [regenerating, setRegenerating] = useState(false);
   const [fixInstruction, setFixInstruction] = useState("");
   const [fixing, setFixing] = useState(false);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [scheduling, setScheduling] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("08:00");
+  const [cancellingSchedule, setCancellingSchedule] = useState(false);
   const newRef = useRef<HTMLButtonElement>(null);
   const noUserTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -450,10 +460,70 @@ function PostersPageContent() {
         return;
       }
       toast.success(`Posted to @${data.username ?? "Instagram"} successfully!`);
+      loadPosters();
     } catch {
       toast.error("Failed to post to Instagram");
     } finally {
       setPostingToInstagram(false);
+    }
+  }
+
+  async function handleScheduleInstagram(poster: Poster) {
+    if (!poster.imageUrl) {
+      toast.error("No image found for this poster");
+      return;
+    }
+    const token = await getClientIdToken();
+    if (!token) { toast.error("Please sign in"); return; }
+
+    const date = scheduleDate || new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const scheduledFor = `${date}T${scheduleTime}:00.000Z`;
+
+    setScheduling(true);
+    try {
+      const res = await fetch(`/api/posters/${poster.id}/schedule-instagram`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ scheduledFor }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data?.error ?? "Failed to schedule");
+        return;
+      }
+      toast.success("Post scheduled");
+      setScheduleModalOpen(false);
+      loadPosters();
+    } catch {
+      toast.error("Failed to schedule");
+    } finally {
+      setScheduling(false);
+    }
+  }
+
+  async function handleCancelSchedule(poster: Poster) {
+    const token = await getClientIdToken();
+    if (!token) { toast.error("Please sign in"); return; }
+
+    setCancellingSchedule(true);
+    try {
+      const res = await fetch(`/api/posters/${poster.id}/cancel-schedule`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data?.error ?? "Failed to cancel");
+        return;
+      }
+      toast.success("Schedule cancelled");
+      loadPosters();
+    } catch {
+      toast.error("Failed to cancel");
+    } finally {
+      setCancellingSchedule(false);
     }
   }
 
@@ -644,20 +714,68 @@ function PostersPageContent() {
                     <ExternalLink size={12} />
                     Open
                   </button>
-                  {instagramConnected && (
-                    <button
-                      type="button"
-                      onClick={() => selected && handlePostToInstagram(selected)}
-                      disabled={!selected || postingToInstagram}
-                      className="flex items-center gap-1.5 bg-gradient-to-r from-[#f09433] to-[#bc1888] text-white font-semibold text-[12px] px-3 py-1.5 rounded-lg hover:opacity-90 transition-all min-h-[32px] disabled:opacity-50"
-                    >
-                      {postingToInstagram ? (
-                        <Loader2 size={12} className="animate-spin" />
+                  {instagramConnected && selected && (
+                    <div className="flex items-center gap-2">
+                      {selected.postStatus === "posted" ? (
+                        <span className="font-mono text-[10px] text-text-muted flex items-center gap-1">
+                          <CheckCircle size={10} className="text-success" />
+                          Posted {selected.postedAt ? formatDate(selected.postedAt) : ""}
+                        </span>
+                      ) : selected.postStatus === "scheduled" && selected.scheduledFor ? (
+                        <>
+                          <span className="font-mono text-[10px] text-text-muted flex items-center gap-1">
+                            <CalendarClock size={10} />
+                            Scheduled {formatDate(selected.scheduledFor)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleCancelSchedule(selected)}
+                            disabled={cancellingSchedule}
+                            className="text-[11px] text-text-muted hover:text-text-secondary"
+                          >
+                            {cancellingSchedule ? "…" : "Cancel"}
+                          </button>
+                        </>
+                      ) : selected.postStatus === "failed" ? (
+                        <button
+                          type="button"
+                          onClick={() => handlePostToInstagram(selected)}
+                          disabled={postingToInstagram}
+                          className="flex items-center gap-1.5 text-[11px] text-text-muted hover:text-accent"
+                        >
+                          {postingToInstagram ? <Loader2 size={10} className="animate-spin" /> : null}
+                          Retry
+                        </button>
                       ) : (
-                        <Instagram size={12} />
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => selected && handlePostToInstagram(selected)}
+                            disabled={postingToInstagram}
+                            className="flex items-center gap-1.5 bg-gradient-to-r from-[#f09433] to-[#bc1888] text-white font-semibold text-[12px] px-3 py-1.5 rounded-lg hover:opacity-90 transition-all min-h-[32px] disabled:opacity-50"
+                          >
+                            {postingToInstagram ? (
+                              <Loader2 size={12} className="animate-spin" />
+                            ) : (
+                              <Instagram size={12} />
+                            )}
+                            Post now
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setScheduleDate(new Date(Date.now() + 86400000).toISOString().slice(0, 10));
+                              setScheduleTime("08:00");
+                              setScheduleModalOpen(true);
+                            }}
+                            className="flex items-center gap-1.5 bg-bg-surface border border-border-default text-text-secondary font-medium text-[12px] px-3 py-1.5 rounded-lg hover:border-border-strong transition-all min-h-[32px]"
+                          >
+                            <CalendarClock size={12} />
+                            Schedule
+                          </button>
+                        </>
                       )}
-                      Post
-                    </button>
+                    </div>
                   )}
                   <button
                     type="button"
@@ -701,6 +819,60 @@ function PostersPageContent() {
                   </div>
                 )}
               </div>
+
+              {/* Schedule modal */}
+              {scheduleModalOpen && selected && (
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+                  onClick={() => !scheduling && setScheduleModalOpen(false)}
+                >
+                  <div
+                    className="bg-bg-base border border-border-default rounded-xl p-5 w-full max-w-sm mx-4 shadow-xl"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <h3 className="font-semibold text-[14px] text-text-primary mb-3">Schedule for Instagram</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="font-mono text-[10px] uppercase text-text-muted block mb-1">Date</label>
+                        <input
+                          type="date"
+                          value={scheduleDate}
+                          onChange={(e) => setScheduleDate(e.target.value)}
+                          className="w-full bg-bg-elevated border border-border-default rounded-lg px-3 py-2 text-[13px]"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-mono text-[10px] uppercase text-text-muted block mb-1">Time</label>
+                        <input
+                          type="time"
+                          value={scheduleTime}
+                          onChange={(e) => setScheduleTime(e.target.value)}
+                          className="w-full bg-bg-elevated border border-border-default rounded-lg px-3 py-2 text-[13px]"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <button
+                        type="button"
+                        onClick={() => setScheduleModalOpen(false)}
+                        disabled={scheduling}
+                        className="flex-1 bg-bg-elevated border border-border-default text-text-secondary font-medium text-[12px] px-3 py-2.5 rounded-lg"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleScheduleInstagram(selected)}
+                        disabled={scheduling}
+                        className="flex-1 bg-accent text-black font-semibold text-[12px] px-3 py-2.5 rounded-lg disabled:opacity-60 flex items-center justify-center gap-1.5"
+                      >
+                        {scheduling ? <Loader2 size={12} className="animate-spin" /> : null}
+                        {scheduling ? "Scheduling…" : "Schedule"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Fix bar */}
               {selected && (
