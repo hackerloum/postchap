@@ -65,3 +65,38 @@ export interface CopyData {
   cta: string;
   hashtags: string[];
 }
+
+export type ProductIntent = "showcase" | "promote" | "educate" | "testimonial";
+
+export interface ProductOverrides {
+  headlineFocus?: string;
+  showPrice?: boolean;
+  showDiscount?: boolean;
+  urgency?: "none" | "limited_stock" | "ends_soon" | "ends_today" | "ends_sunday";
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  priceLabel: string;
+  discountPrice?: number;
+  discountPriceLabel?: string;
+  category: string;
+  images: string[];
+  inStock: boolean;
+  tags: string[];
+  brandKitId?: string;
+  createdAt?: number | null;
+  updatedAt?: number | null;
+}
+
+export interface EditHistoryEntry {
+  version: number;
+  editedAt: number;
+  editType: "recomposite" | "regenerate" | "fix";
+  instruction?: string;
+  previousUrl: string;
+}

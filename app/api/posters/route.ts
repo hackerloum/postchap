@@ -34,6 +34,8 @@ export async function GET(request: NextRequest) {
       return {
         id: doc.id,
         imageUrl: d.imageUrl ?? null,
+        backgroundImageUrl: d.backgroundImageUrl ?? null,
+        originalImageUrl: d.originalImageUrl ?? null,
         headline: d.headline ?? copy.headline ?? d.message ?? "Poster",
         subheadline: d.subheadline ?? copy.subheadline ?? "",
         body: d.body ?? copy.body ?? "",
@@ -42,6 +44,13 @@ export async function GET(request: NextRequest) {
         theme: d.theme ?? "General",
         topic: d.topic ?? "",
         status: d.status ?? "generated",
+        version: d.version ?? 1,
+        editHistory: d.editHistory ?? [],
+        productId: d.productId ?? null,
+        productIntent: d.productIntent ?? null,
+        platformFormatId: d.platformFormatId ?? null,
+        width: d.width ?? 1080,
+        height: d.height ?? 1080,
         createdAt,
       };
     });

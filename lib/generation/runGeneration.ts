@@ -9,7 +9,7 @@ import { downloadResource } from "@/lib/freepik/resources";
 import { getPlatformFormat } from "@/lib/generation/platformFormats";
 import { compositePoster } from "@/lib/sharp/compositePoster";
 import { uploadBufferToCloudinary } from "@/lib/uploadToCloudinary";
-import type { BrandKit, CopyData, Recommendation } from "@/types/generation";
+import type { BrandKit, CopyData, Recommendation, Product, ProductIntent, ProductOverrides } from "@/types/generation";
 
 /** Describe brand colors for the image prompt using color names only — never hex codes. */
 function describeBrandColorsForPrompt(
@@ -125,7 +125,10 @@ export async function runGenerationForUser(
   platformFormatId?: string | null,
   inspirationImageUrl?: string | null,
   imageProviderId?: string | null,
-  useImprovePrompt?: boolean
+  useImprovePrompt?: boolean,
+  productId?: string | null,
+  productIntent?: ProductIntent | null,
+  productOverrides?: ProductOverrides | null
 ): Promise<RunGenerationResult> {
   const format = getPlatformFormat(platformFormatId);
   const db = getAdminDb();
@@ -164,7 +167,36 @@ export async function runGenerationForUser(
     website: kitData.website,
   };
 
-  const copy: CopyData = await generateCopy(brandKit, null, recommendation ?? null);
+  // Optionally load the product document for product-mode generation
+  let product: Product | null = null;
+  if (productId) {
+    const productSnap = await db
+      .collection("users").doc(uid).collection("brand_kits").doc(brandKitId)
+      .collection("products").doc(productId).get();
+    if (productSnap.exists) {
+      const pd = productSnap.data()!;
+      product = {
+        id: productSnap.id,
+        name:               pd.name          as string,
+        description:        pd.description   as string,
+        price:              pd.price         as number,
+        currency:           pd.currency      as string,
+        priceLabel:         pd.priceLabel    as string,
+        discountPrice:      pd.discountPrice as number | undefined,
+        discountPriceLabel: pd.discountPriceLabel as string | undefined,
+        category:           pd.category      as string,
+        images:             (pd.images       as string[]) ?? [],
+        inStock:            pd.inStock       as boolean,
+        tags:               (pd.tags         as string[]) ?? [],
+      };
+    }
+  }
+
+  const productContext = product
+    ? { product, intent: productIntent ?? "showcase" as ProductIntent, overrides: productOverrides ?? null }
+    : null;
+
+  const copy: CopyData = await generateCopy(brandKit, null, product ? null : (recommendation ?? null), productContext);
 
   let imagePrompt: string;
 
@@ -216,6 +248,30 @@ export async function runGenerationForUser(
     imagePrompt = await improvePrompt(mergedPrompt, { type: "image", language: "en" });
     imagePrompt = stripTemplateLabelsFromPrompt(imagePrompt);
     imagePrompt = ensureRealisticHumanStyle(imagePrompt);
+  } else if (product) {
+    // Product mode: build an image prompt that makes the product the visual hero
+    const colorDescription = describeBrandColorsForPrompt(
+      brandKit.primaryColor,
+      brandKit.secondaryColor,
+      brandKit.accentColor
+    );
+    const intentVisual: Record<string, string> = {
+      showcase:    "Clean studio composition, product centered, soft light, premium feel.",
+      promote:     "Bold, high-contrast layout with product prominent. Sense of urgency and excitement.",
+      educate:     "Informational, clean layout with product visible and clear visual hierarchy.",
+      testimonial: "Warm, trust-building aesthetic. Product with subtle lifestyle context.",
+    };
+    imagePrompt = [
+      `Professional social media poster for ${brandKit.brandName}.`,
+      `Product to feature: ${product.name}. ${product.description}`,
+      `The product must be the VISUAL HERO of this poster.`,
+      product.images?.length ? "Product reference image attached — use the actual product appearance faithfully. Do NOT invent or modify the product." : "",
+      `Brand colors: ${colorDescription}. Describe colors by name only, never write hex codes on the poster.`,
+      `Copy on poster: Headline "${copy.headline}". CTA "${copy.cta}". Brand name "${brandKit.brandName ?? ""}".`,
+      `Do NOT include any other visible text. No template watermarks. No service names.`,
+      intentVisual[productIntent ?? "showcase"] ?? intentVisual.showcase,
+      "Photographic or high-quality digital art style. Clean, production-ready poster quality.",
+    ].filter(Boolean).join(" ");
   } else {
     imagePrompt = await generateImagePrompt(brandKit, copy, null, recommendation ?? null);
     const shouldImprove =
@@ -238,6 +294,11 @@ export async function runGenerationForUser(
     brandKit.brandLocation?.continent
   );
 
+  // For product mode, pass the primary product photo as a visual reference to Gemini
+  const productReferenceImageUrl = (product?.images?.length ?? 0) > 0
+    ? (product!.images[0] ?? undefined)
+    : undefined;
+
   const { buffer: backgroundBuffer, imageHasText, logoHandledByAI, addCTAFromSharp } = await generateImage(
     imagePrompt,
     format.freepikAspectRatio,
@@ -251,7 +312,10 @@ export async function runGenerationForUser(
       // Pass inspiration image so Gemini can copy the layout directly from the visual reference
       inspirationImageUrl: (inspirationImageUrl != null && String(inspirationImageUrl).trim() !== "")
         ? String(inspirationImageUrl).trim()
-        : undefined,
+        : productReferenceImageUrl,
+      // Product reference (sent as visual hero instruction when in product mode)
+      productImageUrl: productReferenceImageUrl,
+      productName:     product?.name,
     }
   );
 
@@ -282,35 +346,55 @@ export async function runGenerationForUser(
     height: format.height,
   });
 
-  const posterId = `poster_${uid}_${Date.now()}`;
-  const imageUrl = await uploadBufferToCloudinary(
-    finalBuffer,
-    `artmaster/posters/${uid}`,
-    posterId
-  );
+  // Create Firestore doc first so we get a stable ID for both Cloudinary public_ids.
+  const col = db.collection("users").doc(uid).collection("posters");
+  const posterRef = await col.add({
+    userId: uid,
+    brandKitId,
+    status: "generating",
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+  const posterId = posterRef.id;
 
-  const posterRef = await db
-    .collection("users")
-    .doc(uid)
-    .collection("posters")
-    .add({
-      userId: uid,
-      brandKitId,
-      imageUrl,
-      headline: copy.headline,
-      subheadline: copy.subheadline,
-      body: copy.body,
-      cta: copy.cta,
-      hashtags: copy.hashtags ?? [],
-      theme: recommendation?.theme ?? "General",
-      topic: recommendation?.topic ?? "",
-      status: "generated",
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+  // Upload both the background (for future recomposite) and the final composite.
+  const [backgroundImageUrl, imageUrl] = await Promise.all([
+    uploadBufferToCloudinary(
+      backgroundBuffer,
+      `artmaster/posters/${uid}`,
+      `${posterId}_bg`
+    ),
+    uploadBufferToCloudinary(
+      finalBuffer,
+      `artmaster/posters/${uid}`,
+      posterId
+    ),
+  ]);
+
+  await posterRef.update({
+    imageUrl,
+    backgroundImageUrl,
+    originalImageUrl: imageUrl,
+    headline:    copy.headline,
+    subheadline: copy.subheadline,
+    body:        copy.body,
+    cta:         copy.cta,
+    hashtags:    copy.hashtags ?? [],
+    theme:       product ? `Product: ${product.name}` : (recommendation?.theme ?? "General"),
+    topic:       product ? (productIntent ?? "showcase") : (recommendation?.topic ?? ""),
+    status:      "generated",
+    version:     1,
+    editHistory: [],
+    platformFormatId: platformFormatId ?? null,
+    productId:   productId ?? null,
+    productIntent: productIntent ?? null,
+    width:  format.width,
+    height: format.height,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
 
   return {
-    posterId: posterRef.id,
+    posterId,
     imageUrl,
     copy,
   };

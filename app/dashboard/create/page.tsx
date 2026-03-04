@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import {
@@ -17,12 +17,19 @@ import {
   X,
   Instagram,
   Lock,
+  Package,
+  ShoppingBag,
+  BookOpen,
+  Star,
+  ChevronDown,
 } from "lucide-react";
+import type { Product, ProductIntent, ProductOverrides } from "@/types/generation";
 import { toast } from "sonner";
 import { getClientIdToken } from "@/lib/auth-client";
 import { getAuthClient } from "@/lib/firebase/client";
 import { PLATFORM_FORMATS } from "@/lib/generation/platformFormats";
 import { IMAGE_PROVIDERS, DEFAULT_IMAGE_PROVIDER, isProviderLockedForPlan } from "@/lib/image-models";
+import { LogoLoadingScreen } from "@/components/dashboard/LogoLoadingScreen";
 import { PricingModal } from "@/components/PricingModal";
 import { getPerPosterPriceForCountry } from "@/lib/pricing";
 import type { PlanId } from "@/lib/plans";
@@ -52,7 +59,7 @@ interface BrandKit {
   brandLocation?: { country?: string; city?: string; continent?: string };
 }
 
-type GenerateMode = "ai" | "template" | "inspiration";
+type GenerateMode = "ai" | "template" | "inspiration" | "product";
 
 interface TemplateItem {
   id: string;
@@ -387,6 +394,12 @@ function CreatePageContent() {
   const [inspirationImageUrl, setInspirationImageUrl] = useState("");
   const [inspirationPreview, setInspirationPreview] = useState<string | null>(null);
   const [uploadingInspiration, setUploadingInspiration] = useState(false);
+  // Product mode state
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [productIntent, setProductIntent] = useState<ProductIntent>("showcase");
+  const [productOverrides, setProductOverrides] = useState<ProductOverrides>({ showPrice: true, showDiscount: true, urgency: "none" });
   const [plan, setPlan] = useState<PlanId>("free");
   const [trial, setTrial] = useState<{
     active: boolean;
@@ -499,6 +512,39 @@ function CreatePageContent() {
       setSuggestedSearches([]);
     }
   }, [selectedKit?.id]);
+
+  // Load products when brand kit changes (used in Product mode)
+  useEffect(() => {
+    if (!selectedKit?.id) { setProducts([]); return; }
+    let cancelled = false;
+    setLoadingProducts(true);
+    const paramProductId = searchParams.get("productId");
+    getToken()
+      .then(token => fetch(`/api/brand-kits/${selectedKit.id}/products`, { headers: { Authorization: `Bearer ${token}` } }))
+      .then(res => res.ok ? res.json() : Promise.reject())
+      .then(data => {
+        if (!cancelled) {
+          const list: Product[] = data.products ?? [];
+          setProducts(list);
+          if (paramProductId) {
+            const match = list.find(p => p.id === paramProductId);
+            if (match) setSelectedProduct(match);
+          }
+        }
+      })
+      .catch(() => { /* non-critical */ })
+      .finally(() => { if (!cancelled) setLoadingProducts(false); });
+    return () => { cancelled = true; };
+  }, [selectedKit?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-select product from URL params (e.g. from products page "Generate poster")
+  useEffect(() => {
+    const paramProductId  = searchParams.get("productId");
+    const paramBrandKitId = searchParams.get("brandKitId");
+    if (paramProductId && paramBrandKitId) {
+      setMode("product");
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // If current plan doesn't allow the selected provider (e.g. downgraded from Business), reset to default.
   useEffect(() => {
@@ -816,6 +862,12 @@ function CreatePageContent() {
         return;
       }
     }
+    if (mode === "product") {
+      if (!selectedProduct) {
+        toast.error("Select a product to generate a poster");
+        return;
+      }
+    }
 
     setGenerating(true);
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -837,11 +889,16 @@ function CreatePageContent() {
         platformFormatId,
         imageProviderId: trial.modelLockedToSeedream ? "freepik:seedream" : imageProviderId,
         useImprovePrompt,
-        recommendation: recommendationPayload,
-        customTopic: useCustom && customTopic.trim() ? customTopic : null,
+        recommendation: mode === "product" ? null : recommendationPayload,
+        customTopic: mode === "product" ? null : (useCustom && customTopic.trim() ? customTopic : null),
         templateId: mode === "template" ? (selectedTemplateId ?? null) : null,
         templateName: mode === "template" ? (selectedFreepikTemplateTitle || null) : null,
         ...(inspirationImageUrlValue ? { inspirationImageUrl: inspirationImageUrlValue } : {}),
+        ...(mode === "product" && selectedProduct ? {
+          productId: selectedProduct.id,
+          productIntent,
+          productOverrides,
+        } : {}),
       };
 
       setGenerationStep(
@@ -849,7 +906,9 @@ function CreatePageContent() {
           ? "Analyzing style reference & writing copy..."
           : mode === "template"
             ? "Analyzing template & writing copy..."
-            : "Writing copy & generating image..."
+            : mode === "product"
+              ? "Building product poster..."
+              : "Writing copy & generating image..."
       );
       // Minimal yield so React paints the step message before the blocking fetch.
       await new Promise((r) => setTimeout(r, 50));
@@ -907,19 +966,7 @@ function CreatePageContent() {
   };
 
   if (loadingKits) {
-    return (
-      <div className="min-h-screen bg-bg-base flex flex-col items-center justify-center gap-4">
-        <Image
-          src="/artmasterwordmarklogo-03-03.webp"
-          alt="ArtMaster"
-          width={140}
-          height={40}
-          className="h-8 w-auto object-contain opacity-90"
-          priority
-        />
-        <Loader2 size={18} className="text-accent animate-spin" />
-      </div>
-    );
+    return <LogoLoadingScreen />;
   }
 
   if (brandKits.length === 0) {
@@ -1118,19 +1165,20 @@ function CreatePageContent() {
         <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mt-6 mb-2">
           Generation mode
         </p>
-        <div className="flex items-center gap-1 bg-bg-surface border border-border-default rounded-xl p-1 w-full max-w-md">
+        <div className="flex items-center gap-1 bg-bg-surface border border-border-default rounded-xl p-1 w-full max-w-xl">
           {(
             [
               { id: "ai" as GenerateMode, label: "AI Pick", icon: <Sparkles size={13} /> },
               { id: "template" as GenerateMode, label: "Templates", icon: <LayoutTemplate size={13} /> },
               { id: "inspiration" as GenerateMode, label: "Inspiration", icon: <ImagePlus size={13} /> },
+              { id: "product" as GenerateMode, label: "Product", icon: <Package size={13} /> },
             ] as const
           ).map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setMode(tab.id)}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-150 ${
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-[12px] font-medium transition-all duration-150 ${
                 mode === tab.id ? "bg-bg-elevated text-text-primary shadow-sm" : "text-text-muted hover:text-text-secondary"
               }`}
             >
@@ -1400,8 +1448,158 @@ function CreatePageContent() {
             />
           )}
 
-          {/* Content recommendations + custom brief — on all tabs so Template/Inspiration can choose content too */}
-          <div className="bg-bg-surface border border-border-default rounded-2xl overflow-hidden">
+          {/* Product mode */}
+          {mode === "product" && (
+            <div className="bg-bg-surface border border-border-default rounded-2xl overflow-hidden">
+              <div className="px-5 py-4 border-b border-border-subtle">
+                <div className="flex items-center gap-2">
+                  <Package size={14} className="text-accent" />
+                  <span className="font-semibold text-[14px] text-text-primary">Select product</span>
+                </div>
+                <p className="font-mono text-[10px] text-text-muted mt-0.5">
+                  Pick a product from your library. The AI will use it as the poster brief.
+                </p>
+              </div>
+
+              <div className="p-4">
+                {loadingProducts ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 size={16} className="text-accent animate-spin" />
+                  </div>
+                ) : products.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Package size={24} className="text-text-muted mx-auto mb-2" />
+                    <p className="font-mono text-[12px] text-text-muted mb-3">No products yet</p>
+                    <a href="/dashboard/products" className="font-mono text-[12px] text-accent hover:underline">
+                      + Add your first product →
+                    </a>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {products.map(p => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setSelectedProduct(p)}
+                        className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all duration-150 ${
+                          selectedProduct?.id === p.id
+                            ? "border-accent bg-accent/5 ring-1 ring-accent/20"
+                            : "border-border-default bg-bg-elevated hover:border-border-strong"
+                        }`}
+                      >
+                        {p.images?.[0] ? (
+                          <img src={p.images[0]} alt={p.name} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-bg-surface border border-border-subtle flex items-center justify-center shrink-0">
+                            <Package size={16} className="text-text-muted" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-[13px] text-text-primary truncate">{p.name}</p>
+                          <p className="font-mono text-[10px] text-text-muted">
+                            {p.priceLabel}
+                            {p.discountPriceLabel && <span className="text-accent ml-1.5">→ {p.discountPriceLabel}</span>}
+                            {p.category && <span className="ml-1.5">· {p.category}</span>}
+                          </p>
+                        </div>
+                        {selectedProduct?.id === p.id && (
+                          <CheckCircle size={16} className="text-accent shrink-0" />
+                        )}
+                      </button>
+                    ))}
+                    <a href="/dashboard/products" className="block text-center font-mono text-[11px] text-text-muted hover:text-accent pt-1 transition-colors">
+                      Manage products →
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {selectedProduct && (
+                <div>
+                  {/* Poster intent */}
+                  <div className="px-5 py-4 border-t border-border-subtle">
+                    <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted mb-3">Poster intent</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(([
+                        { id: "showcase", label: "Showcase", icon: <ShoppingBag size={13} />, desc: "Feature the product & benefits" },
+                        { id: "promote", label: "Promote / Sell", icon: <Zap size={13} />, desc: "Price front & center, hard CTA" },
+                        { id: "educate", label: "Educate", icon: <BookOpen size={13} />, desc: "How it works, problem → solution" },
+                        { id: "testimonial", label: "Testimonial", icon: <Star size={13} />, desc: "Quote + social proof" },
+                      ]) as { id: ProductIntent; label: string; icon: React.ReactNode; desc: string }[]).map(intent => (
+                        <button
+                          key={intent.id}
+                          type="button"
+                          onClick={() => setProductIntent(intent.id)}
+                          className={`flex flex-col gap-1.5 p-3 rounded-xl border text-left transition-all duration-150 ${
+                            productIntent === intent.id
+                              ? "border-accent bg-accent/5 ring-1 ring-accent/20"
+                              : "border-border-default bg-bg-elevated hover:border-border-strong"
+                          }`}
+                        >
+                          <div className={`flex items-center gap-1.5 ${productIntent === intent.id ? "text-accent" : "text-text-muted"}`}>
+                            {intent.icon}
+                            <span className="font-semibold text-[12px] text-text-primary">{intent.label}</span>
+                          </div>
+                          <p className="font-mono text-[10px] text-text-muted leading-relaxed">{intent.desc}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Optional overrides */}
+                  <div className="px-5 py-4 border-t border-border-subtle">
+                    <p className="font-mono text-[11px] uppercase tracking-wider text-text-muted mb-3">
+                      Options <span className="text-text-muted/60">(optional)</span>
+                    </p>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[13px] text-text-secondary">Show price</span>
+                        <button
+                          type="button"
+                          onClick={() => setProductOverrides(o => ({ ...o, showPrice: !o.showPrice }))}
+                          className={`relative w-10 h-5 rounded-full transition-all duration-200 ${productOverrides.showPrice ? "bg-accent" : "bg-bg-elevated border border-border-strong"}`}
+                        >
+                          <div className={`absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200 shadow-sm ${productOverrides.showPrice ? "left-5 bg-black" : "left-0.5 bg-text-muted"}`} />
+                        </button>
+                      </div>
+                      {selectedProduct.discountPrice != null && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-[13px] text-text-secondary">Show discount</span>
+                          <button
+                            type="button"
+                            onClick={() => setProductOverrides(o => ({ ...o, showDiscount: !o.showDiscount }))}
+                            className={`relative w-10 h-5 rounded-full transition-all duration-200 ${productOverrides.showDiscount ? "bg-accent" : "bg-bg-elevated border border-border-strong"}`}
+                          >
+                            <div className={`absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200 shadow-sm ${productOverrides.showDiscount ? "left-5 bg-black" : "left-0.5 bg-text-muted"}`} />
+                          </button>
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-[13px] text-text-secondary block mb-1.5">Urgency</span>
+                        <div className="relative">
+                          <select
+                            value={productOverrides.urgency ?? "none"}
+                            onChange={e => setProductOverrides(o => ({ ...o, urgency: e.target.value as ProductOverrides["urgency"] }))}
+                            className="w-full appearance-none bg-bg-elevated border border-border-default rounded-xl px-3 py-2.5 pr-8 text-[13px] text-text-primary outline-none focus:border-accent transition-colors cursor-pointer"
+                          >
+                            <option value="none">None</option>
+                            <option value="limited_stock">Limited stock</option>
+                            <option value="ends_soon">Ends soon</option>
+                            <option value="ends_today">Ends today</option>
+                            <option value="ends_sunday">Ends Sunday</option>
+                          </select>
+                          <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Content recommendations + custom brief — on all tabs except Product (product IS the brief) */}
+          <div className={`bg-bg-surface border border-border-default rounded-2xl overflow-hidden${mode === "product" ? " hidden" : ""}`}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle">
               <div>
                 <div className="flex items-center gap-2">
@@ -1624,37 +1822,47 @@ function CreatePageContent() {
           <div className="hidden lg:block sticky top-6 space-y-3">
             {(mode === "ai" && (selectedRec || (useCustom && customTopic))) ||
             (mode === "template" && selectedTemplateId != null && (selectedRec || (useCustom && customTopic))) ||
-            (mode === "inspiration" && (inspirationUrl.trim() || inspirationFile || inspirationImageUrl.trim()) && (selectedRec || (useCustom && customTopic))) ? (
+            (mode === "inspiration" && (inspirationUrl.trim() || inspirationFile || inspirationImageUrl.trim()) && (selectedRec || (useCustom && customTopic))) ||
+            (mode === "product" && selectedProduct) ? (
               <div className="bg-bg-surface border border-border-default rounded-2xl p-4 space-y-2 animate-fade-up">
                 <p className="font-mono text-[10px] uppercase tracking-wider text-accent">
-                  {mode === "ai" ? "Ready" : mode === "template" ? "Template + content" : "Inspiration + content"}
+                  {mode === "ai" ? "Ready" : mode === "template" ? "Template + content" : mode === "inspiration" ? "Inspiration + content" : "Product poster"}
                 </p>
-                {selectedRec && !useCustom && (
+                {mode === "product" && selectedProduct ? (
                   <>
-                    <p className="font-semibold text-[13px] text-text-primary leading-tight">{selectedRec.theme}</p>
-                    <p className="font-mono text-[11px] text-text-muted leading-relaxed line-clamp-2">{selectedRec.topic}</p>
+                    <p className="font-semibold text-[13px] text-text-primary leading-tight">{selectedProduct.name}</p>
+                    <p className="font-mono text-[11px] text-text-muted">{selectedProduct.priceLabel} · {productIntent}</p>
                   </>
-                )}
-                {useCustom && customTopic && (
+                ) : (
                   <>
-                    <p className="font-semibold text-[13px] text-text-primary leading-tight">Custom brief</p>
-                    <p className="font-mono text-[11px] text-text-muted leading-relaxed line-clamp-2">{customTopic}</p>
-                  </>
-                )}
-                {mode === "template" && selectedTemplateId != null && (
-                  <>
-                    <p className="font-semibold text-[13px] text-text-primary leading-tight line-clamp-2 mt-1">
-                      {selectedFreepikTemplateTitle || "Template selected"}
-                    </p>
-                    <p className="font-mono text-[11px] text-text-muted">Freepik style</p>
-                  </>
-                )}
-                {mode === "inspiration" && (inspirationUrl.trim() || inspirationFile || inspirationImageUrl.trim()) && (
-                  <>
-                    <p className="font-semibold text-[13px] text-text-primary leading-tight mt-1">Style reference</p>
-                    <p className="font-mono text-[11px] text-text-muted">
-                      {inspirationFile ? inspirationFile.name : "URL provided"}
-                    </p>
+                    {selectedRec && !useCustom && (
+                      <>
+                        <p className="font-semibold text-[13px] text-text-primary leading-tight">{selectedRec.theme}</p>
+                        <p className="font-mono text-[11px] text-text-muted leading-relaxed line-clamp-2">{selectedRec.topic}</p>
+                      </>
+                    )}
+                    {useCustom && customTopic && (
+                      <>
+                        <p className="font-semibold text-[13px] text-text-primary leading-tight">Custom brief</p>
+                        <p className="font-mono text-[11px] text-text-muted leading-relaxed line-clamp-2">{customTopic}</p>
+                      </>
+                    )}
+                    {mode === "template" && selectedTemplateId != null && (
+                      <>
+                        <p className="font-semibold text-[13px] text-text-primary leading-tight line-clamp-2 mt-1">
+                          {selectedFreepikTemplateTitle || "Template selected"}
+                        </p>
+                        <p className="font-mono text-[11px] text-text-muted">Freepik style</p>
+                      </>
+                    )}
+                    {mode === "inspiration" && (inspirationUrl.trim() || inspirationFile || inspirationImageUrl.trim()) && (
+                      <>
+                        <p className="font-semibold text-[13px] text-text-primary leading-tight mt-1">Style reference</p>
+                        <p className="font-mono text-[11px] text-text-muted">
+                          {inspirationFile ? inspirationFile.name : "URL provided"}
+                        </p>
+                      </>
+                    )}
                   </>
                 )}
                 {selectedPlatform && (
@@ -1700,7 +1908,8 @@ function CreatePageContent() {
                 !selectedPlatform ||
                 (mode === "ai" && !selectedRec && !(useCustom && customTopic.trim())) ||
                 (mode === "template" && (selectedTemplateId == null || (!selectedRec && !(useCustom && customTopic.trim())))) ||
-                (mode === "inspiration" && (!inspirationUrl.trim() && !inspirationImageUrl.trim() || (!selectedRec && !(useCustom && customTopic.trim())))))
+                (mode === "inspiration" && (!inspirationUrl.trim() && !inspirationImageUrl.trim() || (!selectedRec && !(useCustom && customTopic.trim())))) ||
+                (mode === "product" && !selectedProduct))
               }
               className="w-full bg-accent text-black font-semibold text-[14px] py-3.5 rounded-xl hover:bg-accent-dim transition-all duration-200 active:scale-[0.99] min-h-[52px] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
@@ -1722,18 +1931,22 @@ function CreatePageContent() {
             </button>
             {!(mode === "ai" && (selectedRec || (useCustom && customTopic))) &&
               !(mode === "template" && selectedTemplateId != null && (selectedRec || (useCustom && customTopic))) &&
-              !(mode === "inspiration" && (inspirationUrl.trim() || inspirationImageUrl.trim()) && (selectedRec || (useCustom && customTopic))) && (
+              !(mode === "inspiration" && (inspirationUrl.trim() || inspirationImageUrl.trim()) && (selectedRec || (useCustom && customTopic))) &&
+              !(mode === "product" && selectedProduct) && (
               <p className="font-mono text-[10px] text-text-muted text-center">
                 {mode === "ai"
                   ? "Select a recommendation or write a brief"
                   : mode === "template"
                     ? "Select a template and choose content"
-                    : "Set inspiration image and choose content"}
+                    : mode === "product"
+                      ? "Select a product above"
+                      : "Set inspiration image and choose content"}
               </p>
             )}
             {((mode === "ai" && (selectedRec || (useCustom && customTopic))) ||
               (mode === "template" && selectedTemplateId != null && (selectedRec || (useCustom && customTopic))) ||
-              (mode === "inspiration" && (inspirationUrl.trim() || inspirationImageUrl.trim()) && (selectedRec || (useCustom && customTopic)))) && (
+              (mode === "inspiration" && (inspirationUrl.trim() || inspirationImageUrl.trim()) && (selectedRec || (useCustom && customTopic))) ||
+              (mode === "product" && selectedProduct)) && (
               <p className="font-mono text-[10px] text-text-muted text-center">Takes 30–60 seconds</p>
             )}
           </div>
@@ -1751,7 +1964,8 @@ function CreatePageContent() {
             !selectedPlatform ||
             (mode === "ai" && !selectedRec && !(useCustom && customTopic.trim())) ||
             (mode === "template" && (selectedTemplateId == null || (!selectedRec && !(useCustom && customTopic.trim())))) ||
-            (mode === "inspiration" && (!inspirationUrl.trim() && !inspirationImageUrl.trim() || (!selectedRec && !(useCustom && customTopic.trim())))))
+            (mode === "inspiration" && (!inspirationUrl.trim() && !inspirationImageUrl.trim() || (!selectedRec && !(useCustom && customTopic.trim())))) ||
+            (mode === "product" && !selectedProduct))
           }
           className="w-full bg-accent text-black font-semibold text-[15px] py-4 rounded-xl hover:bg-accent-dim transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[56px]"
         >

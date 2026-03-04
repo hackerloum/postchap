@@ -66,6 +66,35 @@ export async function uploadLogoToCloudinary(
   });
 }
 
+/** Upload a product image. Returns public URL. */
+export async function uploadProductImageToCloudinary(
+  fileBuffer: Buffer,
+  uid: string,
+  productId: string
+): Promise<string> {
+  const cloudinary = getCloudinary();
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader
+      .upload_stream(
+        {
+          folder: `artmaster/products/${uid}/${productId}`,
+          public_id: `img_${Date.now()}`,
+          resource_type: "image",
+          transformation: [
+            { width: 1200, height: 1200, crop: "limit" },
+            { quality: "auto", fetch_format: "auto" },
+          ],
+        },
+        (error, result) => {
+          if (error) reject(new Error(error.message));
+          else if (!result?.secure_url) reject(new Error("No URL"));
+          else resolve(result.secure_url);
+        }
+      )
+      .end(fileBuffer);
+  });
+}
+
 /** Upload an inspiration image (user reference for poster style). Returns public URL for image-to-prompt. */
 export async function uploadInspirationToCloudinary(
   fileBuffer: Buffer,

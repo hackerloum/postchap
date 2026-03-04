@@ -47,6 +47,10 @@ export interface GeminiBrandKit {
   samplePosterUrl?: string;
   /** When provided, Gemini receives the inspiration image as inline data and copies its exact layout */
   inspirationImageUrl?: string;
+  /** Product reference image — Gemini uses this as the visual hero for product posters */
+  productImageUrl?: string;
+  /** Product name — used in the product reference prompt */
+  productName?: string;
 }
 
 function getGeminiAspectRatio(freepikAspectRatio: string): string {
@@ -148,7 +152,24 @@ export async function generateImageNanaBanana(
   const parts: any[] = [];
   let logoSentToAI = false;
 
-  // Part 0 — Inspiration image (if provided) — send BEFORE logo so Gemini understands layout first
+  // Part 0a — Product reference image (if provided, product mode) — send FIRST so it is the visual hero
+  if (brandKit?.productImageUrl && !brandKit.inspirationImageUrl) {
+    const productImg = await imageUrlToInlineData(brandKit.productImageUrl);
+    if (productImg) {
+      parts.push({ inlineData: { mimeType: productImg.mimeType, data: productImg.data } });
+      parts.push({
+        text: `PRODUCT PHOTO REFERENCE (the image above): This is the actual product "${brandKit.productName ?? "product"}" that must be the VISUAL HERO of this poster.
+- Feature this product prominently and clearly in the composition
+- Use the product's actual appearance — do NOT invent, stylize, or modify it
+- Professional product photography style: clean background, well-lit, centered
+- The product should occupy at least 40% of the visual space
+- Do NOT obscure the product with text or design elements`,
+      });
+      console.log("[NanaBanana] Product image sent as visual hero reference");
+    }
+  }
+
+  // Part 0b — Inspiration image (if provided) — send BEFORE logo so Gemini understands layout first
   if (brandKit?.inspirationImageUrl) {
     const inspiration = await imageUrlToInlineData(brandKit.inspirationImageUrl);
     if (inspiration) {

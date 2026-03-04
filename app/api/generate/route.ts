@@ -6,7 +6,7 @@ import { getPlanLimits, type PlanId } from "@/lib/plans";
 import { getUserPlan } from "@/lib/user-plan";
 import { isProviderLockedForPlan } from "@/lib/image-models";
 import { getTrialState, incrementTrialPostCount } from "@/lib/trial";
-import type { Recommendation } from "@/types/generation";
+import type { Recommendation, ProductIntent, ProductOverrides } from "@/types/generation";
 import { verifyRequestAuth } from "@/lib/firebase/verify-auth";
 
 export const maxDuration = 300;
@@ -32,6 +32,9 @@ export async function POST(request: NextRequest) {
     inspirationImageUrl?: string | null;
     imageProviderId?: string | null;
     useImprovePrompt?: boolean;
+    productId?: string | null;
+    productIntent?: ProductIntent | null;
+    productOverrides?: ProductOverrides | null;
   };
   try {
     body = await request.json();
@@ -47,6 +50,9 @@ export async function POST(request: NextRequest) {
     inspirationImageUrl,
     imageProviderId,
     useImprovePrompt,
+    productId,
+    productIntent,
+    productOverrides,
   } = body;
 
   if (!brandKitId) {
@@ -175,7 +181,10 @@ export async function POST(request: NextRequest) {
       platformFormatId ?? null,
       inspirationImageUrl ?? null,
       imageProviderId ?? null,
-      useImprovePrompt
+      useImprovePrompt,
+      productId ?? null,
+      productIntent ?? null,
+      productOverrides ?? null
     );
     return NextResponse.json({
       success: true,

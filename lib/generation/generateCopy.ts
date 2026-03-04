@@ -1,10 +1,17 @@
 import OpenAI from "openai";
-import type { BrandKit, CopyData, OccasionContext, Recommendation } from "@/types/generation";
+import type { BrandKit, CopyData, OccasionContext, Recommendation, Product, ProductIntent, ProductOverrides } from "@/types/generation";
+
+interface ProductContext {
+  product: Product;
+  intent: ProductIntent;
+  overrides?: ProductOverrides | null;
+}
 
 export async function generateCopy(
   brandKit: BrandKit,
   occasionContext?: OccasionContext | null,
-  recommendation?: Recommendation | null
+  recommendation?: Recommendation | null,
+  productContext?: ProductContext | null
 ): Promise<CopyData> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("Copy generation is not available. Please try again later.");
@@ -39,7 +46,40 @@ Stay on this specific theme.
       ? `OCCASION (write specifically for this): Name: ${occasionContext.name} Category: ${occasionContext.category ?? ""} Visual mood: ${occasionContext.visualMood ?? ""} Tone: ${occasionContext.messagingTone ?? ""}. CRITICAL: Copy MUST reference ${occasionContext.name} in ${brandKit.brandLocation?.country ?? "their market"}.`
       : `No specific occasion. Write evergreen content for ${brandKit.brandName}.`;
 
-  const userPrompt = `${brandContext}\n${occasionSection}\nWrite copy for ${brandKit.brandName}. Return only the JSON object.`;
+  // Product-mode: override the content direction with product context
+  let userPrompt: string;
+  if (productContext) {
+    const { product, intent, overrides } = productContext;
+    const urgencyNote = overrides?.urgency && overrides.urgency !== "none"
+      ? `Urgency: ${overrides.urgency.replace(/_/g, " ")}`
+      : "";
+    const priceNote = overrides?.showPrice !== false
+      ? `Price: ${product.priceLabel}${overrides?.showDiscount !== false && product.discountPriceLabel ? ` (was ${product.priceLabel}, now ${product.discountPriceLabel})` : ""}`
+      : "";
+    const intentRules: Record<ProductIntent, string> = {
+      showcase: "Lead with product name and 2-3 benefits. Soft, inviting CTA. No hard-sell pressure.",
+      promote:  "Price MUST appear in headline or subheadline. Hard sell CTA (e.g. Buy Now, Order Today). Include urgency if provided.",
+      educate:  "Problem → Solution format. Explain how the product works in simple language. Soft CTA.",
+      testimonial: "Write as a customer quote/testimonial. Include result or outcome. Social proof CTA.",
+    };
+
+    const productPrompt = `PRODUCT POSTER BRIEF:
+Product: ${product.name}
+Description: ${product.description}
+${priceNote}
+${urgencyNote}
+Intent: ${intent}
+
+COPY RULES FOR THIS INTENT:
+${intentRules[intent]}
+
+${brandContext}
+
+Write product poster copy for ${brandKit.brandName}. Return only the JSON object.`;
+    userPrompt = productPrompt;
+  } else {
+    userPrompt = `${brandContext}\n${occasionSection}\nWrite copy for ${brandKit.brandName}. Return only the JSON object.`;
+  }
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o",

@@ -10,27 +10,29 @@ import {
   Images,
   Palette,
   CalendarClock,
-  Zap,
+  Package,
   LogOut,
   User,
   Settings,
+  Zap,
 } from "lucide-react";
 import { getAuthClient } from "@/lib/firebase/client";
 
 const TOP_NAV_ITEMS = [
-  { label: "Overview", href: "/dashboard", icon: <LayoutDashboard size={13} /> },
-  { label: "Generate", href: "/dashboard/create", icon: <Sparkles size={13} /> },
-  { label: "Posters", href: "/dashboard/posters", icon: <Images size={13} /> },
+  { label: "Overview",   href: "/dashboard",          icon: <LayoutDashboard size={13} /> },
+  { label: "Generate",   href: "/dashboard/create",   icon: <Sparkles size={13} /> },
+  { label: "Posters",    href: "/dashboard/posters",  icon: <Images size={13} /> },
+  { label: "Products",   href: "/dashboard/products", icon: <Package size={13} /> },
   { label: "Brand Kits", href: "/dashboard/brand-kits", icon: <Palette size={13} /> },
-  { label: "Schedule", href: "/dashboard/schedule", icon: <CalendarClock size={13} /> },
-  { label: "Settings", href: "/dashboard/settings", icon: <Settings size={13} /> },
+  { label: "Schedule",   href: "/dashboard/schedule", icon: <CalendarClock size={13} /> },
+  { label: "Settings",   href: "/dashboard/settings", icon: <Settings size={13} /> },
 ];
 
 const BOTTOM_NAV_ITEMS = [
-  { label: "Home", href: "/dashboard", icon: <LayoutDashboard size={18} /> },
-  { label: "Generate", href: "/dashboard/create", icon: <Sparkles size={18} /> },
-  { label: "Posters", href: "/dashboard/posters", icon: <Images size={18} /> },
-  { label: "Kits", href: "/dashboard/brand-kits", icon: <Palette size={18} /> },
+  { label: "Home",     href: "/dashboard",          icon: <LayoutDashboard size={18} /> },
+  { label: "Generate", href: "/dashboard/create",   icon: <Sparkles size={18} /> },
+  { label: "Posters",  href: "/dashboard/posters",  icon: <Images size={18} /> },
+  { label: "Products", href: "/dashboard/products", icon: <Package size={18} /> },
 ];
 
 function usePlan() {
