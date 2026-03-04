@@ -196,29 +196,33 @@ export async function compositePoster({
     const hasContactText = contactParts.length > 0;
     const contactBarH = Math.round(44 * scale);
 
+    // Contact bar: only render when text is Latin-renderable by the server font stack.
+    // Non-Latin scripts (Arabic, CJK, etc.) produce □ box artifacts — skip entirely.
     if (hasContactText) {
       const line = contactParts.join("  |  ");
-      const contactRenderable = isLatinRenderable(line);
-      const contactTextEl = contactRenderable
-        ? `<text x="${W / 2}" y="${contactBarH / 2 + 4}" text-anchor="middle"
+      if (isLatinRenderable(line)) {
+        const contactSvg = `<svg width="${W}" height="${contactBarH}" xmlns="http://www.w3.org/2000/svg">
+          <rect width="${W}" height="${contactBarH}" fill="${secondary}" opacity="0.85"/>
+          <text x="${W / 2}" y="${contactBarH / 2 + 4}" text-anchor="middle"
                 font-family="${SERVER_FONT}"
                 font-size="${Math.round(12 * scale)}" fill="${primary}"
-                opacity="0.95" dominant-baseline="middle">${escapeXml(line)}</text>`
-        : "";
-      const contactSvg = `<svg width="${W}" height="${contactBarH}" xmlns="http://www.w3.org/2000/svg">
-        <rect width="${W}" height="${contactBarH}" fill="${secondary}" opacity="0.85"/>
-        ${contactTextEl}
-      </svg>`;
-      compositeInputs.push({
-        input: Buffer.from(contactSvg),
-        top: H - contactBarH,
-        left: 0,
-        blend: "over",
-      });
+                opacity="0.95" dominant-baseline="middle">${escapeXml(line)}</text>
+        </svg>`;
+        compositeInputs.push({
+          input: Buffer.from(contactSvg),
+          top: H - contactBarH,
+          left: 0,
+          blend: "over",
+        });
+      }
+      // Non-Latin contact text: silently skip — the AI-generated image already
+      // contains the brand identity in the correct script.
     }
 
-    // Gemini is told not to draw a CTA box — Sharp places it here instead.
-    if (addCTAFromSharp && copy.cta) {
+    // Gemini CTA: only render the button when the text is Latin-renderable.
+    // Non-Latin CTA text would show as □ boxes — skip the entire overlay rather
+    // than drawing a blank rectangle with no readable label.
+    if (addCTAFromSharp && copy.cta && isLatinRenderable(copy.cta)) {
       const ctaH = Math.round(48 * scale);
       const ctaBottomMargin = Math.round(18 * scale);
       const ctaY = hasContactText
@@ -229,18 +233,6 @@ export async function compositePoster({
       const backdropH = ctaH + Math.round(20 * scale);
       const backdropY = ctaY - Math.round(10 * scale);
 
-      // Only render the CTA text when the font can handle the script.
-      // Non-Latin scripts (Arabic, CJK, etc.) render as □ boxes with the
-      // server's limited font stack — skip the text element in that case.
-      const ctaTextRenderable = isLatinRenderable(copy.cta);
-      const ctaTextEl = ctaTextRenderable
-        ? `<text x="${PADDING + Math.round(ctaW / 2)}" y="${ctaY + Math.round(ctaH / 2)}"
-                text-anchor="middle"
-                font-family="${SERVER_FONT}" font-weight="700"
-                font-size="${Math.round(18 * scale)}" fill="${secondary}"
-                dominant-baseline="middle">${escapeXml(copy.cta)}</text>`
-        : "";
-
       const ctaSvg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
         <rect x="${PADDING - Math.round(8 * scale)}" y="${backdropY}"
               width="${ctaW + Math.round(16 * scale)}" height="${backdropH}"
@@ -248,7 +240,11 @@ export async function compositePoster({
         <rect x="${PADDING}" y="${ctaY}"
               width="${ctaW}" height="${ctaH}"
               rx="${Math.round(8 * scale)}" fill="${primary}" />
-        ${ctaTextEl}
+        <text x="${PADDING + Math.round(ctaW / 2)}" y="${ctaY + Math.round(ctaH / 2)}"
+              text-anchor="middle"
+              font-family="${SERVER_FONT}" font-weight="700"
+              font-size="${Math.round(18 * scale)}" fill="${secondary}"
+              dominant-baseline="middle">${escapeXml(copy.cta)}</text>
       </svg>`;
       compositeInputs.push({
         input: Buffer.from(ctaSvg),
@@ -404,6 +400,7 @@ export async function compositePoster({
   >${bl2}</text>
   ` : ""}
 
+  ${isLatinRenderable(copy.cta || "Learn More") ? `
   <rect
     x="${PADDING}"
     y="${ctaY}"
@@ -421,6 +418,7 @@ export async function compositePoster({
     fill="${secondary}"
     dominant-baseline="middle"
   >${cta}</text>
+  ` : ""}
 
   ${hashtags ? `
   <text
