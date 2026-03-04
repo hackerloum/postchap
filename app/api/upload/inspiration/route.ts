@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminAuth } from "@/lib/firebase/admin";
+import { verifyRequestAuth } from "@/lib/firebase/verify-auth";
 import { uploadInspirationToCloudinary } from "@/lib/uploadToCloudinary";
 
 export async function POST(request: NextRequest) {
   let uid: string;
   try {
-    const header = request.headers.get("Authorization");
-    if (!header?.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const decoded = await getAdminAuth().verifyIdToken(
-      header.replace("Bearer ", "")
-    );
+    const decoded = await verifyRequestAuth(request);
     uid = decoded.uid;
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

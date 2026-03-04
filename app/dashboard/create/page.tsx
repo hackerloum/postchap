@@ -535,10 +535,35 @@ function CreatePageContent() {
   }, [mode]);
 
   async function getToken(): Promise<string> {
+    // getClientIdToken calls getIdToken(forceRefresh) which itself waits for
+    // Firebase auth to restore from IndexedDB. If the user is truly signed out
+    // we redirect; otherwise we always get a valid token even on fresh page loads.
     const token = await getClientIdToken();
     if (!token) {
-      router.push("/login");
-      throw new Error("Not authenticated");
+      // One more chance: wait up to 3s for Firebase to finish initialising
+      // before concluding the user is really logged out.
+      const waited = await new Promise<string | null>((resolve) => {
+        const auth = getAuthClient();
+        if (auth.currentUser) {
+          auth.currentUser.getIdToken(true).then(resolve).catch(() => resolve(null));
+          return;
+        }
+        const timeout = setTimeout(() => resolve(null), 3000);
+        const unsub = auth.onAuthStateChanged((user) => {
+          clearTimeout(timeout);
+          unsub();
+          if (user) {
+            user.getIdToken(true).then(resolve).catch(() => resolve(null));
+          } else {
+            resolve(null);
+          }
+        });
+      });
+      if (!waited) {
+        router.push("/login");
+        throw new Error("Not authenticated");
+      }
+      return waited;
     }
     return token;
   }
