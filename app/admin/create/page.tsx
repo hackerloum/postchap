@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -54,7 +54,7 @@ const GENERATION_STEPS = [
   "Uploading...",
 ];
 
-export default function AdminCreatePage() {
+function AdminCreateContent() {
   const searchParams = useSearchParams();
   const [platformFormatId, setPlatformFormatId] = useState("instagram_square");
   const [imageProviderId, setImageProviderId] = useState<string>(DEFAULT_IMAGE_PROVIDER);
@@ -700,5 +700,19 @@ export default function AdminCreatePage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AdminCreatePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-bg-base flex items-center justify-center">
+          <Loader2 size={24} className="animate-spin text-accent" />
+        </div>
+      }
+    >
+      <AdminCreateContent />
+    </Suspense>
   );
 }
