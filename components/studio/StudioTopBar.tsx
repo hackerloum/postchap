@@ -35,12 +35,12 @@ export function StudioTopBar() {
     <header
       className="sticky top-0 z-30 flex items-center justify-between h-14 px-6 border-b backdrop-blur-[20px]"
       style={{
-        background: "rgba(15, 13, 11, 0.8)",
+        background: "rgba(8, 8, 8, 0.85)",
         borderColor: "var(--studio-topbar-border)",
       }}
     >
       <p
-        className="studio-font-ui text-[10px] tracking-[0.2em]"
+        className="text-[10px] font-medium tracking-[0.2em]"
         style={{ color: "var(--studio-text-muted)" }}
       >
         STUDIO / {page}
@@ -49,37 +49,39 @@ export function StudioTopBar() {
       <div className="flex items-center gap-3">
         <button
           type="button"
-          className="relative p-2 rounded-lg transition-colors duration-150 hover:bg-white/5"
+          className="relative p-2 rounded-lg transition-colors duration-150 hover:bg-white/[0.05]"
           style={{ color: "var(--studio-text-secondary)" }}
           aria-label="Notifications"
         >
-          <Bell size={18} />
+          <Bell size={17} />
           <span
-            className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
+            className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full"
             style={{ background: "var(--studio-accent)", boxShadow: "0 0 6px var(--studio-accent-glow)" }}
           />
         </button>
+
         <Link
           href="/studio/clients/new"
-          className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg border studio-font-ui text-[11px] font-medium tracking-wide transition-all duration-150 hover:border-[var(--studio-accent)]"
+          className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-lg border text-[11px] font-medium tracking-wide transition-all duration-150 hover:border-white/20 hover:text-white"
           style={{
             borderColor: "var(--studio-border)",
             color: "var(--studio-text-secondary)",
           }}
         >
-          <UserPlus size={14} />
+          <UserPlus size={13} />
           ADD CLIENT
         </Link>
+
         <Link
           href="/studio/create"
-          className="flex items-center gap-2 px-5 py-2.5 rounded-lg studio-font-ui text-[11px] font-semibold tracking-wide transition-all duration-150 hover:-translate-y-0.5"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[11px] font-semibold tracking-wide transition-all duration-150 hover:-translate-y-0.5 hover:shadow-lg"
           style={{
-            background: "linear-gradient(135deg, #c8873a 0%, #a66b2a 100%)",
-            color: "#0f0d0b",
-            boxShadow: "0 4px 20px var(--studio-accent-glow)",
+            background: "var(--studio-accent)",
+            color: "#080808",
+            boxShadow: "0 2px 16px var(--studio-accent-glow)",
           }}
         >
-          <Sparkles size={14} />
+          <Sparkles size={13} />
           GENERATE
         </Link>
       </div>

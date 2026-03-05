@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { Playfair_Display, DM_Mono } from "next/font/google";
 import { verifyCookieAuth } from "@/lib/firebase/verify-auth";
 import { getAgencyForUser } from "@/lib/studio/db";
 import { SessionRefresher } from "@/app/dashboard/SessionRefresher";
@@ -15,18 +14,6 @@ export const metadata: Metadata = {
 
 // Routes that don't require an agency or auth (Studio has its own login/signup)
 const BYPASS_ROUTES = ["/studio/onboarding", "/studio/join", "/studio/portal", "/studio/login", "/studio/signup"];
-
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  variable: "--font-playfair",
-  display: "swap",
-});
-const dmMono = DM_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-dm-mono",
-  display: "swap",
-});
 
 export default async function StudioLayout({ children }: { children: React.ReactNode }) {
   const headersList = await headers();
@@ -64,7 +51,7 @@ export default async function StudioLayout({ children }: { children: React.React
   return (
     <>
       <SessionRefresher />
-      <StudioShell className={`${playfair.variable} ${dmMono.variable}`}>{children}</StudioShell>
+      <StudioShell>{children}</StudioShell>
     </>
   );
 }

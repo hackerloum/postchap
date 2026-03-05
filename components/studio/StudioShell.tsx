@@ -5,27 +5,19 @@ import { LayoutDashboard, Users, Sparkles, Images, BarChart3 } from "lucide-reac
 import { StudioSidebar } from "./StudioSidebar";
 import { StudioTopBar } from "./StudioTopBar";
 
-export function StudioShell({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+export function StudioShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className={`studio-theme min-h-screen ${className}`.trim()} style={{ background: "var(--studio-bg-base)" }}>
-      {/* Background effects — fixed, pointer-events-none */}
+    <div className="studio-theme min-h-screen" style={{ background: "var(--studio-bg-base)" }}>
+      {/* Subtle radial accent glow — top-left corner */}
       <div
         className="fixed inset-0 z-0 pointer-events-none"
         style={{
           background: `
-            radial-gradient(ellipse 80% 50% at 0% 0%, rgba(200,135,58,0.06) 0%, transparent 50%),
-            radial-gradient(ellipse 60% 40% at 100% 100%, rgba(100,80,120,0.04) 0%, transparent 50%)
+            radial-gradient(ellipse 70% 40% at 0% 0%, rgba(232,255,71,0.04) 0%, transparent 55%),
+            radial-gradient(ellipse 50% 35% at 100% 100%, rgba(77,158,255,0.03) 0%, transparent 50%)
           `,
         }}
       />
-      <div className="studio-grain">
-        <svg xmlns="http://www.w3.org/2000/svg">
-          <filter id="grain">
-            <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch" />
-          </filter>
-          <rect width="100%" height="100%" filter="url(#grain)" />
-        </svg>
-      </div>
 
       <StudioSidebar />
       <StudioTopBar />
@@ -55,7 +47,7 @@ export function StudioShell({ children, className = "" }: { children: React.Reac
           <Link
             key={href}
             href={href}
-            className="flex-1 flex flex-col items-center gap-1 py-3 studio-font-ui text-[9px] tracking-wider transition-colors duration-150"
+            className="flex-1 flex flex-col items-center gap-1 py-3 text-[9px] tracking-wider transition-colors duration-150"
             style={{ color: "var(--studio-text-muted)" }}
           >
             <Icon size={20} strokeWidth={1.5} />

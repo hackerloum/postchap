@@ -7,11 +7,10 @@ import {
   Sparkles,
   Images,
   UserPlus,
-  Bell,
   ChevronRight,
-  TrendingUp,
   DollarSign,
   Zap,
+  ArrowUpRight,
 } from "lucide-react";
 import { getClientIdToken } from "@/lib/auth-client";
 
@@ -50,7 +49,7 @@ const MOCK_CLIENTS: ClientSummary[] = [
   { id: "5", clientName: "Studio 7", industry: "Photography", status: "active", postersThisMonth: 7, monthlyQuota: 25 },
 ];
 
-const CLIENT_COLORS = ["#c8873a", "#6b8cae", "#7a9e82", "#b8866b", "#8b7355"];
+const CLIENT_COLORS = ["#e8ff47", "#4d9eff", "#3ddc84", "#f59e0b", "#ef4444"];
 
 const MOCK_OCCASIONS: OccasionAlert[] = [
   { clientId: "1", clientName: "Maison Rémy", type: "seasonal", title: "Spring Collection Launch", daysUntil: 3, date: "2025-03-08" },
@@ -121,75 +120,61 @@ export default function StudioDashboardPage() {
   }, [quotaPercent]);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-9">
+    <div className="max-w-[1100px] mx-auto space-y-8">
+
       {/* Page header */}
-      <div
-        className="studio-animate-fade-up flex items-baseline gap-2"
-        style={{ animationDelay: "0ms" }}
-      >
-        <span
-          className="w-1.5 h-1.5 rounded-full shrink-0 mt-1"
-          style={{
-            background: "var(--studio-accent)",
-            boxShadow: "0 0 12px var(--studio-accent-glow)",
-          }}
-        />
-        <div>
-          <h1
-            className="studio-font-display text-[38px] font-bold tracking-tight"
-            style={{ color: "var(--studio-text-primary)", letterSpacing: "-0.02em" }}
-          >
-            Studio
-          </h1>
-          <p
-            className="studio-font-ui text-[11px] mt-1"
-            style={{ color: "var(--studio-text-muted)", letterSpacing: "0.02em" }}
-          >
-            Manage clients · Generate posters · Track approvals
-          </p>
-        </div>
+      <div className="studio-animate-fade-up" style={{ animationDelay: "0ms" }}>
+        <h1
+          className="text-[32px] font-bold tracking-tight"
+          style={{ color: "var(--studio-text-primary)", letterSpacing: "-0.03em" }}
+        >
+          Overview
+        </h1>
+        <p className="text-[13px] mt-1" style={{ color: "var(--studio-text-muted)" }}>
+          Clients · Posters · Usage
+        </p>
       </div>
 
-      {/* Stats cards */}
+      {/* Stat cards */}
       <div
-        className="grid grid-cols-2 md:grid-cols-4 gap-3.5 studio-animate-fade-up"
-        style={{ animationDelay: "100ms" }}
+        className="grid grid-cols-2 md:grid-cols-4 gap-3 studio-animate-fade-up"
+        style={{ animationDelay: "80ms" }}
       >
         {[
           {
-            label: "ACTIVE CLIENTS",
+            label: "Active clients",
             value: String(displayUsage.activeClients),
             sub: "this month",
             icon: Users,
-            accent: "var(--studio-accent)",
-            glow: "var(--studio-card-glow-brass)",
+            accent: "#e8ff47",
+            glow: "rgba(232,255,71,0.04)",
           },
           {
-            label: "POSTERS THIS MONTH",
+            label: "Posters",
             value: String(displayUsage.postersUsedThisMonth),
             sub: displayUsage.posterLimit ? `of ${displayUsage.posterLimit}` : "unlimited",
             icon: Images,
-            accent: "#6b8cae",
-            glow: "var(--studio-card-glow-blue)",
+            accent: "#4d9eff",
+            glow: "rgba(77,158,255,0.04)",
           },
           {
-            label: "EST. AI COST",
+            label: "AI cost",
             value: `$${displayUsage.totalEstimatedCostUsd.toFixed(2)}`,
             sub: "this month",
             icon: DollarSign,
-            accent: "#7a9e82",
-            glow: "var(--studio-card-glow-green)",
+            accent: "#3ddc84",
+            glow: "rgba(61,220,132,0.04)",
           },
           {
-            label: "PLAN",
+            label: "Plan",
             value: (displayUsage.plan || "pro").toUpperCase(),
-            sub: "Upgrade →",
+            sub: "Upgrade",
             subHref: "/studio/billing",
             icon: Zap,
-            accent: "var(--studio-accent)",
-            glow: "var(--studio-card-glow-brass)",
+            accent: "#e8ff47",
+            glow: "rgba(232,255,71,0.04)",
           },
-        ].map((card, i) => {
+        ].map((card) => {
           const Icon = card.icon;
           return (
             <div
@@ -198,42 +183,36 @@ export default function StudioDashboardPage() {
               style={{
                 background: "var(--studio-bg-surface)",
                 borderColor: "var(--studio-border)",
-                boxShadow: `inset 0 0 60px 0 ${card.glow}`,
+                boxShadow: `inset 0 0 50px 0 ${card.glow}`,
               }}
             >
-              <div className="flex items-center justify-between mb-2">
-                <span
-                  className="studio-font-ui text-[8px] tracking-[0.18em]"
-                  style={{ color: "var(--studio-text-muted)" }}
-                >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-medium" style={{ color: "var(--studio-text-muted)" }}>
                   {card.label}
                 </span>
                 <div
-                  className="w-[26px] h-[26px] rounded-lg flex items-center justify-center"
-                  style={{ background: `${card.accent}20`, border: `1px solid ${card.accent}40` }}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center"
+                  style={{ background: `${card.accent}14`, border: `1px solid ${card.accent}30` }}
                 >
-                  <Icon size={12} style={{ color: card.accent }} />
+                  <Icon size={13} style={{ color: card.accent }} />
                 </div>
               </div>
               <p
-                className="studio-font-display text-[32px] font-bold tracking-tight"
-                style={{ color: "var(--studio-text-primary)", letterSpacing: "-0.02em" }}
+                className="text-[28px] font-bold tracking-tight"
+                style={{ color: "var(--studio-text-primary)", letterSpacing: "-0.03em" }}
               >
                 {card.value}
               </p>
               {card.subHref ? (
                 <Link
                   href={card.subHref}
-                  className="studio-font-ui text-[9px] mt-0.5 transition-colors hover:opacity-90"
+                  className="inline-flex items-center gap-0.5 text-[11px] font-medium mt-1 transition-opacity hover:opacity-80"
                   style={{ color: "var(--studio-accent)" }}
                 >
-                  {card.sub}
+                  {card.sub} <ArrowUpRight size={11} />
                 </Link>
               ) : (
-                <p
-                  className="studio-font-ui text-[9px] mt-0.5"
-                  style={{ color: "var(--studio-text-muted)" }}
-                >
+                <p className="text-[11px] mt-1" style={{ color: "var(--studio-text-muted)" }}>
                   {card.sub}
                 </p>
               )}
@@ -249,46 +228,32 @@ export default function StudioDashboardPage() {
           style={{
             background: "var(--studio-bg-surface)",
             borderColor: "var(--studio-border)",
-            animationDelay: "200ms",
+            animationDelay: "160ms",
           }}
         >
           <div className="flex items-center justify-between mb-3">
-            <span
-              className="studio-font-ui text-[8px] tracking-[0.18em]"
-              style={{ color: "var(--studio-text-muted)" }}
-            >
-              POSTER QUOTA
+            <span className="text-[11px] font-medium" style={{ color: "var(--studio-text-secondary)" }}>
+              Poster quota
             </span>
             <span
-              className={`studio-font-ui text-[9px] px-2 py-0.5 rounded-full ${
-                isQuotaHigh ? "text-red-400" : ""
-              }`}
-              style={{
-                color: isQuotaHigh ? undefined : "var(--studio-accent)",
-                background: isQuotaHigh ? "rgba(239,68,68,0.15)" : "var(--studio-card-glow-brass)",
-              }}
+              className="text-[11px] font-semibold tabular-nums"
+              style={{ color: isQuotaHigh ? "#ef4444" : "var(--studio-accent)" }}
             >
-              {quotaPercent.toFixed(0)}%
-            </span>
-          </div>
-          <div className="flex items-center justify-between studio-font-ui text-[10px] mb-2" style={{ color: "var(--studio-text-secondary)" }}>
-            <span />
-            <span>
               {displayUsage.postersUsedThisMonth} / {displayUsage.posterLimit}
             </span>
           </div>
           <div
-            className="h-1 rounded overflow-hidden"
+            className="h-[3px] rounded-full overflow-hidden"
             style={{ background: "var(--studio-track-bg)" }}
           >
             <div
-              className="h-full rounded transition-[width] duration-1000 ease-out"
+              className="h-full rounded-full transition-[width] duration-1000 ease-out"
               style={{
                 width: `${quotaAnimated}%`,
                 background: isQuotaHigh
                   ? "linear-gradient(90deg, #b91c1c, #ef4444)"
-                  : "linear-gradient(90deg, #a66b2a, var(--studio-accent))",
-                boxShadow: isQuotaHigh ? "0 0 12px rgba(239,68,68,0.3)" : "0 0 12px var(--studio-accent-glow)",
+                  : "linear-gradient(90deg, #b8cc38, #e8ff47)",
+                boxShadow: isQuotaHigh ? "0 0 8px rgba(239,68,68,0.4)" : "0 0 8px rgba(232,255,71,0.3)",
               }}
             />
           </div>
@@ -296,154 +261,176 @@ export default function StudioDashboardPage() {
       )}
 
       <div className="grid md:grid-cols-3 gap-6">
-        {/* Active clients */}
+        {/* Active clients table */}
         <div
           className="md:col-span-2 rounded-xl border overflow-hidden studio-animate-fade-up"
           style={{
             background: "var(--studio-bg-surface)",
             borderColor: "var(--studio-border)",
-            animationDelay: "300ms",
+            animationDelay: "240ms",
           }}
         >
-          <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "var(--studio-border-subtle)" }}>
-            <h2 className="studio-font-display text-[16px] font-semibold" style={{ color: "var(--studio-text-primary)" }}>
+          <div
+            className="flex items-center justify-between px-6 py-4 border-b"
+            style={{ borderColor: "var(--studio-border-subtle)" }}
+          >
+            <h2 className="text-[14px] font-semibold" style={{ color: "var(--studio-text-primary)" }}>
               Active clients
             </h2>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <span
-                className="studio-font-ui text-[9px] px-2 py-0.5 rounded-full"
-                style={{ background: "var(--studio-card-glow-brass)", color: "var(--studio-accent)" }}
+                className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+                style={{
+                  background: "rgba(232,255,71,0.08)",
+                  color: "var(--studio-accent)",
+                }}
               >
                 {displayClients.length}
               </span>
               <Link
                 href="/studio/clients"
-                className="studio-font-ui text-[9px] tracking-wide"
+                className="inline-flex items-center gap-0.5 text-[11px] font-medium transition-colors hover:text-white"
                 style={{ color: "var(--studio-text-muted)" }}
               >
-                VIEW ALL →
+                View all <ArrowUpRight size={11} />
               </Link>
             </div>
           </div>
+
           {loading ? (
             <div className="divide-y" style={{ borderColor: "var(--studio-border-subtle)" }}>
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="px-6 py-4 flex items-center gap-4">
                   <div className="w-9 h-9 rounded-lg bg-white/5 animate-pulse" />
-                  <div className="flex-1 h-4 bg-white/5 rounded animate-pulse" />
+                  <div className="flex-1 h-3 bg-white/5 rounded animate-pulse" />
                 </div>
               ))}
             </div>
           ) : (
-            <div className="divide-y" style={{ borderColor: "#141008" }}>
+            <div className="divide-y" style={{ borderColor: "var(--studio-border-subtle)" }}>
               {displayClients.map((client, i) => {
                 const color = CLIENT_COLORS[i % CLIENT_COLORS.length];
-                const pct = client.monthlyQuota ? Math.min((client.postersThisMonth / client.monthlyQuota) * 100, 100) : 0;
+                const pct = client.monthlyQuota
+                  ? Math.min((client.postersThisMonth / client.monthlyQuota) * 100, 100)
+                  : 0;
                 return (
                   <Link
                     key={client.id}
                     href={`/studio/clients/${client.id}`}
-                    className="flex items-center gap-4 px-6 py-3.5 transition-colors duration-150 hover:bg-[var(--studio-row-hover)]"
+                    className="flex items-center gap-4 px-6 py-3.5 transition-colors duration-150 hover:bg-white/[0.02]"
                   >
                     <div
-                      className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 studio-font-display text-sm font-semibold"
+                      className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold"
                       style={{
-                        background: `${color}20`,
-                        border: `1px solid ${color}50`,
+                        background: `${color}14`,
+                        border: `1px solid ${color}35`,
                         color,
                       }}
                     >
                       {client.clientName.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-medium" style={{ color: "var(--studio-text-secondary)" }}>
+                      <p className="text-[13px] font-medium" style={{ color: "var(--studio-text-primary)" }}>
                         {client.clientName}
                       </p>
-                      <p className="studio-font-ui text-[8px] mt-0.5" style={{ color: "var(--studio-text-muted)" }}>
+                      <p className="text-[11px] mt-0.5" style={{ color: "var(--studio-text-muted)" }}>
                         {client.industry || "—"}
                       </p>
-                      <div className="mt-1.5 h-0.5 rounded-full overflow-hidden max-w-[80px]" style={{ background: "var(--studio-border-subtle)" }}>
+                      <div
+                        className="mt-2 h-[2px] rounded-full overflow-hidden max-w-[72px]"
+                        style={{ background: "var(--studio-border)" }}
+                      >
                         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="studio-font-display text-[14px] font-semibold" style={{ color: "var(--studio-text-primary)" }}>
+                      <p className="text-[15px] font-bold tabular-nums" style={{ color: "var(--studio-text-primary)" }}>
                         {client.postersThisMonth}
                       </p>
-                      <p className="studio-font-ui text-[8px]" style={{ color: "var(--studio-text-muted)" }}>
+                      <p className="text-[10px]" style={{ color: "var(--studio-text-muted)" }}>
                         of {client.monthlyQuota}
                       </p>
                     </div>
-                    <ChevronRight size={16} style={{ color: "var(--studio-text-muted)" }} />
+                    <ChevronRight size={15} style={{ color: "var(--studio-text-muted)" }} />
                   </Link>
                 );
               })}
             </div>
           )}
+
           <Link
             href="/studio/clients/new"
-            className="flex items-center justify-center gap-2 py-4 border-t border-dashed transition-colors duration-150 hover:border-[var(--studio-accent)] hover:text-[var(--studio-accent)] studio-font-ui text-[11px]"
-            style={{ borderColor: "var(--studio-border)" }}
+            className="flex items-center justify-center gap-2 py-4 border-t border-dashed text-[11px] font-medium transition-colors duration-150 hover:border-[var(--studio-accent)] hover:text-[var(--studio-accent)]"
+            style={{ borderColor: "var(--studio-border)", color: "var(--studio-text-muted)" }}
           >
-            ADD NEW CLIENT
+            <UserPlus size={13} />
+            Add new client
           </Link>
         </div>
 
-        {/* Upcoming occasions + Quick actions */}
-        <div className="space-y-6">
+        {/* Right column: occasions + quick actions */}
+        <div className="space-y-5">
+          {/* Upcoming occasions */}
           <div
             className="rounded-xl border overflow-hidden studio-animate-fade-up"
             style={{
               background: "var(--studio-bg-surface)",
               borderColor: "var(--studio-border)",
-              animationDelay: "350ms",
+              animationDelay: "280ms",
             }}
           >
-            <div className="flex items-center justify-between px-5 py-3.5 border-b" style={{ borderColor: "var(--studio-border-subtle)" }}>
+            <div
+              className="flex items-center justify-between px-5 py-3.5 border-b"
+              style={{ borderColor: "var(--studio-border-subtle)" }}
+            >
               <div className="flex items-center gap-2">
                 <span
-                  className="w-2 h-2 rounded-full studio-pulse-dot shrink-0"
+                  className="w-1.5 h-1.5 rounded-full studio-pulse-dot shrink-0"
                   style={{ background: "var(--studio-accent)" }}
                 />
-                <h2 className="studio-font-display text-[15px] font-semibold" style={{ color: "var(--studio-text-primary)" }}>
+                <h2 className="text-[13px] font-semibold" style={{ color: "var(--studio-text-primary)" }}>
                   Upcoming occasions
                 </h2>
               </div>
-              <Link href="/studio/occasions" className="studio-font-ui text-[9px]" style={{ color: "var(--studio-text-muted)" }}>
-                VIEW ALL →
+              <Link
+                href="/studio/occasions"
+                className="inline-flex items-center gap-0.5 text-[10px] font-medium transition-colors hover:text-white"
+                style={{ color: "var(--studio-text-muted)" }}
+              >
+                All <ArrowUpRight size={10} />
               </Link>
             </div>
+
             <div className="divide-y" style={{ borderColor: "var(--studio-border-subtle)" }}>
               {displayOccasions.length === 0 ? (
-                <div className="px-5 py-6 text-center studio-font-ui text-[10px]" style={{ color: "var(--studio-text-muted)" }}>
+                <div
+                  className="px-5 py-6 text-center text-[11px]"
+                  style={{ color: "var(--studio-text-muted)" }}
+                >
                   No occasions in the next 14 days
                 </div>
               ) : (
                 displayOccasions.map((occ, i) => {
                   const urgencyRed = occ.daysUntil <= 5;
                   const urgencyAmber = occ.daysUntil <= 14 && !urgencyRed;
-                  const badgeColor = urgencyRed ? "#dc2626" : urgencyAmber ? "var(--studio-accent)" : "#7a9e82";
-                  const icon = occ.type === "global" ? "◐" : occ.type === "national" ? "⚑" : occ.type === "religious" ? "☽" : "◆";
+                  const badgeColor = urgencyRed ? "#ef4444" : urgencyAmber ? "#e8ff47" : "#3ddc84";
                   return (
                     <div
                       key={i}
-                      className="flex items-center gap-3 px-5 py-3 transition-colors duration-150 hover:bg-[var(--studio-row-hover)]"
+                      className="flex items-center gap-3 px-5 py-3 transition-colors duration-150 hover:bg-white/[0.02]"
                     >
-                      <span className="text-sm opacity-80" style={{ color: badgeColor }}>
-                        {icon}
-                      </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-medium" style={{ color: "var(--studio-text-secondary)" }}>
+                        <p className="text-[12px] font-medium" style={{ color: "var(--studio-text-primary)" }}>
                           {occ.title}
                         </p>
-                        <p className="studio-font-ui text-[9px]" style={{ color: "var(--studio-text-muted)" }}>
+                        <p className="text-[10px] mt-0.5" style={{ color: "var(--studio-text-muted)" }}>
                           {occ.clientName}
                         </p>
                       </div>
                       <span
-                        className="studio-font-ui text-[9px] px-2 py-0.5 rounded-full shrink-0"
+                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 tabular-nums"
                         style={{
-                          background: `${badgeColor}20`,
+                          background: `${badgeColor}15`,
                           color: badgeColor,
                         }}
                       >
@@ -451,10 +438,10 @@ export default function StudioDashboardPage() {
                       </span>
                       <Link
                         href={`/studio/create?clientId=${occ.clientId}&occasion=${encodeURIComponent(occ.title)}`}
-                        className="studio-font-ui text-[8px] shrink-0"
+                        className="text-[10px] font-semibold shrink-0 transition-opacity hover:opacity-70"
                         style={{ color: "var(--studio-accent)" }}
                       >
-                        GENERATE →
+                        →
                       </Link>
                     </div>
                   );
@@ -464,39 +451,39 @@ export default function StudioDashboardPage() {
           </div>
 
           {/* Quick actions */}
-          <div className="space-y-2 studio-animate-fade-up" style={{ animationDelay: "400ms" }}>
+          <div className="space-y-2 studio-animate-fade-up" style={{ animationDelay: "320ms" }}>
             {[
-              { label: "Generate poster", sub: "Pick client & occasion", href: "/studio/create", icon: Sparkles, accent: "var(--studio-accent)" },
-              { label: "Add client", sub: "New brand to manage", href: "/studio/clients/new", icon: UserPlus, accent: "#6b8cae" },
-              { label: "Invite team", sub: "Designers & reviewers", href: "/studio/team", icon: Users, accent: "#7a9e82" },
-              { label: "View posters", sub: "Approve or request edits", href: "/studio/posters", icon: Images, accent: "#b8866b" },
+              { label: "Generate poster", sub: "Pick client & occasion", href: "/studio/create", icon: Sparkles, accent: "#e8ff47" },
+              { label: "Add client", sub: "New brand to manage", href: "/studio/clients/new", icon: UserPlus, accent: "#4d9eff" },
+              { label: "Invite team", sub: "Designers & reviewers", href: "/studio/team", icon: Users, accent: "#3ddc84" },
+              { label: "View posters", sub: "Approve or request edits", href: "/studio/posters", icon: Images, accent: "#f59e0b" },
             ].map((action) => {
               const Icon = action.icon;
               return (
                 <Link
                   key={action.href}
                   href={action.href}
-                  className="flex items-center gap-3 p-3 rounded-lg border transition-all duration-150 hover:border-opacity-80"
+                  className="flex items-center gap-3 p-3.5 rounded-xl border transition-all duration-150 hover:border-white/10 hover:bg-white/[0.02]"
                   style={{
-                    background: "#0a0806",
-                    borderColor: "#1a1610",
+                    background: "var(--studio-bg-surface)",
+                    borderColor: "var(--studio-border)",
                   }}
                 >
                   <div
-                    className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                    style={{ background: `${action.accent}20`, border: `1px solid ${action.accent}40` }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ background: `${action.accent}14`, border: `1px solid ${action.accent}30` }}
                   >
                     <Icon size={14} style={{ color: action.accent }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-medium" style={{ color: "var(--studio-text-secondary)" }}>
+                    <p className="text-[12px] font-semibold" style={{ color: "var(--studio-text-primary)" }}>
                       {action.label}
                     </p>
-                    <p className="studio-font-ui text-[8px]" style={{ color: "var(--studio-text-muted)" }}>
+                    <p className="text-[10px] mt-0.5" style={{ color: "var(--studio-text-muted)" }}>
                       {action.sub}
                     </p>
                   </div>
-                  <ChevronRight size={16} style={{ color: "var(--studio-text-muted)" }} />
+                  <ChevronRight size={14} style={{ color: "var(--studio-text-muted)" }} />
                 </Link>
               );
             })}
@@ -504,30 +491,33 @@ export default function StudioDashboardPage() {
         </div>
       </div>
 
-      {/* This month snapshot */}
+      {/* Monthly snapshot */}
       <div
         className="rounded-xl border p-6 studio-animate-fade-up"
         style={{
-          background: "linear-gradient(135deg, rgba(26,19,8,0.13) 0%, var(--studio-bg-base) 100%)",
-          borderColor: "rgba(200,135,58,0.2)",
-          animationDelay: "450ms",
+          background: "var(--studio-bg-surface)",
+          borderColor: "var(--studio-border)",
+          animationDelay: "360ms",
         }}
       >
-        <h3 className="studio-font-ui text-[8px] tracking-[0.18em] mb-4" style={{ color: "var(--studio-text-muted)" }}>
-          THIS MONTH SNAPSHOT
-        </h3>
+        <p className="text-[11px] font-semibold tracking-widest mb-5" style={{ color: "var(--studio-text-muted)" }}>
+          THIS MONTH
+        </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {[
-            { label: "Posters", value: String(displayUsage.postersUsedThisMonth) },
-            { label: "Clients", value: String(displayUsage.activeClients) },
-            { label: "AI cost", value: `$${displayUsage.totalEstimatedCostUsd.toFixed(2)}` },
-            { label: "Margin", value: "—" },
+            { label: "Posters generated", value: String(displayUsage.postersUsedThisMonth) },
+            { label: "Active clients", value: String(displayUsage.activeClients) },
+            { label: "AI spend", value: `$${displayUsage.totalEstimatedCostUsd.toFixed(2)}` },
+            { label: "Approvals pending", value: "—" },
           ].map((row) => (
             <div key={row.label}>
-              <p className="studio-font-display text-[22px] font-semibold" style={{ color: "var(--studio-text-primary)" }}>
+              <p
+                className="text-[26px] font-bold tabular-nums"
+                style={{ color: "var(--studio-text-primary)", letterSpacing: "-0.03em" }}
+              >
                 {row.value}
               </p>
-              <p className="studio-font-ui text-[8px] mt-0.5" style={{ color: "var(--studio-text-muted)" }}>
+              <p className="text-[11px] mt-1" style={{ color: "var(--studio-text-muted)" }}>
                 {row.label}
               </p>
             </div>
