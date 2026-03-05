@@ -13,6 +13,7 @@ import {
   ExternalLink,
   Instagram,
   Megaphone,
+  Building2,
 } from "lucide-react";
 
 const NAV = [
@@ -21,6 +22,7 @@ const NAV = [
   { label: "Ads recommendations", href: "/admin/ads-recommendations", icon: <Megaphone size={14} /> },
   { label: "Schedule", href: "/admin/schedule", icon: <CalendarClock size={14} /> },
   { label: "Users", href: "/admin/users", icon: <Users size={14} /> },
+  { label: "Studio", href: "/admin/studio", icon: <Building2 size={14} /> },
   { label: "Brand Kits", href: "/admin/brand-kits", icon: <Palette size={14} /> },
   { label: "ArtMaster Kit", href: "/admin/artmaster-kit", icon: <Settings size={14} /> },
 ];
