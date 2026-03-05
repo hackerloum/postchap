@@ -17,6 +17,8 @@ import {
   Settings,
   Zap,
   BarChart3,
+  MoreHorizontal,
+  X,
 } from "lucide-react";
 import { getAuthClient } from "@/lib/firebase/client";
 
@@ -39,6 +41,15 @@ const BOTTOM_NAV_ITEMS = [
   { label: "Products", href: "/dashboard/products", icon: <Package size={18} /> },
 ];
 
+const MORE_ITEMS = [
+  { label: "Brand Kits", href: "/dashboard/brand-kits",  icon: <Palette size={20} /> },
+  { label: "Schedule",   href: "/dashboard/schedule",    icon: <CalendarClock size={20} /> },
+  { label: "Calendar",   href: "/dashboard/calendar",    icon: <CalendarDays size={20} /> },
+  { label: "Analytics",  href: "/dashboard/analytics",   icon: <BarChart3 size={20} /> },
+  { label: "Settings",   href: "/dashboard/settings",    icon: <Settings size={20} /> },
+  { label: "Upgrade",    href: "/dashboard/upgrade",     icon: <Zap size={20} /> },
+];
+
 function usePlan() {
   const [plan, setPlan] = useState<string>("free");
   useEffect(() => {
@@ -54,7 +65,9 @@ export function DashboardNav() {
   const pathname = usePathname();
   const plan = usePlan();
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [userInitial, setUserInitial] = useState("?");
+  const [userEmail, setUserEmail] = useState("");
   const avatarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -64,14 +77,19 @@ export function DashboardNav() {
       || user?.email?.trim()?.[0]?.toUpperCase()
       || "?";
     setUserInitial(initial);
+    setUserEmail(user?.email ?? "");
     const unsub = auth.onAuthStateChanged((u) => {
       const i = u?.displayName?.trim()?.[0]?.toUpperCase()
         || u?.email?.trim()?.[0]?.toUpperCase()
         || "?";
       setUserInitial(i);
+      setUserEmail(u?.email ?? "");
     });
     return () => unsub();
   }, []);
+
+  // Close more drawer on route change
+  useEffect(() => { setMoreOpen(false); }, [pathname]);
 
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -169,6 +187,7 @@ export function DashboardNav() {
         </div>
       </header>
 
+      {/* Mobile bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 bg-bg-base border-t border-border-subtle flex md:hidden items-center pb-[env(safe-area-inset-bottom)] z-50">
         {BOTTOM_NAV_ITEMS.map((item) => (
           <Link
@@ -182,7 +201,92 @@ export function DashboardNav() {
             <span className="font-mono text-[9px] tracking-wider">{item.label.toUpperCase()}</span>
           </Link>
         ))}
+        {/* More button */}
+        <button
+          type="button"
+          onClick={() => setMoreOpen((o) => !o)}
+          className={`flex-1 flex flex-col items-center gap-1 py-3 text-center transition-colors ${
+            moreOpen ? "text-accent" : "text-text-muted hover:text-text-secondary"
+          }`}
+        >
+          <MoreHorizontal size={18} />
+          <span className="font-mono text-[9px] tracking-wider">MORE</span>
+        </button>
       </nav>
+
+      {/* More — slide-up drawer */}
+      {moreOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/50 z-[60] md:hidden"
+            onClick={() => setMoreOpen(false)}
+          />
+          {/* Sheet */}
+          <div className="fixed bottom-0 left-0 right-0 z-[70] md:hidden bg-bg-base rounded-t-2xl border-t border-border-default shadow-2xl pb-[env(safe-area-inset-bottom)]">
+            {/* Handle */}
+            <div className="flex items-center justify-between px-5 pt-4 pb-2">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-text-muted">More</span>
+              <button
+                type="button"
+                onClick={() => setMoreOpen(false)}
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-bg-elevated text-text-muted hover:text-text-primary transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* User info */}
+            <div className="mx-4 mb-3 px-3 py-2.5 bg-bg-surface border border-border-default rounded-xl flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-bg-elevated border border-border-default flex items-center justify-center font-semibold text-[12px] text-text-primary shrink-0">
+                {userInitial}
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-[13px] text-text-primary truncate">{userEmail || "Your account"}</p>
+                <p className="font-mono text-[10px] text-text-muted">
+                  {plan === "free" ? "Free plan" : `${plan.charAt(0).toUpperCase() + plan.slice(1)} plan`}
+                </p>
+              </div>
+            </div>
+
+            {/* Nav grid */}
+            <div className="grid grid-cols-3 gap-2 px-4 pb-4">
+              {MORE_ITEMS.map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={`flex flex-col items-center gap-2 py-3 px-2 rounded-xl transition-colors ${
+                    isActive(item.href)
+                      ? "bg-accent/10 text-accent border border-accent/20"
+                      : "bg-bg-surface border border-border-default text-text-muted hover:text-text-primary hover:border-border-strong"
+                  }`}
+                >
+                  {item.icon}
+                  <span className="font-mono text-[10px] tracking-wide">{item.label}</span>
+                </Link>
+              ))}
+            </div>
+
+            {/* Bottom actions */}
+            <div className="grid grid-cols-2 gap-2 px-4 pb-5">
+              <Link
+                href="/dashboard/profile"
+                className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-bg-surface border border-border-default text-text-secondary text-[13px] hover:border-border-strong transition-colors"
+              >
+                <User size={15} />
+                Profile
+              </Link>
+              <Link
+                href="/api/auth/logout"
+                className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-bg-surface border border-border-default text-red-400 text-[13px] hover:border-red-500/40 transition-colors"
+              >
+                <LogOut size={15} />
+                Sign out
+              </Link>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }
