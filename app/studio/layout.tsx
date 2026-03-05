@@ -37,7 +37,12 @@ export default async function StudioLayout({ children }: { children: React.React
 
   if (!uid) redirect("/login");
 
-  const agency = await getAgencyForUser(uid);
+  let agency = null;
+  try {
+    agency = await getAgencyForUser(uid);
+  } catch {
+    // Firestore unavailable or index missing — treat as no agency yet
+  }
   if (!agency) {
     redirect("/studio/onboarding");
   }

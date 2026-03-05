@@ -77,16 +77,16 @@ export async function getAgencyForUser(uid: string): Promise<StudioAgency | null
     return { id: doc.id, ...doc.data() } as StudioAgency;
   }
 
-  // Check if team member
+  // Check if team member — single-field filter only to avoid composite index requirement.
+  // inviteStatus is checked in-memory since a user is unlikely to be on many teams.
   const teamSnap = await db
     .collectionGroup("team")
     .where("userId", "==", uid)
-    .where("inviteStatus", "==", "active")
-    .limit(1)
+    .limit(10)
     .get();
 
-  if (!teamSnap.empty) {
-    const teamDoc = teamSnap.docs[0];
+  for (const teamDoc of teamSnap.docs) {
+    if (teamDoc.data().inviteStatus !== "active") continue;
     const agencyId = teamDoc.ref.parent.parent?.id;
     if (agencyId) {
       return getAgency(agencyId);

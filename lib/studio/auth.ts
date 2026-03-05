@@ -128,11 +128,11 @@ export async function verifyPortalToken(
   const snap = await db
     .collectionGroup("clients")
     .where("portalToken", "==", token)
-    .where("portalAccessEnabled", "==", true)
     .limit(1)
     .get();
 
   if (snap.empty) return null;
+  if (!snap.docs[0].data().portalAccessEnabled) return null;
 
   const doc = snap.docs[0];
   const clientId = doc.id;
