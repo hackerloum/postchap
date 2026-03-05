@@ -49,6 +49,7 @@ export function PosterEditor({ layout, posterId, brandColors, onSaved }: Props) 
   const [scale,       setScale]       = useState(1);
   const [exporting,   setExporting]   = useState(false);
   const [fabricReady, setFabricReady] = useState(false);
+  const [initError,   setInitError]   = useState<string | null>(null);
 
   const CANVAS_W = layout.width;
   const CANVAS_H = layout.height;
@@ -61,9 +62,16 @@ export function PosterEditor({ layout, posterId, brandColors, onSaved }: Props) 
     let mounted = true;
     import("fabric").then((mod) => {
       if (!mounted) return;
-      // fabric@5 exports as { fabric: { Canvas, Textbox, … } }
+      // fabric@5 CJS exports as { fabric: { Canvas, Textbox, … } }
+      // Webpack dynamic import wraps CJS: mod.default = the CJS module.exports
+      // Fallback chain handles all webpack interop variants:
+      //   1. mod.fabric       – if webpack extracts the named export (rare for IIFE bundles)
+      //   2. mod.default.fabric – most common: mod.default = { fabric: { … } }
+      //   3. mod.default      – if the namespace is the default export directly
+      //   4. mod              – last resort
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      fabricNSRef.current = (mod as any).fabric ?? mod;
+      const raw = mod as any;
+      fabricNSRef.current = raw.fabric ?? raw.default?.fabric ?? raw.default ?? raw;
       setFabricReady(true);
     }).catch((err) => {
       console.error("[PosterEditor] Fabric.js load failed:", err);
@@ -77,62 +85,84 @@ export function PosterEditor({ layout, posterId, brandColors, onSaved }: Props) 
 
     const fabric = fabricNSRef.current;
 
-    const container = canvasElRef.current.parentElement!;
-    // Leave room for the right panel (288px) and some padding
-    const availableW = Math.max(container.clientWidth - 320, 300);
-    const availableH = Math.max(window.innerHeight - 80, 400);
-    const sc = Math.min(availableW / CANVAS_W, availableH / CANVAS_H, 1);
-    setScale(sc);
-
-    const canvas: FabricCanvas = new fabric.Canvas(canvasElRef.current, {
-      width:  CANVAS_W * sc,
-      height: CANVAS_H * sc,
-      backgroundColor: layout.backgroundDominantColor,
-      preserveObjectStacking: true,
-      selection: true,
-    });
-    fabricRef.current = canvas;
-
-    // Background image
-    fabric.Image.fromURL(
-      layout.backgroundImageUrl,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (img: any) => {
-        img.scaleToWidth(CANVAS_W * sc);
-        img.scaleToHeight(CANVAS_H * sc);
-        img.set({
-          selectable:    false,
-          evented:       false,
-          lockMovementX: true,
-          lockMovementY: true,
-        });
-        canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
-      },
-      { crossOrigin: "anonymous" }
-    );
-
-    // Render elements sorted by zIndex
-    const sorted = [...layout.elements].sort((a, b) => a.zIndex - b.zIndex);
-    for (const el of sorted) {
-      addElementToCanvas(canvas, el, sc, fabric, CANVAS_W, CANVAS_H);
+    if (typeof fabric?.Canvas !== "function") {
+      const keys = Object.keys(fabric ?? {}).slice(0, 8).join(", ");
+      console.error("[PosterEditor] Fabric.Canvas not found. Keys:", keys, "\nfabric value:", fabric);
+      setInitError(`Fabric.js loaded but Canvas constructor is missing (keys: ${keys}). Check the browser console.`);
+      return;
     }
 
-    // Selection events
-    canvas.on("selection:created", (e: { selected?: FabricObject[] }) =>
-      syncSelected(e.selected?.[0])
-    );
-    canvas.on("selection:updated", (e: { selected?: FabricObject[] }) =>
-      syncSelected(e.selected?.[0])
-    );
-    canvas.on("selection:cleared", () => setSelected(null));
-    canvas.on("object:modified", () => pushHistory(canvas));
-    canvas.on("text:changed",    () => pushHistory(canvas));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let canvasInst: any = null;
 
-    pushHistory(canvas);
+    try {
+      const container = canvasElRef.current.parentElement!;
+      // Leave room for the right panel (288px) and some padding
+      const availableW = Math.max(container.clientWidth - 320, 300);
+      const availableH = Math.max(window.innerHeight - 80, 400);
+      const sc = Math.min(availableW / CANVAS_W, availableH / CANVAS_H, 1);
+      setScale(sc);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      canvasInst = new fabric.Canvas(canvasElRef.current, {
+        width:  CANVAS_W * sc,
+        height: CANVAS_H * sc,
+        backgroundColor: layout.backgroundDominantColor,
+        preserveObjectStacking: true,
+        selection: true,
+      }) as FabricCanvas;
+      fabricRef.current = canvasInst;
+
+      // Background image
+      fabric.Image.fromURL(
+        layout.backgroundImageUrl,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (img: any) => {
+          if (!fabricRef.current) return;
+          img.scaleToWidth(CANVAS_W * sc);
+          img.scaleToHeight(CANVAS_H * sc);
+          img.set({
+            selectable:    false,
+            evented:       false,
+            lockMovementX: true,
+            lockMovementY: true,
+          });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (canvasInst as any).setBackgroundImage(img, (canvasInst as any).renderAll.bind(canvasInst));
+        },
+        { crossOrigin: "anonymous" }
+      );
+
+      // Render elements sorted by zIndex
+      const sorted = [...layout.elements].sort((a, b) => a.zIndex - b.zIndex);
+      for (const el of sorted) {
+        addElementToCanvas(canvasInst as FabricCanvas, el, sc, fabric, CANVAS_W, CANVAS_H);
+      }
+
+      // Selection events
+      canvasInst.on("selection:created", (e: { selected?: FabricObject[] }) =>
+        syncSelected(e.selected?.[0])
+      );
+      canvasInst.on("selection:updated", (e: { selected?: FabricObject[] }) =>
+        syncSelected(e.selected?.[0])
+      );
+      canvasInst.on("selection:cleared", () => setSelected(null));
+      canvasInst.on("object:modified", () => { if (fabricRef.current) pushHistory(canvasInst as FabricCanvas); });
+      canvasInst.on("text:changed",    () => { if (fabricRef.current) pushHistory(canvasInst as FabricCanvas); });
+
+      pushHistory(canvasInst as FabricCanvas);
+    } catch (err) {
+      console.error("[PosterEditor] Canvas init error:", err);
+      setInitError(
+        err instanceof Error ? err.message : "Canvas initialization failed. Check the browser console."
+      );
+    }
 
     return () => {
-      canvas.dispose();
-      fabricRef.current = null;
+      if (canvasInst) {
+        canvasInst.dispose();
+        fabricRef.current = null;
+      }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fabricReady]);
@@ -359,6 +389,21 @@ export function PosterEditor({ layout, posterId, brandColors, onSaved }: Props) 
   }
 
   // ── Render ──────────────────────────────────────────────────────────────
+  if (initError) {
+    return (
+      <div className="flex flex-col h-screen items-center justify-center bg-[#080808] gap-4 p-8">
+        <p className="text-white font-semibold text-center">Editor failed to initialise</p>
+        <p className="text-[#888] text-sm text-center max-w-sm">{initError}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="text-sm text-[#e8ff47] underline underline-offset-4"
+        >
+          Reload page
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen bg-[#080808] overflow-hidden">
       {/* Top toolbar */}
