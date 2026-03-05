@@ -98,7 +98,8 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date();
-    if (invite.expiresAt?.toDate?.() < now) {
+    const expiresAt = invite.expiresAt?.toDate?.();
+    if (expiresAt != null && expiresAt < now) {
       return NextResponse.json({ error: "Invite has expired" }, { status: 400 });
     }
 
