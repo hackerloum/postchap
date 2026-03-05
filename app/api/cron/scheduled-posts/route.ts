@@ -1,7 +1,7 @@
 /**
  * Cron: scheduled Instagram posts.
- * Vercel invokes GET /api/cron/scheduled-posts every 15 minutes (see vercel.json).
- * Processes posters that were scheduled for posting and are now due.
+ * Vercel invokes GET /api/cron/scheduled-posts once daily at 8:00 UTC (see vercel.json).
+ * On Hobby plan crons run at most once per day; all due posts are processed in this run.
  *
  * Required:
  * - CRON_SECRET env var (min 16 chars); Vercel sends Authorization: Bearer <CRON_SECRET>.
