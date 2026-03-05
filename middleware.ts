@@ -3,8 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Pass pathname to server components via header (used by studio layout for bypass routes)
+  const response = NextResponse.next({
+    request: { headers: new Headers({ ...Object.fromEntries(request.headers), "x-pathname": pathname }) },
+  });
+
   if (!pathname.startsWith("/admin")) {
-    return NextResponse.next();
+    return response;
   }
 
   const token = request.cookies.get("__session")?.value;
@@ -26,12 +31,12 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
-    return NextResponse.next();
+    return response;
   } catch {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/studio/:path*"],
 };

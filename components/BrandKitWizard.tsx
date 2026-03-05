@@ -733,9 +733,14 @@ export interface BrandKitWizardProps {
   onSuccess: () => void;
   refreshSessionAfterSuccess?: boolean;
   backHref?: string;
+  /** When provided, replaces the default /api/brand-kits POST with a custom handler */
+  studioMode?: {
+    clientId: string;
+    onSubmit: (payload: Record<string, unknown>) => Promise<unknown>;
+  };
 }
 
-export default function BrandKitWizard({ submitButtonLabel, onSuccess, refreshSessionAfterSuccess, backHref }: BrandKitWizardProps) {
+export default function BrandKitWizard({ submitButtonLabel, onSuccess, refreshSessionAfterSuccess, backHref, studioMode }: BrandKitWizardProps) {
   const [step, setStep] = useState(1);
   const [data, setData] = useState<WizardData>(defaultData);
   const [submitting, setSubmitting] = useState(false);
@@ -800,18 +805,23 @@ export default function BrandKitWizard({ submitButtonLabel, onSuccess, refreshSe
         sampleContent: data.sampleContent,
       };
 
-      const res = await fetch("/api/brand-kits", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
+      if (studioMode) {
+        // Studio mode: delegate to custom handler
+        await studioMode.onSubmit(payload);
+      } else {
+        const res = await fetch("/api/brand-kits", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as { error?: string }).error || "Failed to save brand kit");
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error((err as { error?: string }).error || "Failed to save brand kit");
+        }
       }
 
       if (refreshSessionAfterSuccess) {
