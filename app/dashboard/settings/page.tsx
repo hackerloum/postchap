@@ -58,7 +58,7 @@ function SettingsContent() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-10 pb-24 md:pb-10">
       <div className="mb-8">
         <h1 className="font-semibold text-[20px] text-text-primary tracking-tight">
           Settings

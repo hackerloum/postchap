@@ -555,7 +555,7 @@ function PostersPageContent() {
   const tabs = ["List", "Preview", "Copy"] as const;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-48px)] overflow-hidden bg-bg-base">
+    <div className="flex flex-col h-[calc(100vh-104px)] md:h-[calc(100vh-48px)] overflow-hidden bg-bg-base">
       {/* Mobile tabs */}
       <div className="flex lg:hidden border-b border-border-subtle shrink-0">
         {tabs.map((tab) => (
@@ -563,10 +563,10 @@ function PostersPageContent() {
             key={tab}
             type="button"
             onClick={() => setMobileTab(tab)}
-            className={`flex-1 py-3 font-mono text-[11px] uppercase tracking-wider transition-colors ${
+            className={`flex-1 py-3 font-mono text-[11px] uppercase tracking-wider transition-colors border-b-2 ${
               mobileTab === tab
-                ? "text-text-primary border-b-2 border-accent"
-                : "text-text-muted"
+                ? "text-text-primary border-accent"
+                : "text-text-muted border-transparent"
             }`}
           >
             {tab}
@@ -680,52 +680,54 @@ function PostersPageContent() {
             </div>
           ) : (
             <>
-              <div className="h-12 border-b border-border-subtle flex items-center justify-between px-5 shrink-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-semibold text-[13px] text-text-primary truncate max-w-xs">
+              <div className="h-12 border-b border-border-subtle flex items-center justify-between px-3 sm:px-5 shrink-0 gap-2">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <span className="font-semibold text-[12px] sm:text-[13px] text-text-primary truncate">
                     {selected?.headline}
                   </span>
                   {selected?.theme && (
-                    <span className="font-mono text-[10px] text-text-muted bg-bg-surface border border-border-default rounded-full px-2 py-0.5 shrink-0">
+                    <span className="hidden sm:inline font-mono text-[10px] text-text-muted bg-bg-surface border border-border-default rounded-full px-2 py-0.5 shrink-0">
                       {selected.theme}
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     type="button"
                     onClick={() => selected && handleDuplicate(selected.id)}
                     disabled={!selected || duplicatingId === selected?.id}
-                    className="flex items-center gap-1.5 bg-bg-surface border border-border-default text-text-secondary font-medium text-[12px] px-3 py-1.5 rounded-lg hover:border-border-strong hover:text-text-primary transition-all min-h-[32px] disabled:opacity-50"
+                    className="flex items-center gap-1 bg-bg-surface border border-border-default text-text-secondary font-medium text-[12px] px-2 sm:px-3 py-1.5 rounded-lg hover:border-border-strong hover:text-text-primary transition-all min-h-[32px] disabled:opacity-50"
+                    title="Duplicate"
                   >
                     {duplicatingId === selected?.id ? (
                       <Loader2 size={12} className="animate-spin" />
                     ) : (
                       <Copy size={12} />
                     )}
-                    Duplicate
+                    <span className="hidden sm:inline">Duplicate</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => selected && handleOpenInNewTab(selected.id)}
                     disabled={!selected}
-                    className="flex items-center gap-1.5 bg-bg-surface border border-border-default text-text-secondary font-medium text-[12px] px-3 py-1.5 rounded-lg hover:border-border-strong hover:text-text-primary transition-all min-h-[32px] disabled:opacity-50"
+                    className="flex items-center gap-1 bg-bg-surface border border-border-default text-text-secondary font-medium text-[12px] px-2 sm:px-3 py-1.5 rounded-lg hover:border-border-strong hover:text-text-primary transition-all min-h-[32px] disabled:opacity-50"
+                    title="Open"
                   >
                     <ExternalLink size={12} />
-                    Open
+                    <span className="hidden sm:inline">Open</span>
                   </button>
                   {instagramConnected && selected && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       {selected.postStatus === "posted" ? (
-                        <span className="font-mono text-[10px] text-text-muted flex items-center gap-1">
+                        <span className="hidden sm:flex font-mono text-[10px] text-text-muted items-center gap-1">
                           <CheckCircle size={10} className="text-success" />
                           Posted {selected.postedAt ? formatDate(selected.postedAt) : ""}
                         </span>
                       ) : selected.postStatus === "scheduled" && selected.scheduledFor ? (
                         <>
-                          <span className="font-mono text-[10px] text-text-muted flex items-center gap-1">
+                          <span className="hidden sm:flex font-mono text-[10px] text-text-muted items-center gap-1">
                             <CalendarClock size={10} />
-                            Scheduled {formatDate(selected.scheduledFor)}
+                            {formatDate(selected.scheduledFor)}
                           </span>
                           <button
                             type="button"
@@ -741,7 +743,7 @@ function PostersPageContent() {
                           type="button"
                           onClick={() => handlePostToInstagram(selected)}
                           disabled={postingToInstagram}
-                          className="flex items-center gap-1.5 text-[11px] text-text-muted hover:text-accent"
+                          className="flex items-center gap-1 text-[11px] text-text-muted hover:text-accent"
                         >
                           {postingToInstagram ? <Loader2 size={10} className="animate-spin" /> : null}
                           Retry
@@ -752,14 +754,15 @@ function PostersPageContent() {
                             type="button"
                             onClick={() => selected && handlePostToInstagram(selected)}
                             disabled={postingToInstagram}
-                            className="flex items-center gap-1.5 bg-gradient-to-r from-[#f09433] to-[#bc1888] text-white font-semibold text-[12px] px-3 py-1.5 rounded-lg hover:opacity-90 transition-all min-h-[32px] disabled:opacity-50"
+                            className="flex items-center gap-1 bg-gradient-to-r from-[#f09433] to-[#bc1888] text-white font-semibold text-[12px] px-2 sm:px-3 py-1.5 rounded-lg hover:opacity-90 transition-all min-h-[32px] disabled:opacity-50"
+                            title="Post to Instagram"
                           >
                             {postingToInstagram ? (
                               <Loader2 size={12} className="animate-spin" />
                             ) : (
                               <Instagram size={12} />
                             )}
-                            Post now
+                            <span className="hidden sm:inline">Post now</span>
                           </button>
                           <button
                             type="button"
@@ -768,7 +771,7 @@ function PostersPageContent() {
                               setScheduleTime("08:00");
                               setScheduleModalOpen(true);
                             }}
-                            className="flex items-center gap-1.5 bg-bg-surface border border-border-default text-text-secondary font-medium text-[12px] px-3 py-1.5 rounded-lg hover:border-border-strong transition-all min-h-[32px]"
+                            className="hidden sm:flex items-center gap-1.5 bg-bg-surface border border-border-default text-text-secondary font-medium text-[12px] px-2 sm:px-3 py-1.5 rounded-lg hover:border-border-strong transition-all min-h-[32px]"
                           >
                             <CalendarClock size={12} />
                             Schedule
@@ -781,10 +784,11 @@ function PostersPageContent() {
                     type="button"
                     onClick={() => selected && handleDownload(selected.id)}
                     disabled={!selected}
-                    className="flex items-center gap-1.5 bg-accent text-black font-semibold text-[12px] px-3 py-1.5 rounded-lg hover:bg-accent-dim transition-all min-h-[32px] disabled:opacity-50"
+                    className="flex items-center gap-1 bg-accent text-black font-semibold text-[12px] px-2 sm:px-3 py-1.5 rounded-lg hover:bg-accent-dim transition-all min-h-[32px] disabled:opacity-50"
+                    title="Download"
                   >
                     <Download size={12} />
-                    Download
+                    <span className="hidden sm:inline">Download</span>
                   </button>
                 </div>
               </div>

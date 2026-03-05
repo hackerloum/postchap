@@ -241,7 +241,7 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="px-4 py-8 sm:px-6 max-w-4xl mx-auto">
+    <div className="px-4 py-8 sm:px-6 max-w-4xl mx-auto pb-24 md:pb-8">
       {/* Header */}
       <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
         <div>

@@ -49,7 +49,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-8 pb-24 md:pb-8">
       <DashboardContent initialKits={brandKits} />
     </div>
   );

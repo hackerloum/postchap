@@ -22,7 +22,7 @@ export default async function UpgradePage() {
 
   return (
     <div className="min-h-screen bg-bg-base">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-24 md:pb-10">
         <div className="text-center mb-14">
           <div className="inline-flex items-center gap-2 bg-accent/10 border border-accent/20 rounded-full px-3 py-1.5 mb-5">
             <Zap size={12} className="text-accent" />

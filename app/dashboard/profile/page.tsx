@@ -137,7 +137,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="px-4 py-8 sm:px-6 max-w-2xl mx-auto">
+    <div className="px-4 pt-8 pb-24 md:pb-8 sm:px-6 max-w-2xl mx-auto">
       <Link href="/dashboard" className="font-mono text-[11px] text-text-muted hover:text-text-primary transition-colors inline-flex gap-1 mb-6">
         <span>←</span> Back to dashboard
       </Link>

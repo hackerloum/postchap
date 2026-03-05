@@ -1167,7 +1167,7 @@ function CreatePageContent() {
         <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mt-6 mb-2">
           Generation mode
         </p>
-        <div className="flex items-center gap-1 bg-bg-surface border border-border-default rounded-xl p-1 w-full max-w-xl">
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-1 bg-bg-surface border border-border-default rounded-xl p-1 w-full sm:max-w-xl">
           {(
             [
               { id: "ai" as GenerateMode, label: "AI Pick", icon: <Sparkles size={13} /> },
@@ -1180,7 +1180,7 @@ function CreatePageContent() {
               key={tab.id}
               type="button"
               onClick={() => setMode(tab.id)}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-[12px] font-medium transition-all duration-150 ${
+              className={`flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2.5 rounded-lg text-[11px] sm:text-[12px] font-medium transition-all duration-150 sm:flex-1 ${
                 mode === tab.id ? "bg-bg-elevated text-text-primary shadow-sm" : "text-text-muted hover:text-text-secondary"
               }`}
             >
@@ -1191,7 +1191,7 @@ function CreatePageContent() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-24 grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-32 md:pb-16 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           {/* 1. Platform selector */}
           <div className="bg-bg-surface border border-border-default rounded-2xl p-5">

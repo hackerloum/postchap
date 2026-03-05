@@ -76,7 +76,7 @@ export default function CalendarPage() {
   const monthLabel = new Date(y, m - 1).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 pb-24 md:pb-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="font-semibold text-[22px] text-text-primary tracking-tight">
           Content calendar
