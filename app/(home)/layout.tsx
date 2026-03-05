@@ -2,15 +2,15 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title:
-    "ArtMaster — AI Poster Generator That Posts for You Every Day",
+    "ArtMaster — AI Poster Generator & Agency Studio for Social Media",
   description:
-    "Stop manually creating social media posts. ArtMaster uses AI to generate beautiful branded posters every morning — tailored to your colors, logo, and audience. No designer needed. Perfect for African businesses.",
+    "ArtMaster generates professional on-brand social media posters every day, automatically. Built for African businesses. ArtMaster Studio adds multi-client management, approval workflows, and white-label portals for agencies.",
   alternates: { canonical: "https://artmasterpro.com" },
   openGraph: {
     title:
-      "ArtMaster — AI Poster Generator That Posts for You Every Day",
+      "ArtMaster — AI Poster Generator & Agency Studio for Social Media",
     description:
-      "Stop manually creating social media posts. ArtMaster generates branded posters every day, automatically.",
+      "Daily AI-generated branded posters for businesses. ArtMaster Studio for agencies: multi-client, approval workflows, white-label portal.",
     url: "https://artmasterpro.com",
     images: [
       {
@@ -69,6 +69,12 @@ const SOFTWARE_JSON = {
     "Instagram auto-posting",
     "Occasion-aware content for Africa",
     "Multiple platform formats",
+    "ArtMaster Studio — multi-client agency workspace",
+    "Approval workflow with client portal",
+    "Bulk poster generation across clients",
+    "White-label client portal",
+    "Team roles and permissions",
+    "Monthly client reports",
   ],
   screenshot: "https://artmasterpro.com/og/home.png",
   offers: [

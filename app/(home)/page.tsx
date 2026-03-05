@@ -11,6 +11,13 @@ import {
   Clock,
   Layers,
   Check,
+  Users,
+  Building2,
+  GitBranch,
+  Eye,
+  Send,
+  FileText,
+  ChevronRight,
 } from "lucide-react";
 import { CookiePreferencesLink } from "@/components/CookiePreferencesLink";
 import { TrustBarSection } from "@/app/TrustBarSection";
@@ -19,7 +26,7 @@ import { PLANS } from "@/lib/plans";
 export default function Home() {
   return (
     <>
-      {/* Section 1 — Nav */}
+      {/* Nav */}
       <header className="sticky top-0 left-0 right-0 h-14 z-50 bg-bg-base/80 backdrop-blur-xl border-b border-border-subtle">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-full">
           <Link href="/" className="flex items-center flex-shrink-0">
@@ -45,6 +52,12 @@ export default function Home() {
               className="font-mono text-[12px] text-text-muted hover:text-text-primary transition-colors"
             >
               How it works
+            </a>
+            <a
+              href="#studio"
+              className="font-mono text-[12px] text-text-muted hover:text-text-primary transition-colors"
+            >
+              For Agencies
             </a>
             <Link
               href="/pricing"
@@ -72,7 +85,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Section 2 — Hero */}
+      {/* Hero */}
       <section className="relative min-h-[90vh] flex flex-col items-center justify-center pt-32 pb-24 px-4 bg-bg-base">
         <div
           className="absolute inset-0 z-0"
@@ -166,10 +179,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Section 3 — Trust bar (marquee); deferred + contained to avoid INP block */}
+      {/* Trust bar */}
       <TrustBarSection />
 
-      {/* Section 4 — How it works (editorial timeline) */}
+      {/* How it works */}
       <section id="how-it-works" className="bg-bg-base py-28 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
           <div className="mb-20">
@@ -241,7 +254,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Section 5 — Features */}
+      {/* Features */}
       <section id="features" className="bg-bg-surface py-28 px-4">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
@@ -305,8 +318,272 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Section 5.5 — Pricing */}
-      <section id="pricing" className="relative bg-bg-base py-28 px-4 overflow-hidden">
+      {/* ─── ArtMaster Studio Section ─── */}
+      <section id="studio" className="relative bg-bg-base py-28 px-4 overflow-hidden">
+        {/* Subtle accent glow top-right */}
+        <div
+          className="absolute top-0 right-0 w-[600px] h-[600px] opacity-[0.04] pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(circle at 100% 0%, var(--color-accent, #E8FF47) 0%, transparent 70%)",
+          }}
+        />
+
+        <div className="relative z-10 max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8 mb-20">
+            <div>
+              <div className="inline-flex items-center gap-2 border border-accent/30 bg-accent/5 rounded-full px-3 py-1.5 mb-6">
+                <Building2 size={12} className="text-accent" />
+                <span className="font-mono text-[11px] text-accent tracking-widest">
+                  ARTMASTER STUDIO
+                </span>
+              </div>
+              <h2 className="font-semibold text-[36px] sm:text-[52px] text-text-primary tracking-tight leading-[1.05] max-w-2xl">
+                Built for agencies
+                <br />
+                managing{" "}
+                <span className="text-accent">multiple clients.</span>
+              </h2>
+              <p className="mt-5 text-[16px] text-text-secondary max-w-xl leading-relaxed">
+                ArtMaster Studio is a separate product on the same login.
+                Designers and agencies get their own workspace — multi-client
+                brand management, approval workflows, team roles, and a
+                white-label client portal.
+              </p>
+            </div>
+
+            <div className="flex-shrink-0">
+              <Link
+                href="/studio"
+                className="inline-flex items-center gap-2 bg-accent text-black font-semibold text-[14px] px-6 py-3.5 rounded-xl hover:bg-accent-dim transition-all duration-200 active:scale-[0.98]"
+              >
+                Open Studio
+                <ArrowRight size={15} />
+              </Link>
+            </div>
+          </div>
+
+          {/* Two-col layout: features left, flow right */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-20">
+            {/* Studio feature cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[
+                {
+                  icon: <Users size={16} />,
+                  title: "Multi-client workspace",
+                  body: "Manage unlimited clients from one dashboard. Each client gets their own brand kits, poster history, and quota.",
+                },
+                {
+                  icon: <GitBranch size={16} />,
+                  title: "Approval workflow",
+                  body: "Generate → agency reviews → client approves. Full status tracking and revision comments on every poster.",
+                },
+                {
+                  icon: <Eye size={16} />,
+                  title: "White-label client portal",
+                  body: "Clients log in to a branded portal to view and approve their posters — no ArtMaster branding visible.",
+                },
+                {
+                  icon: <Zap size={16} />,
+                  title: "Bulk generation",
+                  body: "Generate posters across multiple clients at once for the same occasion or campaign. One click, dozens of posters.",
+                },
+                {
+                  icon: <Building2 size={16} />,
+                  title: "Team & roles",
+                  body: "Invite team members as owner, manager, designer, reviewer, or intern — with per-client access controls.",
+                },
+                {
+                  icon: <Send size={16} />,
+                  title: "Direct publishing",
+                  body: "Connect each client's Instagram and publish approved posters directly from Studio. No manual downloads.",
+                },
+                {
+                  icon: <Globe2 size={16} />,
+                  title: "Occasion alerts per client",
+                  body: "Each client gets tailored occasion reminders based on their industry, country, and audience.",
+                },
+                {
+                  icon: <FileText size={16} />,
+                  title: "Monthly client reports",
+                  body: "One-click report per client: posters generated, platforms covered, approval rate, and AI cost breakdown.",
+                },
+              ].map((f, i) => (
+                <div
+                  key={i}
+                  className="bg-bg-elevated border border-border-default/50 rounded-xl p-5 hover:border-accent/20 hover:bg-accent/[0.02] transition-all duration-200"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-accent mb-3">
+                    {f.icon}
+                  </div>
+                  <h3 className="font-semibold text-[13px] text-text-primary mb-1.5">
+                    {f.title}
+                  </h3>
+                  <p className="text-[12px] text-text-secondary leading-relaxed">
+                    {f.body}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* Studio flow diagram */}
+            <div className="flex flex-col justify-center gap-3">
+              <p className="font-mono text-[11px] text-text-muted tracking-[0.15em] mb-2">
+                STUDIO WORKFLOW
+              </p>
+
+              {[
+                {
+                  step: "01",
+                  label: "Create agency",
+                  sub: "Set up your Studio account with agency name and plan",
+                  accent: false,
+                },
+                {
+                  step: "02",
+                  label: "Add clients & brand kits",
+                  sub: "Each client has their own colors, logo, tone, and product catalog",
+                  accent: false,
+                },
+                {
+                  step: "03",
+                  label: "Generate posters",
+                  sub: "Single or bulk — pick client, kit, format, occasion — done in 60s",
+                  accent: true,
+                },
+                {
+                  step: "04",
+                  label: "Review & approve",
+                  sub: "Your team reviews first, then client approves via portal",
+                  accent: false,
+                },
+                {
+                  step: "05",
+                  label: "Publish directly",
+                  sub: "Post to client's Instagram or export. Usage tracked per client",
+                  accent: false,
+                },
+              ].map((item, i) => (
+                <div
+                  key={i}
+                  className={`relative flex gap-4 p-4 rounded-xl border transition-all duration-200 ${
+                    item.accent
+                      ? "border-accent/30 bg-accent/5"
+                      : "border-border-default/50 bg-bg-elevated"
+                  }`}
+                >
+                  {i < 4 && (
+                    <div className="absolute left-[27px] top-[52px] w-px h-3 bg-border-subtle" />
+                  )}
+                  <div
+                    className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center font-mono text-[11px] font-bold ${
+                      item.accent
+                        ? "bg-accent text-black"
+                        : "bg-bg-base border border-border-default text-text-muted"
+                    }`}
+                  >
+                    {item.step}
+                  </div>
+                  <div>
+                    <p
+                      className={`font-semibold text-[13px] mb-0.5 ${item.accent ? "text-accent" : "text-text-primary"}`}
+                    >
+                      {item.label}
+                    </p>
+                    <p className="text-[12px] text-text-secondary leading-relaxed">
+                      {item.sub}
+                    </p>
+                  </div>
+                </div>
+              ))}
+
+              <Link
+                href="/studio"
+                className="mt-4 inline-flex items-center gap-2 text-accent font-mono text-[12px] hover:gap-3 transition-all duration-200"
+              >
+                Go to ArtMaster Studio
+                <ChevronRight size={14} />
+              </Link>
+            </div>
+          </div>
+
+          {/* Studio plans strip */}
+          <div className="border border-border-default/50 rounded-2xl overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border-default/50">
+              {[
+                {
+                  name: "Starter",
+                  price: "$29/mo",
+                  clients: "5 clients",
+                  posters: "100 posters/mo",
+                  team: "1 seat",
+                  highlight: false,
+                },
+                {
+                  name: "Pro",
+                  price: "$59/mo",
+                  clients: "20 clients",
+                  posters: "500 posters/mo",
+                  team: "5 seats",
+                  highlight: true,
+                },
+                {
+                  name: "Agency",
+                  price: "$129/mo",
+                  clients: "Unlimited clients",
+                  posters: "Unlimited posters",
+                  team: "Unlimited seats",
+                  highlight: false,
+                },
+              ].map((plan) => (
+                <div
+                  key={plan.name}
+                  className={`relative p-6 ${plan.highlight ? "bg-accent/5" : "bg-bg-elevated"}`}
+                >
+                  {plan.highlight && (
+                    <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-accent text-black font-mono text-[10px] font-semibold tracking-widest">
+                      POPULAR
+                    </div>
+                  )}
+                  <p className="font-semibold text-[16px] text-text-primary mb-1">
+                    {plan.name}
+                  </p>
+                  <p className="font-mono text-[22px] font-bold text-accent mb-4">
+                    {plan.price}
+                  </p>
+                  <ul className="space-y-2">
+                    {[plan.clients, plan.posters, plan.team].map((item) => (
+                      <li
+                        key={item}
+                        className="flex items-center gap-2 text-[13px] text-text-secondary"
+                      >
+                        <Check size={12} className="text-accent flex-shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-border-default/50 bg-bg-elevated px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <p className="text-[13px] text-text-secondary">
+                White-label portal, team roles, bulk generation, client reports, direct publishing — all plans.
+              </p>
+              <Link
+                href="/studio"
+                className="flex-shrink-0 inline-flex items-center gap-1.5 bg-accent text-black font-semibold text-[13px] px-5 py-2.5 rounded-lg hover:bg-accent-dim transition-colors"
+              >
+                Start Studio free
+                <ArrowRight size={13} />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing (ArtMaster) */}
+      <section id="pricing" className="relative bg-bg-surface py-28 px-4 overflow-hidden">
         <div
           className="absolute inset-0 z-0 opacity-[0.03]"
           style={{
@@ -314,7 +591,7 @@ export default function Home() {
           }}
         />
         <div className="relative z-10 max-w-6xl mx-auto">
-          <div className="text-center mb-20">
+          <div className="text-center mb-8">
             <p className="font-mono text-[11px] text-accent tracking-[0.2em] uppercase mb-4">
               Pricing
             </p>
@@ -324,6 +601,22 @@ export default function Home() {
             <p className="mt-4 text-[15px] text-text-secondary max-w-lg mx-auto">
               Transparent pricing. No hidden fees. Upgrade or downgrade anytime.
             </p>
+          </div>
+
+          {/* Product toggle hint */}
+          <div className="flex items-center justify-center gap-6 mb-16">
+            <button className="inline-flex items-center gap-2 bg-accent/10 border border-accent/30 rounded-full px-4 py-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+              <span className="font-mono text-[11px] text-accent">ArtMaster — for businesses</span>
+            </button>
+            <Link
+              href="/studio/billing"
+              className="inline-flex items-center gap-2 border border-border-default rounded-full px-4 py-1.5 hover:border-border-strong transition-colors"
+            >
+              <Building2 size={11} className="text-text-muted" />
+              <span className="font-mono text-[11px] text-text-muted hover:text-text-secondary transition-colors">Studio — for agencies</span>
+              <ChevronRight size={11} className="text-text-muted" />
+            </Link>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch">
@@ -336,7 +629,6 @@ export default function Home() {
                   ? "Unlimited"
                   : `${limits.postersPerMonth} / month`;
               const isPro = plan.id === "pro";
-              const isBusiness = plan.id === "business";
               const [priceMain, priceSub] =
                 plan.priceMonthly === 0
                   ? ["Free", ""]
@@ -422,7 +714,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Section 6 — Testimonial */}
+      {/* Testimonial */}
       <section className="bg-bg-base py-24 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <div className="bg-bg-elevated border border-border-default/50 rounded-2xl p-8 sm:p-12">
@@ -454,33 +746,90 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Section 7 — Final CTA */}
+      {/* Dual CTA — ArtMaster + Studio */}
       <section className="bg-bg-base py-28 px-4">
-        <div className="max-w-2xl mx-auto text-center">
-          <h2 className="font-semibold text-[36px] sm:text-[52px] text-text-primary tracking-tight leading-[1.05] mb-6">
-            Start posting
-            <br />
-            <span className="text-text-muted">consistently.</span>
-          </h2>
-          <p className="text-[16px] text-text-secondary max-w-sm mx-auto mb-10 leading-relaxed">
-            Join businesses across Africa that never miss a day on social media.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              href="/signup"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-accent text-black font-semibold text-[15px] px-10 py-4 rounded-xl hover:bg-accent-dim transition-all active:scale-[0.98] min-h-[52px]"
-            >
-              Create free account
-              <ArrowRight size={16} />
-            </Link>
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* ArtMaster CTA */}
+            <div className="relative rounded-2xl border border-border-default bg-bg-elevated p-8 sm:p-10 flex flex-col justify-between gap-8 overflow-hidden">
+              <div
+                className="absolute bottom-0 right-0 w-48 h-48 opacity-[0.05] pointer-events-none"
+                style={{
+                  background:
+                    "radial-gradient(circle at 100% 100%, var(--color-accent, #E8FF47), transparent 70%)",
+                }}
+              />
+              <div>
+                <div className="inline-flex items-center gap-2 bg-accent/10 border border-accent/20 rounded-full px-3 py-1 mb-5">
+                  <Zap size={11} className="text-accent" />
+                  <span className="font-mono text-[10px] text-accent tracking-widest">FOR BUSINESSES</span>
+                </div>
+                <h3 className="font-semibold text-[26px] sm:text-[32px] text-text-primary tracking-tight leading-tight mb-3">
+                  Start posting
+                  <br />
+                  <span className="text-text-muted">consistently.</span>
+                </h3>
+                <p className="text-[14px] text-text-secondary leading-relaxed">
+                  One brand. Daily AI-generated posters. No designer needed.
+                  Free to start.
+                </p>
+              </div>
+              <div>
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center gap-2 bg-accent text-black font-semibold text-[14px] px-7 py-3.5 rounded-xl hover:bg-accent-dim transition-all active:scale-[0.98]"
+                >
+                  Create free account
+                  <ArrowRight size={15} />
+                </Link>
+                <p className="mt-3 font-mono text-[11px] text-text-muted">
+                  No credit card required
+                </p>
+              </div>
+            </div>
+
+            {/* Studio CTA */}
+            <div className="relative rounded-2xl border border-accent/25 bg-accent/[0.03] p-8 sm:p-10 flex flex-col justify-between gap-8 overflow-hidden">
+              <div
+                className="absolute top-0 right-0 w-64 h-64 opacity-[0.06] pointer-events-none"
+                style={{
+                  background:
+                    "radial-gradient(circle at 100% 0%, var(--color-accent, #E8FF47), transparent 70%)",
+                }}
+              />
+              <div>
+                <div className="inline-flex items-center gap-2 bg-accent/10 border border-accent/30 rounded-full px-3 py-1 mb-5">
+                  <Building2 size={11} className="text-accent" />
+                  <span className="font-mono text-[10px] text-accent tracking-widest">FOR AGENCIES</span>
+                </div>
+                <h3 className="font-semibold text-[26px] sm:text-[32px] text-text-primary tracking-tight leading-tight mb-3">
+                  Scale your agency
+                  <br />
+                  <span className="text-accent">with Studio.</span>
+                </h3>
+                <p className="text-[14px] text-text-secondary leading-relaxed">
+                  Manage all your clients from one workspace. Multi-brand kits,
+                  approval workflows, white-label portal.
+                </p>
+              </div>
+              <div>
+                <Link
+                  href="/studio"
+                  className="inline-flex items-center gap-2 bg-accent text-black font-semibold text-[14px] px-7 py-3.5 rounded-xl hover:bg-accent-dim transition-all active:scale-[0.98]"
+                >
+                  Open ArtMaster Studio
+                  <ArrowRight size={15} />
+                </Link>
+                <p className="mt-3 font-mono text-[11px] text-text-muted">
+                  Same login · Separate workspace
+                </p>
+              </div>
+            </div>
           </div>
-          <p className="mt-5 font-mono text-[11px] text-text-muted">
-            No credit card required
-          </p>
         </div>
       </section>
 
-      {/* Section 8 — Footer */}
+      {/* Footer */}
       <footer className="bg-bg-surface">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 py-16 border-b border-border-subtle/40">
@@ -498,11 +847,19 @@ export default function Home() {
                 Automated social media poster generation for African businesses
                 scaling globally.
               </p>
-              <div className="inline-flex items-center gap-2 bg-bg-elevated border border-border-default/50 rounded-full px-3 py-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-success" />
-                <span className="font-mono text-[11px] text-text-muted">
-                  Built for Africa · Used worldwide
-                </span>
+              <div className="flex flex-col gap-2">
+                <div className="inline-flex items-center gap-2 bg-bg-elevated border border-border-default/50 rounded-full px-3 py-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-success" />
+                  <span className="font-mono text-[11px] text-text-muted">
+                    Built for Africa · Used worldwide
+                  </span>
+                </div>
+                <div className="inline-flex items-center gap-2 bg-accent/5 border border-accent/20 rounded-full px-3 py-1.5 w-fit">
+                  <Building2 size={10} className="text-accent" />
+                  <span className="font-mono text-[11px] text-accent">
+                    ArtMaster Studio — now available
+                  </span>
+                </div>
               </div>
             </div>
             <div>
@@ -530,33 +887,26 @@ export default function Home() {
             </div>
             <div>
               <p className="font-mono text-[11px] text-text-muted tracking-[0.15em] mb-5">
-                LEGAL
+                STUDIO
               </p>
               <ul className="space-y-3">
-                <li>
-                  <Link
-                    href="/privacy"
-                    className="text-[14px] text-text-secondary hover:text-text-primary transition-colors duration-200"
-                  >
-                    Privacy Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/terms"
-                    className="text-[14px] text-text-secondary hover:text-text-primary transition-colors duration-200"
-                  >
-                    Terms of Service
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/contact"
-                    className="text-[14px] text-text-secondary hover:text-text-primary transition-colors duration-200"
-                  >
-                    Contact
-                  </Link>
-                </li>
+                {[
+                  { label: "For agencies", href: "#studio" },
+                  { label: "Studio dashboard", href: "/studio" },
+                  { label: "Studio pricing", href: "/studio/billing" },
+                  { label: "Client portal", href: "/studio" },
+                  { label: "Privacy Policy", href: "/privacy" },
+                  { label: "Terms of Service", href: "/terms" },
+                ].map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
+                      className="text-[14px] text-text-secondary hover:text-text-primary transition-colors duration-200"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
                 <li>
                   <CookiePreferencesLink className="text-[14px] text-text-secondary hover:text-text-primary transition-colors duration-200">
                     Cookie preferences
