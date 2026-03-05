@@ -91,7 +91,7 @@ export default function StudioBillingPage() {
                 </button>
               ) : (
                 <a
-                  href={`/studio/checkout?plan=${plan.id}`}
+                  href="/studio/billing#upgrade"
                   className="w-full py-3 rounded-xl bg-info text-black font-semibold text-[13px] text-center hover:bg-info/90 transition-colors flex items-center justify-center gap-2"
                 >
                   <Zap size={14} />

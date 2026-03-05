@@ -181,7 +181,7 @@ export function StudioNav() {
                     Switch to My Brand
                   </Link>
                   <Link
-                    href="/api/auth/logout"
+                    href="/api/auth/logout?returnTo=/studio/login"
                     className="flex items-center gap-2 px-3 py-2 text-[13px] text-text-secondary hover:bg-bg-elevated hover:text-text-primary transition-colors"
                     onClick={() => setAvatarOpen(false)}
                   >
@@ -269,7 +269,7 @@ export function StudioNav() {
                 My Brand
               </Link>
               <Link
-                href="/api/auth/logout"
+                href="/api/auth/logout?returnTo=/studio/login"
                 className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-bg-surface border border-border-default text-red-400 text-[13px] hover:border-red-500/40 transition-colors"
               >
                 <LogOut size={15} />

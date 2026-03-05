@@ -11,8 +11,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false, noarchive: true },
 };
 
-// Routes that don't require an agency (onboarding, team join, client portal)
-const BYPASS_ROUTES = ["/studio/onboarding", "/studio/join", "/studio/portal"];
+// Routes that don't require an agency or auth (Studio has its own login/signup)
+const BYPASS_ROUTES = ["/studio/onboarding", "/studio/join", "/studio/portal", "/studio/login", "/studio/signup"];
 
 export default async function StudioLayout({ children }: { children: React.ReactNode }) {
   const headersList = await headers();
@@ -32,10 +32,10 @@ export default async function StudioLayout({ children }: { children: React.React
     const decoded = await verifyCookieAuth(token);
     uid = decoded.uid;
   } catch {
-    redirect("/login");
+    redirect("/studio/login");
   }
 
-  if (!uid) redirect("/login");
+  if (!uid) redirect("/studio/login");
 
   let agency = null;
   try {

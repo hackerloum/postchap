@@ -346,19 +346,24 @@ export default function Home() {
                 <span className="text-accent">multiple clients.</span>
               </h2>
               <p className="mt-5 text-[16px] text-text-secondary max-w-xl leading-relaxed">
-                ArtMaster Studio is a separate product on the same login.
-                Designers and agencies get their own workspace — multi-client
-                brand management, approval workflows, team roles, and a
-                white-label client portal.
+                ArtMaster Studio has its own login and signup — for agencies and
+                designers only. Multi-client brand management, approval workflows,
+                team roles, and a white-label client portal.
               </p>
             </div>
 
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 flex items-center gap-2">
               <Link
-                href="/studio"
+                href="/studio/login"
+                className="inline-flex items-center gap-2 bg-bg-elevated border border-border-default text-text-primary font-semibold text-[14px] px-5 py-3.5 rounded-xl hover:border-border-strong transition-all duration-200"
+              >
+                Sign in to Studio
+              </Link>
+              <Link
+                href="/studio/signup"
                 className="inline-flex items-center gap-2 bg-accent text-black font-semibold text-[14px] px-6 py-3.5 rounded-xl hover:bg-accent-dim transition-all duration-200 active:scale-[0.98]"
               >
-                Open Studio
+                Sign up for Studio
                 <ArrowRight size={15} />
               </Link>
             </div>
@@ -499,10 +504,10 @@ export default function Home() {
               ))}
 
               <Link
-                href="/studio"
+                href="/studio/signup"
                 className="mt-4 inline-flex items-center gap-2 text-accent font-mono text-[12px] hover:gap-3 transition-all duration-200"
               >
-                Go to ArtMaster Studio
+                Sign up for Studio
                 <ChevronRight size={14} />
               </Link>
             </div>
@@ -571,10 +576,10 @@ export default function Home() {
                 White-label portal, team roles, bulk generation, client reports, direct publishing — all plans.
               </p>
               <Link
-                href="/studio"
+                href="/studio/signup"
                 className="flex-shrink-0 inline-flex items-center gap-1.5 bg-accent text-black font-semibold text-[13px] px-5 py-2.5 rounded-lg hover:bg-accent-dim transition-colors"
               >
-                Start Studio free
+                Sign up for Studio
                 <ArrowRight size={13} />
               </Link>
             </div>
@@ -814,14 +819,14 @@ export default function Home() {
               </div>
               <div>
                 <Link
-                  href="/studio"
+                  href="/studio/signup"
                   className="inline-flex items-center gap-2 bg-accent text-black font-semibold text-[14px] px-7 py-3.5 rounded-xl hover:bg-accent-dim transition-all active:scale-[0.98]"
                 >
-                  Open ArtMaster Studio
+                  Sign up for Studio
                   <ArrowRight size={15} />
                 </Link>
                 <p className="mt-3 font-mono text-[11px] text-text-muted">
-                  Same login · Separate workspace
+                  Own login · For agencies and designers
                 </p>
               </div>
             </div>
