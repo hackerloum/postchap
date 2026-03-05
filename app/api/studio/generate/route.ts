@@ -49,16 +49,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Access denied to this client" }, { status: 403 });
   }
 
-  // Check agency poster quota
+  // Check agency poster quota (trial = 0 posters)
   const quota = await checkAgencyPosterQuota(agency.id);
   if (!quota.allowed) {
+    const message =
+      agency.plan === "trial"
+        ? "Trial plan is view-only. Upgrade to a paid Studio plan to generate posters."
+        : `Monthly poster limit reached (${quota.used}/${quota.limit}). Upgrade your Studio plan to generate more.`;
     return NextResponse.json(
-      {
-        error: `Monthly poster limit reached (${quota.used}/${quota.limit}). Upgrade your Studio plan to generate more.`,
-        code: "POSTER_LIMIT_REACHED",
-        used: quota.used,
-        limit: quota.limit,
-      },
+      { error: message, code: "POSTER_LIMIT_REACHED", used: quota.used, limit: quota.limit },
       { status: 403 }
     );
   }

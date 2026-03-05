@@ -125,7 +125,7 @@ export async function getAgencyForUser(uid: string): Promise<StudioAgency | null
 export async function createAgency(
   uid: string,
   agencyName: string,
-  plan: StudioPlanId = "starter"
+  plan: StudioPlanId = "trial"
 ): Promise<StudioAgency> {
   const db = getAdminDb();
   const monthlyPosterLimit = getMonthlyPosterLimit(plan);

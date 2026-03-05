@@ -2,7 +2,7 @@ import type { Timestamp } from "firebase-admin/firestore";
 
 // ─── Plans ─────────────────────────────────────────────────────────────────
 
-export type StudioPlanId = "starter" | "pro" | "agency";
+export type StudioPlanId = "trial" | "starter" | "pro" | "agency";
 
 // ─── Team ──────────────────────────────────────────────────────────────────
 

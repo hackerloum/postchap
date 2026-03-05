@@ -39,7 +39,7 @@ export default function StudioBillingPage() {
       <div className="mb-8">
         <h1 className="font-semibold text-[24px] text-text-primary tracking-tight">Studio billing</h1>
         <p className="font-mono text-[13px] text-text-muted mt-1">
-          Current plan: <span className="text-text-primary capitalize font-semibold">{agency?.plan ?? "starter"}</span>
+          Current plan: <span className="text-text-primary capitalize font-semibold">{agency?.plan ?? "trial"}</span>
         </p>
       </div>
 

@@ -94,6 +94,10 @@ export default function StudioSettingsPage() {
       <div className="mb-6">
         <h1 className="font-semibold text-[24px] text-text-primary tracking-tight">Studio settings</h1>
         <p className="font-mono text-[13px] text-text-muted mt-1">Agency name, portal branding, and more.</p>
+        <p className="text-[12px] mt-3 p-3 rounded-xl border" style={{ color: "var(--studio-text-secondary)", borderColor: "var(--studio-border)", background: "var(--studio-bg-surface)" }}>
+          One account is used for both Studio and My Brand (dashboard). Name and email are shared — edit them in{" "}
+          <a href="/dashboard/profile" className="underline hover:opacity-90" style={{ color: "var(--studio-accent)" }}>Profile</a> on the dashboard.
+        </p>
       </div>
 
       <form onSubmit={handleSave} className="space-y-5">

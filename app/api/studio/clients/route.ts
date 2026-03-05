@@ -83,15 +83,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "clientName is required" }, { status: 400 });
   }
 
-  // Check client limit
+  // Check client limit (trial = 0 clients)
   const countSnap = await clientsRef(agency.id).count().get();
   const currentCount = countSnap.data().count;
   if (!checkClientLimit(agency, currentCount)) {
+    const message =
+      agency.plan === "trial"
+        ? "Trial plan is view-only. Upgrade to a paid Studio plan to add clients and generate posters."
+        : `Client limit reached for your ${agency.plan} plan. Upgrade to add more clients.`;
     return NextResponse.json(
-      {
-        error: `Client limit reached for your ${agency.plan} plan. Upgrade to add more clients.`,
-        code: "CLIENT_LIMIT_REACHED",
-      },
+      { error: message, code: "CLIENT_LIMIT_REACHED" },
       { status: 403 }
     );
   }

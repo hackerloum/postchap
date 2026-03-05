@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyRequestAuth } from "@/lib/firebase/verify-auth";
 import { getAgencyForUser, createAgency, agencyRef } from "@/lib/studio/db";
-import { isValidStudioPlanId } from "@/lib/studio-plans";
 import { FieldValue } from "firebase-admin/firestore";
 
 async function getUid(request: NextRequest): Promise<string> {
@@ -39,14 +38,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: { agencyName?: string; plan?: string };
+  let body: { agencyName?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  const { agencyName, plan } = body;
+  const { agencyName } = body;
 
   if (!agencyName?.trim()) {
     return NextResponse.json({ error: "agencyName is required" }, { status: 400 });
@@ -58,7 +57,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "You already have a Studio agency.", agency: existing }, { status: 409 });
   }
 
-  const finalPlan = isValidStudioPlanId(plan) ? plan : "starter";
+  // New agencies start on trial; upgrade via billing.
+  const finalPlan: import("@/types/studio").StudioPlanId = "trial";
 
   try {
     const agency = await createAgency(uid, agencyName.trim(), finalPlan);

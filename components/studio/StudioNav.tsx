@@ -102,7 +102,7 @@ export function StudioNav() {
     return pathname.startsWith(href);
   }
 
-  const planLabel = plan === "starter" ? "STARTER" : plan === "pro" ? "PRO" : plan === "agency" ? "AGENCY" : "STARTER";
+  const planLabel = plan === "agency" ? "AGENCY" : plan === "pro" ? "PRO" : plan === "starter" ? "STARTER" : "TRIAL";
 
   return (
     <>
@@ -144,13 +144,6 @@ export function StudioNav() {
               <div className="w-1.5 h-1.5 rounded-full bg-info" />
               <span className="font-mono text-[10px] text-text-muted">{planLabel} STUDIO</span>
             </div>
-            <Link
-              href="/dashboard"
-              className="hidden sm:inline-flex items-center gap-1.5 text-text-muted font-medium text-[12px] px-3 py-1.5 rounded-lg hover:bg-bg-surface hover:text-text-secondary transition-colors"
-            >
-              <ExternalLink size={11} />
-              My Brand
-            </Link>
             <div className="relative" ref={avatarRef}>
               <button
                 type="button"
@@ -178,7 +171,7 @@ export function StudioNav() {
                     onClick={() => setAvatarOpen(false)}
                   >
                     <ExternalLink size={14} />
-                    Switch to My Brand
+                    My Brand (dashboard)
                   </Link>
                   <Link
                     href="/api/auth/logout?returnTo=/studio/login"
@@ -266,7 +259,7 @@ export function StudioNav() {
                 className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-bg-surface border border-border-default text-text-secondary text-[13px] hover:border-border-strong transition-colors"
               >
                 <ExternalLink size={15} />
-                My Brand
+                My Brand (dashboard)
               </Link>
               <Link
                 href="/api/auth/logout?returnTo=/studio/login"

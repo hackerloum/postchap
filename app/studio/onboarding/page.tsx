@@ -26,7 +26,7 @@ export default function StudioOnboardingPage() {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ agencyName: agencyName.trim(), plan: "starter" }),
+        body: JSON.stringify({ agencyName: agencyName.trim() }),
       });
 
       const data = await res.json();
@@ -75,11 +75,11 @@ export default function StudioOnboardingPage() {
           </p>
           <div className="space-y-3">
             {[
-              "Manage up to 5 clients (Starter plan)",
-              "Multiple brand kits per client",
-              "Client approval workflow",
-              "Usage tracking per client",
-              "Upgrade anytime for more clients + features",
+              "Start with a free Trial — view the dashboard",
+              "Upgrade to add clients and generate posters",
+              "Multiple brand kits per client (Starter+)",
+              "Client approval workflow (Pro+)",
+              "Usage tracking and billing in one place",
             ].map((item) => (
               <div key={item} className="flex items-center gap-3">
                 <CheckCircle2 size={15} className="text-success shrink-0" />

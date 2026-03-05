@@ -14,6 +14,7 @@ import {
   LogOut,
   User,
   ExternalLink,
+  Zap,
 } from "lucide-react";
 import { getAuthClient } from "@/lib/firebase/client";
 
@@ -30,7 +31,7 @@ const NAV_ITEMS = [
 export function StudioSidebar() {
   const pathname = usePathname();
   const [agencyName, setAgencyName] = useState("Volta Creative");
-  const [plan, setPlan] = useState("PRO STUDIO");
+  const [plan, setPlan] = useState("TRIAL");
   const [userInitial, setUserInitial] = useState("V");
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -40,8 +41,10 @@ export function StudioSidebar() {
       .then((d) => {
         if (d?.agency) {
           setAgencyName(d.agency.agencyName || "Volta Creative");
-          const p = d.agency.plan ?? "starter";
-          setPlan(p === "agency" ? "AGENCY STUDIO" : p === "pro" ? "PRO STUDIO" : "STARTER STUDIO");
+          const p = d.agency.plan ?? "trial";
+          setPlan(
+            p === "agency" ? "AGENCY STUDIO" : p === "pro" ? "PRO STUDIO" : p === "starter" ? "STARTER STUDIO" : "TRIAL"
+          );
         }
       })
       .catch(() => {});
@@ -100,11 +103,26 @@ export function StudioSidebar() {
         </p>
         <p
           className="text-[9px] mt-0.5 tracking-widest font-medium"
-          style={{ color: "var(--studio-accent)", opacity: 0.7 }}
+          style={{ color: plan === "TRIAL" ? "var(--studio-text-muted)" : "var(--studio-accent)", opacity: plan === "TRIAL" ? 1 : 0.7 }}
         >
           {plan}
         </p>
       </div>
+
+      {plan === "TRIAL" && (
+        <Link
+          href="/studio/billing"
+          className="mx-3 mb-3 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[11px] font-semibold transition-all"
+          style={{
+            background: "var(--studio-accent)",
+            color: "#080808",
+            border: "1px solid transparent",
+          }}
+        >
+          <Zap size={12} />
+          Upgrade to use Studio
+        </Link>
+      )}
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-2 space-y-0.5">
@@ -138,17 +156,8 @@ export function StudioSidebar() {
         })}
       </nav>
 
-      {/* Footer */}
+      {/* Footer — account dropdown (one account for both Studio and Dashboard) */}
       <div className="p-3 border-t space-y-2" style={{ borderColor: "var(--studio-border-subtle)" }}>
-        <Link
-          href="/dashboard"
-          className="flex items-center justify-center gap-2 py-2 rounded-lg border text-[10px] font-medium tracking-widest transition-colors duration-150 hover:border-[var(--studio-accent)] hover:text-[var(--studio-accent)]"
-          style={{ borderColor: "var(--studio-border)", color: "var(--studio-text-muted)" }}
-        >
-          <ExternalLink size={12} />
-          MY BRAND
-        </Link>
-
         <div className="relative">
           <button
             type="button"
@@ -193,7 +202,16 @@ export function StudioSidebar() {
                   onClick={() => setDropdownOpen(false)}
                 >
                   <User size={12} />
-                  Settings
+                  Studio settings
+                </Link>
+                <Link
+                  href="/dashboard"
+                  className="flex items-center gap-2 px-3 py-2 text-[11px] hover:bg-white/[0.04] transition-colors"
+                  style={{ color: "var(--studio-text-secondary)" }}
+                  onClick={() => setDropdownOpen(false)}
+                >
+                  <ExternalLink size={12} />
+                  My Brand (dashboard)
                 </Link>
                 <Link
                   href="/api/auth/logout?returnTo=/studio/login"

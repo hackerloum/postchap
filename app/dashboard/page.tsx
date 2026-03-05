@@ -1,6 +1,7 @@
 import { getAdminDb } from "@/lib/firebase/admin";
 import { verifyCookieAuth } from "@/lib/firebase/verify-auth";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { DashboardContent } from "./DashboardContent";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +44,8 @@ export default async function DashboardPage() {
     if (token) {
       const decoded = await verifyCookieAuth(token);
       brandKits = await getBrandKits(decoded.uid);
+      // First-time My Brand (e.g. from Studio): no brand kit yet → send to onboarding
+      if (brandKits.length === 0) redirect("/onboarding");
     }
   } catch {
     brandKits = [];

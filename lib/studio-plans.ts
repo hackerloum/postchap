@@ -23,7 +23,28 @@ export interface StudioPlanInfo {
   tagline: string;
 }
 
+/** Trial: view-only until user pays for a Studio plan. Not in checkout — upgrade to starter/pro/agency. */
 export const STUDIO_PLANS: StudioPlanInfo[] = [
+  {
+    id: "trial",
+    name: "Trial",
+    priceLabel: "Free",
+    priceMonthly: 0,
+    priceTzs: 0,
+    tagline: "View dashboard only — upgrade to use Studio",
+    limits: {
+      maxClients: 0,
+      maxBrandKitsPerClient: 0,
+      maxPostersPerMonth: 0,
+      teamMembers: 0,
+      clientPortal: false,
+      whiteLabel: false,
+      bulkGeneration: false,
+      pdfReports: false,
+      directPublishing: false,
+      extraPosterPacks: false,
+    },
+  },
   {
     id: "starter",
     name: "Starter",
@@ -91,8 +112,8 @@ const planMap = new Map<StudioPlanId, StudioPlanInfo>(
 );
 
 export function getStudioPlanLimits(planId: string | undefined | null): StudioPlanLimits {
-  const id = (planId ?? "starter") as StudioPlanId;
-  const plan = planMap.get(id) ?? planMap.get("starter")!;
+  const id = (planId ?? "trial") as StudioPlanId;
+  const plan = planMap.get(id) ?? planMap.get("trial")!;
   return plan.limits;
 }
 

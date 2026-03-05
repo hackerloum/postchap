@@ -113,11 +113,36 @@ export default function StudioDashboardPage() {
     return () => clearTimeout(t);
   }, [quotaPercent]);
 
+  const isTrial = displayUsage.plan === "trial";
+
   return (
     <div className="max-w-[1100px] mx-auto space-y-8">
 
+      {isTrial && (
+        <div
+          className="studio-animate-fade-up rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+          style={{
+            background: "rgba(232,255,71,0.06)",
+            borderColor: "rgba(232,255,71,0.25)",
+            animationDelay: "0ms",
+          }}
+        >
+          <p className="text-[13px]" style={{ color: "var(--studio-text-primary)" }}>
+            <strong>Trial plan</strong> — view only. Upgrade to add clients and generate posters.
+          </p>
+          <Link
+            href="/studio/billing"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-semibold shrink-0 transition-opacity hover:opacity-90"
+            style={{ background: "var(--studio-accent)", color: "#080808" }}
+          >
+            <Zap size={14} />
+            Upgrade to use Studio
+          </Link>
+        </div>
+      )}
+
       {/* Page header */}
-      <div className="studio-animate-fade-up" style={{ animationDelay: "0ms" }}>
+      <div className="studio-animate-fade-up" style={{ animationDelay: "80ms" }}>
         <h1
           className="text-[32px] font-bold tracking-tight"
           style={{ color: "var(--studio-text-primary)", letterSpacing: "-0.03em" }}
