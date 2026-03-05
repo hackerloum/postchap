@@ -17,11 +17,16 @@ export async function GET(request: NextRequest) {
   const status = searchParams.get("status") ?? undefined;
 
   try {
-    let query = clientsRef(agency.id).orderBy("createdAt", "desc") as FirebaseFirestore.Query;
-    if (status) query = query.where("status", "==", status);
+    // Avoid composite index: don't combine orderBy + where. Filter in-memory if needed.
+    let query: FirebaseFirestore.Query = clientsRef(agency.id);
+    if (status) {
+      query = query.where("status", "==", status);
+    } else {
+      query = query.orderBy("createdAt", "desc");
+    }
 
     const snap = await query.get();
-    const clients = snap.docs.map((d) => {
+    let clients = snap.docs.map((d) => {
       const data = d.data();
       return {
         id: d.id,
@@ -41,6 +46,10 @@ export async function GET(request: NextRequest) {
         updatedAt: data.updatedAt?.toMillis?.() ?? null,
       };
     });
+
+    if (status) {
+      clients.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+    }
 
     return NextResponse.json({ clients });
   } catch (err) {

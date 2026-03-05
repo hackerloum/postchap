@@ -180,15 +180,26 @@ export async function listClients(
   agencyId: string,
   options?: { status?: string; limit?: number }
 ): Promise<StudioClient[]> {
-  let query = clientsRef(agencyId).orderBy("createdAt", "desc") as FirebaseFirestore.Query;
+  // Avoid composite index requirement: when a status filter is applied, fetch without
+  // orderBy and sort in-memory. orderBy alone (no where) uses the auto single-field index.
+  let query: FirebaseFirestore.Query = clientsRef(agencyId);
   if (options?.status) {
     query = query.where("status", "==", options.status);
-  }
-  if (options?.limit) {
-    query = query.limit(options.limit);
+  } else {
+    query = query.orderBy("createdAt", "desc");
   }
   const snap = await query.get();
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as StudioClient);
+  let clients = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as StudioClient);
+  if (options?.status) {
+    // Sort in-memory since we couldn't use orderBy with the where filter
+    clients.sort((a, b) => {
+      const aMs = (a as any).createdAt?.toMillis?.() ?? 0;
+      const bMs = (b as any).createdAt?.toMillis?.() ?? 0;
+      return bMs - aMs;
+    });
+  }
+  if (options?.limit) clients = clients.slice(0, options.limit);
+  return clients;
 }
 
 // ─── Brand kits ──────────────────────────────────────────────────────────────
@@ -204,11 +215,16 @@ export async function getBrandKit(
 }
 
 export async function listBrandKits(agencyId: string, clientId: string): Promise<StudioBrandKit[]> {
-  const snap = await brandKitsRef(agencyId, clientId)
-    .orderBy("isDefault", "desc")
-    .orderBy("createdAt", "asc")
-    .get();
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as StudioBrandKit);
+  // Avoid multi-field orderBy composite index — fetch all, sort in-memory
+  const snap = await brandKitsRef(agencyId, clientId).get();
+  const kits = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as StudioBrandKit);
+  kits.sort((a, b) => {
+    if (a.isDefault !== b.isDefault) return a.isDefault ? -1 : 1;
+    const aMs = (a as any).createdAt?.toMillis?.() ?? 0;
+    const bMs = (b as any).createdAt?.toMillis?.() ?? 0;
+    return aMs - bMs;
+  });
+  return kits;
 }
 
 export async function getDefaultBrandKit(
@@ -245,13 +261,24 @@ export async function listPostersForClient(
   clientId: string,
   options?: { approvalStatus?: string; limit?: number }
 ): Promise<StudioPoster[]> {
-  let query = postersRef(agencyId, clientId).orderBy("createdAt", "desc") as FirebaseFirestore.Query;
+  // Avoid composite index: when filtering by approvalStatus, skip orderBy and sort in-memory
+  let query: FirebaseFirestore.Query = postersRef(agencyId, clientId);
   if (options?.approvalStatus) {
     query = query.where("approvalStatus", "==", options.approvalStatus);
+  } else {
+    query = query.orderBy("createdAt", "desc");
   }
-  if (options?.limit) query = query.limit(options.limit);
   const snap = await query.get();
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as StudioPoster);
+  let posters = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as StudioPoster);
+  if (options?.approvalStatus) {
+    posters.sort((a, b) => {
+      const aMs = (a as any).createdAt?.toMillis?.() ?? 0;
+      const bMs = (b as any).createdAt?.toMillis?.() ?? 0;
+      return bMs - aMs;
+    });
+  }
+  if (options?.limit) posters = posters.slice(0, options.limit);
+  return posters;
 }
 
 export async function listPostersForAgency(
@@ -265,19 +292,24 @@ export async function listPostersForAgency(
     });
   }
 
-  // Collection group query across all clients
+  // Collection group query — single where only to avoid composite index requirement
   let query = getAdminDb()
     .collectionGroup("posters")
-    .where("agencyId", "==", agencyId)
-    .orderBy("createdAt", "desc") as FirebaseFirestore.Query;
+    .where("agencyId", "==", agencyId) as FirebaseFirestore.Query;
 
   if (options?.approvalStatus) {
     query = query.where("approvalStatus", "==", options.approvalStatus);
   }
-  if (options?.limit) query = query.limit(options.limit);
 
   const snap = await query.get();
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as StudioPoster);
+  let posters = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as StudioPoster);
+  posters.sort((a, b) => {
+    const aMs = (a as any).createdAt?.toMillis?.() ?? 0;
+    const bMs = (b as any).createdAt?.toMillis?.() ?? 0;
+    return bMs - aMs;
+  });
+  if (options?.limit) posters = posters.slice(0, options.limit);
+  return posters;
 }
 
 // ─── Approval history ────────────────────────────────────────────────────────
