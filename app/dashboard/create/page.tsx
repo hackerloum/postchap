@@ -22,6 +22,7 @@ import {
   BookOpen,
   Star,
   ChevronDown,
+  Megaphone,
 } from "lucide-react";
 import type { Product, ProductIntent, ProductOverrides } from "@/types/generation";
 import { toast } from "sonner";
@@ -363,6 +364,7 @@ function CreatePageContent() {
   const [brandKits, setBrandKits] = useState<BrandKit[]>([]);
   const [selectedKit, setSelectedKit] = useState<BrandKit | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [adsRecommendations, setAdsRecommendations] = useState<Recommendation[]>([]);
   const [selectedRec, setSelectedRec] = useState<Recommendation | null>(null);
   const [customTopic, setCustomTopic] = useState("");
   const [useCustom, setUseCustom] = useState(false);
@@ -371,6 +373,7 @@ function CreatePageContent() {
   const [inspirationFile, setInspirationFile] = useState<File | null>(null);
   const [loadingKits, setLoadingKits] = useState(true);
   const [loadingRecs, setLoadingRecs] = useState(false);
+  const [loadingAdsRecs, setLoadingAdsRecs] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generationStep, setGenerationStep] = useState("");
   const [generatedPoster, setGeneratedPoster] = useState<{ posterId: string; imageUrl: string } | null>(null);
@@ -498,6 +501,27 @@ function CreatePageContent() {
       loadRecommendations(selectedKit.id);
     }
   }, [selectedKit?.id, limitReached]);
+
+  useEffect(() => {
+    if (!selectedKit) return;
+    let cancelled = false;
+    setLoadingAdsRecs(true);
+    (async () => {
+      try {
+        const token = await getToken();
+        const res = await fetch("/api/recommendations/ads", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (!cancelled) setAdsRecommendations(data.recommendations ?? []);
+      } catch {
+        if (!cancelled) setAdsRecommendations([]);
+      } finally {
+        if (!cancelled) setLoadingAdsRecs(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedKit?.id]);
 
   useEffect(() => {
     if (limitReached && !hasOpenedLimitModal.current && !returningFromPayment) {
@@ -1750,6 +1774,74 @@ function CreatePageContent() {
                     </button>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Ads recommendations (conversion-focused, from admin) */}
+            {(loadingAdsRecs || adsRecommendations.length > 0) && (
+              <div className="mt-4 pt-4 border-t border-border-subtle">
+                <div className="flex items-center gap-2 mb-3">
+                  <Megaphone size={13} className="text-amber-400" />
+                  <span className="font-semibold text-[13px] text-text-primary">
+                    Ads recommendations
+                  </span>
+                </div>
+                <p className="font-mono text-[10px] text-text-muted mb-3">
+                  Conversion-focused themes — upgrade, trial, limited offer
+                </p>
+                {loadingAdsRecs ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {[1, 2].map((i) => (
+                      <div key={i} className="h-[100px] bg-bg-elevated rounded-xl animate-pulse" />
+                    ))}
+                  </div>
+                ) : adsRecommendations.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {adsRecommendations.map((rec, index) => {
+                      const isSelected = selectedRec?.id === rec.id && !useCustom;
+                      const urgencyStyle: Record<string, string> = {
+                        high: "text-error bg-error/10 border-error/20",
+                        medium: "text-warning bg-warning/10 border-warning/20",
+                        low: "text-success bg-success/10 border-success/20",
+                      };
+                      const s = urgencyStyle[rec.urgency ?? "medium"] ?? "";
+                      return (
+                        <button
+                          key={rec.id ?? index}
+                          type="button"
+                          onClick={() => {
+                            setSelectedRec(rec);
+                            setUseCustom(false);
+                          }}
+                          className={`
+                            text-left rounded-xl border p-4 transition-all duration-150 space-y-2.5
+                            ${isSelected
+                              ? "border-accent bg-accent/5 ring-1 ring-accent/20"
+                              : "border-border-default bg-bg-elevated hover:border-border-strong hover:bg-bg-elevated/80"}
+                          `}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
+                              {categoryLabel[rec.category] ?? rec.category ?? "promotion"}
+                            </span>
+                            {isSelected && <CheckCircle size={13} className="text-accent shrink-0" />}
+                          </div>
+                          <p className="font-semibold text-[14px] text-text-primary leading-tight">
+                            {rec.theme}
+                          </p>
+                          <p className="font-mono text-[11px] text-text-muted truncate leading-tight">
+                            {rec.topic}
+                          </p>
+                          <div className={`rounded-lg px-2.5 py-1.5 border ${isSelected ? "bg-accent/10 border-accent/20" : "bg-bg-base border-border-subtle"}`}>
+                            <p className={`font-semibold text-[12px] leading-tight ${isSelected ? "text-accent" : "text-text-secondary"}`}>
+                              &quot;{rec.suggestedHeadline}&quot;
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
             )}
           </div>

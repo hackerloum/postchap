@@ -60,7 +60,9 @@ function AdminCreateContent() {
   const [imageProviderId, setImageProviderId] = useState<string>(DEFAULT_IMAGE_PROVIDER);
   const [useImprovePrompt, setUseImprovePrompt] = useState(false);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [adsRecommendations, setAdsRecommendations] = useState<Recommendation[]>([]);
   const [loadingRecs, setLoadingRecs] = useState(false);
+  const [loadingAdsRecs, setLoadingAdsRecs] = useState(false);
   const [selected, setSelected] = useState<Recommendation | null>(null);
   const [generating, setGenerating] = useState(false);
   const [generationStepIdx, setGenerationStepIdx] = useState(0);
@@ -102,6 +104,15 @@ function AdminCreateContent() {
       .then((d) => d?.posts && setPosts(d.posts))
       .catch(() => {})
       .finally(() => setLoadingPosts(false));
+  }, []);
+
+  useEffect(() => {
+    setLoadingAdsRecs(true);
+    fetch("/api/admin/recommendations/ads", { credentials: "same-origin" })
+      .then((r) => r.ok && r.json())
+      .then((d) => setAdsRecommendations(d.recommendations ?? []))
+      .catch(() => setAdsRecommendations([]))
+      .finally(() => setLoadingAdsRecs(false));
   }, []);
 
   async function handleGetRecommendations() {
@@ -402,6 +413,73 @@ function AdminCreateContent() {
                     </button>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Ads recommendations (from Admin → Ads recommendations) */}
+            {(loadingAdsRecs || adsRecommendations.length > 0) && (
+              <div className="mt-6 pt-6 border-t border-border-subtle">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-2">
+                  Ads recommendations
+                </p>
+                <p className="font-mono text-[11px] text-text-muted mb-3">
+                  Conversion-focused themes. Generate these in Admin → Ads recommendations.
+                </p>
+                {loadingAdsRecs ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[1, 2].map((i) => (
+                      <div key={i} className="h-28 bg-bg-elevated rounded-xl animate-pulse" />
+                    ))}
+                  </div>
+                ) : adsRecommendations.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {adsRecommendations.map((rec, i) => {
+                      const isSelected = selected?.id === rec.id || selected?.topic === rec.topic;
+                      return (
+                        <button
+                          key={rec.id ?? i}
+                          type="button"
+                          onClick={() => setSelected(rec)}
+                          className={`text-left p-4 rounded-xl border transition-all ${
+                            isSelected
+                              ? "border-accent bg-accent/5 ring-1 ring-accent/30"
+                              : "border-border-default hover:border-border-strong bg-bg-elevated"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-amber-400">
+                                <Zap size={12} />
+                              </span>
+                              <span className="font-semibold text-[12px] text-text-primary">
+                                {rec.theme}
+                              </span>
+                            </div>
+                            <span
+                              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono font-semibold border capitalize ${
+                                URGENCY_COLOR[rec.urgency ?? "medium"]
+                              }`}
+                            >
+                              {rec.urgency}
+                            </span>
+                          </div>
+                          <p className="font-semibold text-[13px] text-text-primary leading-snug mb-1">
+                            &ldquo;{rec.suggestedHeadline}&rdquo;
+                          </p>
+                          <p className="font-mono text-[11px] text-text-muted leading-relaxed line-clamp-2">
+                            {rec.topic}
+                          </p>
+                          {isSelected && (
+                            <div className="mt-2 flex items-center gap-1 text-accent">
+                              <CheckCircle size={11} />
+                              <span className="font-mono text-[10px] font-semibold">Selected</span>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
             )}
           </div>

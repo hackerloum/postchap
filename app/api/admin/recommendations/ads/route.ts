@@ -74,19 +74,22 @@ export async function POST(request: NextRequest) {
     let recommendations: Recommendation[];
     try {
       const parsed = JSON.parse(cleaned) as unknown[];
-      recommendations = parsed.map((r: Record<string, unknown>, i: number) => ({
-        id: (r.id as string) ?? `ads_${Date.now()}_${i}`,
-        theme: (r.theme as string) ?? "",
-        topic: (r.topic as string) ?? "",
-        description: (r.description as string) ?? "",
-        suggestedHeadline: (r.suggestedHeadline as string) ?? "",
-        suggestedCta: (r.suggestedCta as string) ?? "",
-        visualMood: (r.visualMood as string) ?? "",
-        urgency: (r.urgency as "high" | "medium" | "low") ?? "medium",
-        reason: (r.reason as string) ?? "",
-        hashtags: Array.isArray(r.hashtags) ? (r.hashtags as string[]) : [],
-        category: (r.category as string) ?? "promotion",
-      }));
+      recommendations = parsed.map((r, i) => {
+        const o = r as Record<string, unknown>;
+        return {
+          id: (o.id as string) ?? `ads_${Date.now()}_${i}`,
+          theme: (o.theme as string) ?? "",
+          topic: (o.topic as string) ?? "",
+          description: (o.description as string) ?? "",
+          suggestedHeadline: (o.suggestedHeadline as string) ?? "",
+          suggestedCta: (o.suggestedCta as string) ?? "",
+          visualMood: (o.visualMood as string) ?? "",
+          urgency: (o.urgency as "high" | "medium" | "low") ?? "medium",
+          reason: (o.reason as string) ?? "",
+          hashtags: Array.isArray(o.hashtags) ? (o.hashtags as string[]) : [],
+          category: (o.category as string) ?? "promotion",
+        };
+      });
     } catch {
       console.error("[admin/recommendations/ads] Parse error:", cleaned.slice(0, 300));
       return NextResponse.json({ error: "Failed to parse AI response" }, { status: 500 });
