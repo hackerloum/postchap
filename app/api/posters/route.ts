@@ -58,6 +58,7 @@ export async function GET(request: NextRequest) {
         postedAt,
         instagramPostId: d.instagramPostId ?? null,
         createdAt,
+        hasEditableLayout: d.hasEditableLayout ?? false,
       };
     });
 

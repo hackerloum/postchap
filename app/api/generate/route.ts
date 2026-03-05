@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
     productIntent?: ProductIntent | null;
     productOverrides?: ProductOverrides | null;
     posterLanguage?: string | null;
+    useEditableLayout?: boolean;
   };
   try {
     body = await request.json();
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
     productIntent,
     productOverrides,
     posterLanguage,
+    useEditableLayout,
   } = body;
 
   if (!brandKitId) {
@@ -82,7 +84,8 @@ export async function POST(request: NextRequest) {
         productId ?? null,
         productIntent ?? null,
         productOverrides ?? null,
-        posterLanguage ?? null
+        posterLanguage ?? null,
+        useEditableLayout ?? false
       );
       await incrementTrialPostCount(uid);
       return NextResponse.json({
@@ -90,6 +93,7 @@ export async function POST(request: NextRequest) {
         posterId: result.posterId,
         imageUrl: result.imageUrl,
         copy: result.copy,
+        hasEditableLayout: result.hasEditableLayout ?? false,
       });
     } catch (error) {
       console.error("[generate] trial", error);
@@ -191,13 +195,15 @@ export async function POST(request: NextRequest) {
       productId ?? null,
       productIntent ?? null,
       productOverrides ?? null,
-      posterLanguage ?? null
+      posterLanguage ?? null,
+      useEditableLayout ?? false
     );
     return NextResponse.json({
       success: true,
       posterId: result.posterId,
       imageUrl: result.imageUrl,
       copy: result.copy,
+      hasEditableLayout: result.hasEditableLayout ?? false,
     });
   } catch (error) {
     console.error("[generate]", error);

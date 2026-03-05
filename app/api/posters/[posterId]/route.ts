@@ -71,6 +71,9 @@ export async function GET(
       postedAt,
       instagramPostId: d.instagramPostId ?? null,
       createdAt,
+      // Editable layout fields
+      layout: d.layout ?? null,
+      hasEditableLayout: d.hasEditableLayout ?? false,
     });
   } catch (error) {
     console.error("[poster GET]", error);

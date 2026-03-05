@@ -11,10 +11,12 @@
   "dependencies": {
     "@google/genai": "^1.43.0",
     "@tailwindcss/postcss": "^4.2.0",
+    "@types/fabric": "^5.3.11",
     "autoprefixer": "^10.4.24",
     "cloudinary": "^2.9.0",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
+    "fabric": "^5.5.2",
     "firebase": "^12.9.0",
     "firebase-admin": "^13.6.1",
     "jose": "^6.1.3",

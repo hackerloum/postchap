@@ -9,6 +9,7 @@ import { downloadResource } from "@/lib/freepik/resources";
 import { getPlatformFormat } from "@/lib/generation/platformFormats";
 import { compositePoster } from "@/lib/sharp/compositePoster";
 import { uploadBufferToCloudinary } from "@/lib/uploadToCloudinary";
+import { generateLayout, buildPosterLayout, BACKGROUND_ONLY_INSTRUCTION } from "@/lib/generation/generateLayout";
 import type { BrandKit, CopyData, Recommendation, Product, ProductIntent, ProductOverrides } from "@/types/generation";
 
 /** Describe brand colors for the image prompt using color names only — never hex codes. */
@@ -109,12 +110,15 @@ export interface RunGenerationResult {
   posterId: string;
   imageUrl: string;
   copy: CopyData;
+  hasEditableLayout?: boolean;
 }
 
 /**
  * Run full poster generation for a user (brand kit → copy → image → composite → upload → save).
  * When templateId is provided: download template → image-to-prompt → improve prompt → generate → composite.
  * When inspirationImageUrl is provided: image-to-prompt on that URL → merge with brand/copy → improve → generate → composite.
+ * When useEditableLayout is true: GPT generates a layout spec + text-free background; Sharp compositing is
+ *   skipped entirely. The Fabric.js editor renders all elements on the client.
  * Used by both POST /api/generate (authenticated) and the cron job (scheduled generation).
  */
 export async function runGenerationForUser(
@@ -129,7 +133,8 @@ export async function runGenerationForUser(
   productId?: string | null,
   productIntent?: ProductIntent | null,
   productOverrides?: ProductOverrides | null,
-  posterLanguage?: string | null
+  posterLanguage?: string | null,
+  useEditableLayout?: boolean
 ): Promise<RunGenerationResult> {
   const format = getPlatformFormat(platformFormatId);
   const db = getAdminDb();
@@ -198,6 +203,102 @@ export async function runGenerationForUser(
     : null;
 
   const copy: CopyData = await generateCopy(brandKit, null, product ? null : (recommendation ?? null), productContext, platformFormatId, posterLanguage ?? kitData.language);
+
+  // ── Editable layout path ─────────────────────────────────────────────────
+  // When useEditableLayout is true (and not in template/inspiration/product
+  // mode, which don't have a recommendation brief): generate a JSON layout spec
+  // from GPT, produce a text-free background image, and skip Sharp compositing.
+  // The Fabric.js editor on the client renders all text, logo, and shape elements.
+  if (
+    useEditableLayout &&
+    !templateId &&
+    !inspirationImageUrl &&
+    !product
+  ) {
+    console.log("[runGeneration] Using editable layout path");
+    const brief = {
+      headline:    copy.headline,
+      subheadline: copy.subheadline,
+      cta:         copy.cta,
+      hashtags:    copy.hashtags ?? [],
+      body:        copy.body,
+      visualMood:  recommendation?.visualMood,
+      designStyle: recommendation?.topic,
+    };
+
+    const gptLayout = await generateLayout(brief, brandKit, format);
+
+    // Build background-only image prompt (no text instruction appended)
+    const bgPrompt = `${gptLayout.backgroundPrompt}\n\n${BACKGROUND_ONLY_INSTRUCTION}`;
+
+    const { buffer: backgroundBuffer } = await generateImage(
+      bgPrompt,
+      format.freepikAspectRatio,
+      imageProviderId,
+      {
+        brandName:    brandKit.brandName,
+        // No logoUrl — background is text+logo free
+        primaryColor:   brandKit.primaryColor,
+        secondaryColor: brandKit.secondaryColor,
+        accentColor:    brandKit.accentColor,
+      }
+    );
+
+    // Create Firestore doc first for stable ID
+    const col = db.collection("users").doc(uid).collection("posters");
+    const posterRef = await col.add({
+      userId: uid,
+      brandKitId,
+      status: "generating",
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    const posterId = posterRef.id;
+
+    const backgroundImageUrl = await uploadBufferToCloudinary(
+      backgroundBuffer,
+      `artmaster/posters/${uid}`,
+      `${posterId}_bg`
+    );
+
+    const posterLayout = buildPosterLayout(gptLayout, backgroundImageUrl, brandKit, format);
+    posterLayout.posterId = posterId;
+
+    await posterRef.update({
+      imageUrl:         backgroundImageUrl,
+      backgroundImageUrl,
+      originalImageUrl: backgroundImageUrl,
+      headline:    copy.headline,
+      subheadline: copy.subheadline,
+      body:        copy.body,
+      cta:         copy.cta,
+      hashtags:    copy.hashtags ?? [],
+      theme:       recommendation?.theme ?? "General",
+      topic:       recommendation?.topic ?? "",
+      status:      "generated",
+      version:     1,
+      editHistory: [],
+      platformFormatId: platformFormatId ?? null,
+      width:  format.width,
+      height: format.height,
+      // Editable layout fields
+      layout:           posterLayout,
+      hasEditableLayout: true,
+      lastEditedAt:     null,
+      editCount:        0,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    console.log("[runGeneration] Editable layout saved for poster:", posterId);
+
+    return {
+      posterId,
+      imageUrl: backgroundImageUrl,
+      copy,
+      hasEditableLayout: true,
+    };
+  }
+  // ── End editable layout path ─────────────────────────────────────────────
 
   let imagePrompt: string;
 

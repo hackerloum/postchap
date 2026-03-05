@@ -901,6 +901,9 @@ function CreatePageContent() {
           productIntent,
           productOverrides,
         } : {}),
+        // Enable editable layer editor for AI recommendation mode only (not
+        // template / inspiration / product — those use the classic Sharp pipeline).
+        useEditableLayout: mode === "ai",
       };
 
       setGenerationStep(
@@ -938,13 +941,16 @@ function CreatePageContent() {
         return;
       }
 
-      const data = (await res.json()) as { posterId?: string; imageUrl?: string };
+      const data = (await res.json()) as { posterId?: string; imageUrl?: string; hasEditableLayout?: boolean };
       toast.success("Poster generated successfully!");
       if (trial.modelLockedToSeedream) {
         setTrial((prev) => ({ ...prev, active: false, postsRemaining: 0, modelLockedToSeedream: false, trialCompleted: true }));
       }
       if (instagramConnected && data.posterId && data.imageUrl) {
         setGeneratedPoster({ posterId: data.posterId, imageUrl: data.imageUrl });
+      } else if (data.hasEditableLayout && data.posterId) {
+        // Editable layout — open the Fabric.js editor directly
+        router.push(`/dashboard/posters/${data.posterId}/edit`);
       } else {
         router.push(`/dashboard/posters?new=${data.posterId ?? ""}`);
       }

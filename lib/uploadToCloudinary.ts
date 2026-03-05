@@ -38,6 +38,20 @@ export async function uploadBufferToCloudinary(
   });
 }
 
+/**
+ * Upload a base64 data-URL (e.g. from Fabric.js canvas.toDataURL) to Cloudinary.
+ * The data prefix ("data:image/png;base64,...") is stripped automatically.
+ */
+export async function uploadBase64ToCloudinary(
+  dataUrl: string,
+  folder: string,
+  publicId: string
+): Promise<string> {
+  const base64Data = dataUrl.replace(/^data:image\/\w+;base64,/, "");
+  const buffer = Buffer.from(base64Data, "base64");
+  return uploadBufferToCloudinary(buffer, folder, publicId);
+}
+
 /** Upload a logo File (from onboarding wizard) */
 export async function uploadLogoToCloudinary(
   fileBuffer: Buffer,

@@ -41,6 +41,7 @@ interface Poster {
   postedAt?: number | null;
   instagramPostId?: string | null;
   createdAt: number | null;
+  hasEditableLayout?: boolean;
 }
 
 function CopyRow({
@@ -706,6 +707,16 @@ function PostersPageContent() {
                     )}
                     <span className="hidden sm:inline">Duplicate</span>
                   </button>
+                  {selected?.hasEditableLayout && (
+                    <Link
+                      href={`/dashboard/posters/${selected.id}/edit`}
+                      className="flex items-center gap-1 bg-[#e8ff47]/10 border border-[#e8ff47]/40 text-[#e8ff47] font-medium text-[12px] px-2 sm:px-3 py-1.5 rounded-lg hover:bg-[#e8ff47]/20 transition-all min-h-[32px]"
+                      title="Open in editor"
+                    >
+                      <Pencil size={12} />
+                      <span className="hidden sm:inline">Edit layers</span>
+                    </Link>
+                  )}
                   <button
                     type="button"
                     onClick={() => selected && handleOpenInNewTab(selected.id)}
