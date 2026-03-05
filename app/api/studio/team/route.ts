@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   try {
     const raw = await listTeamMembers(agency.id);
     const auth = getAdminAuth();
-    const uids = [...new Set(raw.map((m) => m.userId ?? m.id).filter(Boolean))] as string[];
+    const uids = Array.from(new Set(raw.map((m) => m.userId ?? m.id).filter(Boolean))) as string[];
     const userMap = new Map<string, { displayName?: string; email?: string }>();
 
     if (uids.length > 0) {
