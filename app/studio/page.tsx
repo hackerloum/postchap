@@ -41,22 +41,16 @@ interface OccasionAlert {
   date: string;
 }
 
-const MOCK_CLIENTS: ClientSummary[] = [
-  { id: "1", clientName: "Maison Rémy", industry: "Fashion", status: "active", postersThisMonth: 12, monthlyQuota: 30 },
-  { id: "2", clientName: "Café Noir", industry: "F&B", status: "active", postersThisMonth: 8, monthlyQuota: 20 },
-  { id: "3", clientName: "Atelier Blanc", industry: "Interior", status: "active", postersThisMonth: 15, monthlyQuota: 40 },
-  { id: "4", clientName: "Villa Soleil", industry: "Real estate", status: "active", postersThisMonth: 5, monthlyQuota: 15 },
-  { id: "5", clientName: "Studio 7", industry: "Photography", status: "active", postersThisMonth: 7, monthlyQuota: 25 },
-];
-
 const CLIENT_COLORS = ["#e8ff47", "#4d9eff", "#3ddc84", "#f59e0b", "#ef4444"];
 
-const MOCK_OCCASIONS: OccasionAlert[] = [
-  { clientId: "1", clientName: "Maison Rémy", type: "seasonal", title: "Spring Collection Launch", daysUntil: 3, date: "2025-03-08" },
-  { clientId: "2", clientName: "Café Noir", type: "global", title: "International Coffee Day", daysUntil: 7, date: "2025-03-12" },
-  { clientId: "3", clientName: "Atelier Blanc", type: "national", title: "Design Week", daysUntil: 12, date: "2025-03-17" },
-  { clientId: "4", clientName: "Villa Soleil", type: "promo", title: "Open House Weekend", daysUntil: 14, date: "2025-03-19" },
-];
+const EMPTY_USAGE: UsageData = {
+  plan: "—",
+  postersUsedThisMonth: 0,
+  posterLimit: null,
+  percentUsed: 0,
+  activeClients: 0,
+  totalEstimatedCostUsd: 0,
+};
 
 export default function StudioDashboardPage() {
   const [clients, setClients] = useState<ClientSummary[]>([]);
@@ -74,22 +68,29 @@ export default function StudioDashboardPage() {
           fetch("/api/studio/usage", { headers }),
           fetch("/api/studio/occasions?days=14", { headers }),
         ]);
+
         if (clientsRes.ok) {
           const d = await clientsRes.json();
           const list = (d.clients ?? []).slice(0, 6) as ClientSummary[];
-          if (list.length) setClients(list);
+          setClients(list);
         }
         if (usageRes.ok) {
           const u = await usageRes.json();
-          if (u) setUsage(u);
+          setUsage({
+            plan: u.plan ?? "—",
+            postersUsedThisMonth: u.postersUsedThisMonth ?? 0,
+            posterLimit: u.posterLimit ?? null,
+            percentUsed: u.percentUsed ?? 0,
+            activeClients: u.activeClients ?? 0,
+            totalEstimatedCostUsd: u.totalEstimatedCostUsd ?? 0,
+          });
         }
         if (occasionsRes.ok) {
           const d = await occasionsRes.json();
-          const list = (d.alerts ?? []).slice(0, 5) as OccasionAlert[];
-          if (list.length) setOccasions(list);
+          setOccasions((d.alerts ?? []).slice(0, 5) as OccasionAlert[]);
         }
       } catch {
-        // use mock
+        // Leave state as initial (empty/empty usage)
       } finally {
         setLoading(false);
       }
@@ -97,16 +98,9 @@ export default function StudioDashboardPage() {
     load();
   }, []);
 
-  const displayClients = clients.length ? clients : MOCK_CLIENTS.slice(0, 5);
-  const displayOccasions = occasions.length ? occasions : MOCK_OCCASIONS;
-  const displayUsage = usage || {
-    plan: "pro",
-    postersUsedThisMonth: 47,
-    posterLimit: 500,
-    percentUsed: 9.4,
-    activeClients: 8,
-    totalEstimatedCostUsd: 2.59,
-  };
+  const displayClients = clients;
+  const displayOccasions = occasions;
+  const displayUsage = usage ?? EMPTY_USAGE;
 
   const quotaPercent = displayUsage.posterLimit
     ? Math.min((displayUsage.postersUsedThisMonth / displayUsage.posterLimit) * 100, 100)
@@ -305,6 +299,22 @@ export default function StudioDashboardPage() {
                   <div className="flex-1 h-3 bg-white/5 rounded animate-pulse" />
                 </div>
               ))}
+            </div>
+          ) : displayClients.length === 0 ? (
+            <div
+              className="px-6 py-12 text-center"
+              style={{ color: "var(--studio-text-muted)" }}
+            >
+              <p className="text-[13px] font-medium">No clients yet</p>
+              <p className="text-[11px] mt-1">Add your first client to start generating posters.</p>
+              <Link
+                href="/studio/clients/new"
+                className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-lg text-[12px] font-semibold transition-opacity hover:opacity-90"
+                style={{ background: "var(--studio-accent)", color: "#080808" }}
+              >
+                <UserPlus size={14} />
+                Add client
+              </Link>
             </div>
           ) : (
             <div className="divide-y" style={{ borderColor: "var(--studio-border-subtle)" }}>
