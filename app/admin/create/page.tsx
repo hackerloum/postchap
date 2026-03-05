@@ -75,6 +75,7 @@ function AdminCreateContent() {
   const [postingHistoryItem, setPostingHistoryItem] = useState<string | null>(null);
   const [instagramConnected, setInstagramConnected] = useState(false);
   const [instagramUsername, setInstagramUsername] = useState<string | null>(null);
+  const [customImagePrompt, setCustomImagePrompt] = useState("");
 
   useEffect(() => {
     fetch("/api/me", { credentials: "same-origin" })
@@ -151,7 +152,13 @@ function AdminCreateContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify({ recommendation: rec, platformFormatId, imageProviderId, useImprovePrompt }),
+        body: JSON.stringify({
+          recommendation: rec,
+          platformFormatId,
+          imageProviderId,
+          useImprovePrompt,
+          customImagePrompt: customImagePrompt.trim() || undefined,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error ?? "Generation failed");
@@ -504,6 +511,20 @@ function AdminCreateContent() {
                   </p>
                 </div>
               </div>
+
+              <div className="mb-4">
+                <label className="font-mono text-[10px] uppercase tracking-widest text-text-muted block mb-2">
+                  Custom image prompt (optional)
+                </label>
+                <textarea
+                  value={customImagePrompt}
+                  onChange={(e) => setCustomImagePrompt(e.target.value)}
+                  placeholder="Describe the image you want. When set, this overrides the recommendation's visual — copy (headline, CTA) still comes from the recommendation above."
+                  rows={4}
+                  className="w-full bg-bg-elevated border border-border-default rounded-xl px-4 py-3 text-[13px] text-text-primary placeholder:text-text-muted resize-y outline-none focus:border-accent transition-colors"
+                />
+              </div>
+
               <button
                 type="button"
                 onClick={() => handleGenerate(selected)}

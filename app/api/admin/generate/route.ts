@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
     imageProviderId?: string | null;
     useImprovePrompt?: boolean;
     topic?: string;
+    customImagePrompt?: string | null;
   };
   try {
     body = await request.json();
@@ -77,7 +78,9 @@ export async function POST(request: NextRequest) {
     // Use brandKitForCopy (has real brand name) for copy generation
     // Use brandKit (empty brandName) for image prompt to stop Seedream rendering "ArtMaster" text
     const copy = await generateCopy(brandKitForCopy, null, recommendation);
-    let imagePrompt = await generateImagePrompt(brandKit, copy, null, recommendation);
+    let imagePrompt =
+      body.customImagePrompt?.trim() ||
+      (await generateImagePrompt(brandKit, copy, null, recommendation));
 
     // Optional: enhance prompt with Freepik (lighting, composition, style)
     if (body.useImprovePrompt === true) {
