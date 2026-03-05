@@ -22,8 +22,12 @@ import {
 import { CookiePreferencesLink } from "@/components/CookiePreferencesLink";
 import { TrustBarSection } from "@/app/TrustBarSection";
 import { PLANS } from "@/lib/plans";
+import { STUDIO_PLANS } from "@/lib/studio-plans";
+import { useState } from "react";
 
 export default function Home() {
+  const [pricingProduct, setPricingProduct] = useState<"business" | "studio">("business");
+  const studioPlansDisplay = STUDIO_PLANS.filter((p) => p.id !== "trial");
   return (
     <>
       {/* Nav */}
@@ -608,24 +612,36 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Product toggle hint */}
-          <div className="flex items-center justify-center gap-6 mb-16">
-            <button className="inline-flex items-center gap-2 bg-accent/10 border border-accent/30 rounded-full px-4 py-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-accent" />
-              <span className="font-mono text-[11px] text-accent">ArtMaster — for businesses</span>
-            </button>
-            <Link
-              href="/studio/billing"
-              className="inline-flex items-center gap-2 border border-border-default rounded-full px-4 py-1.5 hover:border-border-strong transition-colors"
+          {/* Product toggle — switch between Business and Studio pricing on same page */}
+          <div className="flex items-center justify-center gap-2 mb-16">
+            <button
+              type="button"
+              onClick={() => setPricingProduct("business")}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 font-mono text-[11px] transition-all ${
+                pricingProduct === "business"
+                  ? "bg-accent/10 border border-accent/30 text-accent"
+                  : "border border-border-default text-text-muted hover:border-border-strong hover:text-text-secondary"
+              }`}
             >
-              <Building2 size={11} className="text-text-muted" />
-              <span className="font-mono text-[11px] text-text-muted hover:text-text-secondary transition-colors">Studio — for agencies</span>
-              <ChevronRight size={11} className="text-text-muted" />
-            </Link>
+              <div className={`w-1.5 h-1.5 rounded-full ${pricingProduct === "business" ? "bg-accent" : "bg-transparent"}`} />
+              ArtMaster — for businesses
+            </button>
+            <button
+              type="button"
+              onClick={() => setPricingProduct("studio")}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 font-mono text-[11px] transition-all ${
+                pricingProduct === "studio"
+                  ? "bg-accent/10 border border-accent/30 text-accent"
+                  : "border border-border-default text-text-muted hover:border-border-strong hover:text-text-secondary"
+              }`}
+            >
+              <Building2 size={11} className="shrink-0" />
+              Studio — for agencies
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch">
-            {PLANS.map((plan) => {
+            {pricingProduct === "business" && PLANS.map((plan) => {
               const limits = plan.limits;
               const brandKitsLabel =
                 limits.brandKits === -1 ? "Unlimited" : String(limits.brandKits);
@@ -715,6 +731,99 @@ export default function Home() {
                 </div>
               );
             })}
+            {pricingProduct === "studio" &&
+              studioPlansDisplay.map((plan) => {
+                const limits = plan.limits;
+                const isPro = plan.id === "pro";
+                const [priceMain, priceSub] =
+                  plan.priceMonthly === 0 ? ["Free", ""] : plan.priceLabel.split("/");
+                const clientsLabel =
+                  limits.maxClients === -1 ? "Unlimited" : `${limits.maxClients} clients`;
+                const postersLabel =
+                  limits.maxPostersPerMonth === -1
+                    ? "Unlimited"
+                    : `${limits.maxPostersPerMonth} posters/mo`;
+                const teamLabel =
+                  limits.teamMembers === -1
+                    ? "Unlimited team"
+                    : limits.teamMembers === 0
+                      ? "Solo"
+                      : `${limits.teamMembers} team members`;
+                return (
+                  <div
+                    key={plan.id}
+                    className={`relative flex flex-col rounded-2xl border transition-all duration-300 ${
+                      isPro
+                        ? "border-accent/60 bg-bg-elevated shadow-[0_0_0_1px_rgba(232,255,71,0.15),0_8px_32px_-8px_rgba(0,0,0,0.4)] hover:shadow-[0_0_0_1px_rgba(232,255,71,0.25),0_12px_40px_-12px_rgba(0,0,0,0.5)] scale-[1.02] md:scale-100 md:-my-2 md:py-2"
+                        : "border-border-default bg-bg-elevated shadow-[0_1px_2px_rgba(0,0,0,0.05),0_8px_24px_-12px_rgba(0,0,0,0.25)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08),0_12px_32px_-12px_rgba(0,0,0,0.35)] hover:border-border-strong"
+                    }`}
+                  >
+                    {isPro && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-accent text-black font-mono text-[10px] font-semibold tracking-widest uppercase">
+                        Most popular
+                      </div>
+                    )}
+                    <div className="p-8 flex flex-col flex-1">
+                      <h3 className="font-semibold text-[20px] text-text-primary tracking-tight mb-2">
+                        {plan.name}
+                      </h3>
+                      <div className="flex items-baseline gap-1 mb-6">
+                        <span className="text-[32px] font-semibold text-text-primary tracking-tight tabular-nums">
+                          {priceMain}
+                        </span>
+                        {priceSub && (
+                          <span className="text-[14px] font-medium text-text-muted">/{priceSub}</span>
+                        )}
+                      </div>
+                      <p className="font-mono text-[11px] text-text-muted mb-4 -mt-2">{plan.tagline}</p>
+                      <div className="h-px bg-border-default mb-6" />
+                      <ul className="space-y-4 mb-8 flex-1">
+                        <li className="flex items-center gap-3 text-[14px] text-text-secondary">
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/15">
+                            <Check size={12} className="text-accent" />
+                          </span>
+                          {clientsLabel}
+                        </li>
+                        <li className="flex items-center gap-3 text-[14px] text-text-secondary">
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/15">
+                            <Check size={12} className="text-accent" />
+                          </span>
+                          {postersLabel}
+                        </li>
+                        <li className="flex items-center gap-3 text-[14px] text-text-secondary">
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/15">
+                            <Check size={12} className="text-accent" />
+                          </span>
+                          {teamLabel}
+                        </li>
+                        <li className="flex items-center gap-3 text-[14px] text-text-secondary">
+                          <span
+                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${limits.clientPortal ? "bg-accent/15" : "bg-bg-elevated"}`}
+                          >
+                            {limits.clientPortal ? (
+                              <Check size={12} className="text-accent" />
+                            ) : (
+                              <span className="w-2 h-0.5 bg-border-strong rounded" />
+                            )}
+                          </span>
+                          Client portal
+                        </li>
+                      </ul>
+                      <Link
+                        href="/studio/signup"
+                        className={`inline-flex items-center justify-center gap-2 w-full font-semibold text-[14px] px-5 py-3.5 rounded-xl transition-all duration-200 ${
+                          isPro
+                            ? "bg-accent text-black hover:bg-accent-dim active:scale-[0.98]"
+                            : "bg-bg-elevated text-text-primary border border-border-default hover:border-border-strong hover:bg-bg-base"
+                        }`}
+                      >
+                        Get started
+                        <ArrowRight size={16} strokeWidth={2.5} />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
           </div>
         </div>
       </section>
