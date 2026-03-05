@@ -16,6 +16,18 @@ export const metadata: Metadata = {
 // Routes that don't require an agency or auth (Studio has its own login/signup)
 const BYPASS_ROUTES = ["/studio/onboarding", "/studio/join", "/studio/portal", "/studio/login", "/studio/signup"];
 
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  display: "swap",
+});
+const dmMono = DM_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-dm-mono",
+  display: "swap",
+});
+
 export default async function StudioLayout({ children }: { children: React.ReactNode }) {
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") ?? headersList.get("x-invoke-path") ?? "";
@@ -48,18 +60,6 @@ export default async function StudioLayout({ children }: { children: React.React
   if (!agency) {
     redirect("/studio/onboarding");
   }
-
-  const playfair = Playfair_Display({
-    subsets: ["latin"],
-    variable: "--font-playfair",
-    display: "swap",
-  });
-  const dmMono = DM_Mono({
-    subsets: ["latin"],
-    weight: ["400", "500"],
-    variable: "--font-dm-mono",
-    display: "swap",
-  });
 
   return (
     <>
