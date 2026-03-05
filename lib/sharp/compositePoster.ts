@@ -20,6 +20,14 @@ interface CopyData {
   hashtags: string[];
 }
 
+/** Optional Safe Zone from BrandDNA for logo placement when !logoHandledByAI */
+export interface LogoSafeZone {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+}
+
 interface CompositeInput {
   backgroundBuffer: Buffer;
   brandKit: BrandKit;
@@ -39,6 +47,10 @@ interface CompositeInput {
    * Sharp adds the CTA button precisely on top of the generated image.
    */
   addCTAFromSharp?: boolean;
+  /** Override headline color; when not set, Smart Color Match uses background luminance */
+  headlineColor?: string;
+  /** When set and !logoHandledByAI, place logo in this zone (px). Otherwise top-left. */
+  logoSafeZone?: LogoSafeZone;
 }
 
 function wrapText(text: string, maxChars: number): string[] {
@@ -105,6 +117,51 @@ async function downloadImage(url: string): Promise<Buffer | null> {
 
 const BASE = 1080;
 const PADDING_BASE = 64;
+const LUMINANCE_THRESHOLD = 0.4;
+
+/** Parse hex #RRGGBB to r,g,b 0-255. Falls back to 0,0,0 if invalid. */
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const h = String(hex).replace(/^#/, "").trim();
+  if (!/^[0-9A-Fa-f]{6}$/.test(h)) return { r: 0, g: 0, b: 0 };
+  return {
+    r: parseInt(h.slice(0, 2), 16),
+    g: parseInt(h.slice(2, 4), 16),
+    b: parseInt(h.slice(4, 6), 16),
+  };
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+/**
+ * Compute average luminance (0-1) from a buffer using a small sample.
+ * Used for Smart Color Match: dark background → white headline, light → primary.
+ */
+async function getBackgroundLuminance(buffer: Buffer): Promise<number> {
+  try {
+    const { data, info } = await sharp(buffer)
+      .resize(80, 80, { fit: "cover" })
+      .removeAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const channels = (info as { channels?: number }).channels ?? 3;
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let i = 0; i < data.length; i += channels) {
+      r += data[i];
+      g += channels >= 2 ? data[i + 1] : 0;
+      b += channels >= 3 ? data[i + 2] : 0;
+      n++;
+    }
+    if (n === 0) return 0.5;
+    r /= n; g /= n; b /= n;
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return Math.min(1, Math.max(0, luminance));
+  } catch {
+    return 0.5;
+  }
+}
 
 export async function compositePoster({
   backgroundBuffer,
@@ -115,6 +172,8 @@ export async function compositePoster({
   height: inputH,
   logoHandledByAI = false,
   addCTAFromSharp = false,
+  headlineColor: headlineColorOverride,
+  logoSafeZone,
 }: CompositeInput): Promise<Buffer> {
   const W = inputW ?? BASE;
   const H = inputH ?? BASE;
@@ -134,19 +193,24 @@ export async function compositePoster({
 
   const compositeInputs: sharp.OverlayOptions[] = [];
 
-  const LOGO_SIZE = Math.round(140 * scale);
+  const logoZoneX = logoSafeZone?.x != null ? Math.round(logoSafeZone.x * scale) : 0;
+  const logoZoneY = logoSafeZone?.y != null ? Math.round(logoSafeZone.y * scale) : 0;
+  const logoZoneW = logoSafeZone?.width != null ? Math.round(logoSafeZone.width * scale) : null;
+  const logoZoneH = logoSafeZone?.height != null ? Math.round(logoSafeZone.height * scale) : null;
+
+  const LOGO_SIZE = logoZoneW != null && logoZoneH != null ? Math.min(logoZoneW, logoZoneH) : Math.round(140 * scale);
   const BADGE_PAD_X = Math.round(20 * scale);
   const BADGE_PAD_Y = Math.round(16 * scale);
-  const BADGE_W = LOGO_SIZE + BADGE_PAD_X * 2;
-  const BADGE_H = LOGO_SIZE + BADGE_PAD_Y * 2;
-  // Only round the bottom-right corner — top-left corner anchors to image edge
+  const BADGE_W = logoZoneW ?? (LOGO_SIZE + BADGE_PAD_X * 2);
+  const BADGE_H = logoZoneH ?? (LOGO_SIZE + BADGE_PAD_Y * 2);
   const BADGE_R = Math.round(20 * scale);
 
   if (!logoHandledByAI && brandKit.logoUrl) {
     try {
       const logoBuffer = await downloadImage(brandKit.logoUrl);
       if (logoBuffer) {
-        // 1. Opaque badge anchored flush to top-left corner — fully covers any AI icon
+        const badgeTop = logoZoneY;
+        const badgeLeft = logoZoneX;
         const badgeSvg = `<svg width="${BADGE_W}" height="${BADGE_H}" xmlns="http://www.w3.org/2000/svg">
           <rect x="0" y="0" width="${BADGE_W}" height="${BADGE_H}"
                 rx="0" ry="0"
@@ -158,12 +222,11 @@ export async function compositePoster({
         </svg>`;
         compositeInputs.push({
           input: Buffer.from(badgeSvg),
-          top: 0,
-          left: 0,
+          top: badgeTop,
+          left: badgeLeft,
           blend: "over",
         });
 
-        // 2. Logo centered within the badge
         const logoResized = await sharp(logoBuffer)
           .resize(LOGO_SIZE, LOGO_SIZE, {
             fit: "contain",
@@ -171,10 +234,12 @@ export async function compositePoster({
           })
           .png()
           .toBuffer();
+        const logoPadX = (BADGE_W - LOGO_SIZE) / 2;
+        const logoPadY = (BADGE_H - LOGO_SIZE) / 2;
         compositeInputs.push({
           input: logoResized,
-          top: BADGE_PAD_Y,
-          left: BADGE_PAD_X,
+          top: badgeTop + Math.round(logoPadY),
+          left: badgeLeft + Math.round(logoPadX),
           blend: "over",
         });
       }
@@ -196,6 +261,12 @@ export async function compositePoster({
     console.log("[sharp] Poster composited (imageHasText, logo only). Size:", finalBuffer.length);
     return finalBuffer;
   }
+
+  // Smart Color Match: headline color from background luminance (or override)
+  const luminance = headlineColorOverride !== undefined ? 0.5 : await getBackgroundLuminance(backgroundBuffer);
+  const headlineColor =
+    headlineColorOverride ??
+    (luminance < LUMINANCE_THRESHOLD ? "#FFFFFF" : primary);
 
   // Full overlay: headline, body, CTA, hashtags (Mystic fallback)
   const headline = escapeXml(copy.headline || brandKit.brandName);
@@ -279,7 +350,7 @@ export async function compositePoster({
 
   <rect x="${PADDING}" y="${panelY + Math.round(40 * scaleY)}"
         width="${Math.round(48 * scale)}" height="${Math.round(4 * scale)}"
-        rx="${Math.round(2 * scale)}" fill="${primary}" />
+        rx="${Math.round(2 * scale)}" fill="${headlineColor}" />
 
   <text
     x="${PADDING}"
@@ -287,7 +358,7 @@ export async function compositePoster({
     font-family="${SERVER_FONT}"
     font-weight="900"
     font-size="${hl1Size}"
-    fill="#FFFFFF"
+    fill="${headlineColor}"
     letter-spacing="-1"
   >${hl1}</text>
 
@@ -298,7 +369,7 @@ export async function compositePoster({
     font-family="${SERVER_FONT}"
     font-weight="900"
     font-size="${hl2Size}"
-    fill="${primary}"
+    fill="${headlineColor}"
     letter-spacing="-1"
   >${hl2}</text>
   ` : ""}
@@ -342,7 +413,7 @@ export async function compositePoster({
     width="${Math.min(cta.length * Math.round(14 * scale) + Math.round(48 * scale), W - PADDING * 2)}"
     height="${ctaH}"
     rx="${Math.round(8 * scale)}"
-    fill="${primary}"
+    fill="${hexToRgba(primary, 0.7)}"
   />
   <text
     x="${PADDING + Math.round(24 * scale)}"
@@ -389,6 +460,10 @@ export async function compositePoster({
     try {
       const logoBuffer = await downloadImage(brandKit.logoUrl);
       if (logoBuffer) {
+        const badgeTop = logoZoneY;
+        const badgeLeft = logoZoneX;
+        const logoPadX = (BADGE_W - LOGO_SIZE) / 2;
+        const logoPadY = (BADGE_H - LOGO_SIZE) / 2;
         const badgeSvg2 = `<svg width="${BADGE_W}" height="${BADGE_H}" xmlns="http://www.w3.org/2000/svg">
           <rect x="0" y="0" width="${BADGE_W}" height="${BADGE_H}"
                 rx="0" ry="0"
@@ -400,8 +475,8 @@ export async function compositePoster({
         </svg>`;
         fullOverlayInputs.push({
           input: Buffer.from(badgeSvg2),
-          top: 0,
-          left: 0,
+          top: badgeTop,
+          left: badgeLeft,
           blend: "over",
         });
         const logoResized = await sharp(logoBuffer)
@@ -413,8 +488,8 @@ export async function compositePoster({
           .toBuffer();
         fullOverlayInputs.push({
           input: logoResized,
-          top: BADGE_PAD_Y,
-          left: BADGE_PAD_X,
+          top: badgeTop + Math.round(logoPadY),
+          left: badgeLeft + Math.round(logoPadX),
           blend: "over",
         });
       }

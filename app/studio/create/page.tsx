@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Sparkles, Loader2, CheckCircle2, ChevronDown, Users, Palette } from "lucide-react";
+import { ArrowLeft, Sparkles, Loader2, CheckCircle2, Users, Palette, Lock } from "lucide-react";
 import { getClientIdToken } from "@/lib/auth-client";
+import { IMAGE_PROVIDERS, DEFAULT_IMAGE_PROVIDER, isProviderLockedForPlan } from "@/lib/image-models";
 
 interface Client {
   id: string;
@@ -57,8 +58,19 @@ function CreateForm() {
   const [recommendations, setRecommendations] = useState<StudioRecommendation[] | null>(null);
   const [recommendationLoading, setRecommendationLoading] = useState(false);
   const [selectedRecommendation, setSelectedRecommendation] = useState<StudioRecommendation | null>(null);
+  const [imageProviderId, setImageProviderId] = useState<string>(DEFAULT_IMAGE_PROVIDER);
+  const [studioPlan, setStudioPlan] = useState<string>("starter");
 
   const clientsLoadedRef = useRef(false);
+
+  useEffect(() => {
+    getClientIdToken().then((token) => {
+      fetch("/api/studio/agency", { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => { if (d?.agency?.plan) setStudioPlan(d.agency.plan); })
+        .catch(() => {});
+    });
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -169,6 +181,7 @@ function CreateForm() {
           platformFormatId,
           useEditableLayout,
           recommendation: recommendationPayload,
+          imageProviderId: imageProviderId || undefined,
         }),
       });
 
@@ -326,6 +339,41 @@ function CreateForm() {
           </div>
         )}
 
+        {/* Image provider (model) */}
+        <div className="bg-bg-surface border border-border-default rounded-2xl p-5">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-3">Image model</p>
+          <p className="font-mono text-[11px] text-text-muted mb-3">Choose the AI model that generates the poster image. Same as ArtMaster Business.</p>
+          <div className="grid grid-cols-1 gap-2">
+            {IMAGE_PROVIDERS.map((p) => {
+              const mappedPlan = studioPlan === "agency" ? "business" : studioPlan === "pro" ? "pro" : "free";
+              const locked = isProviderLockedForPlan(p.id, mappedPlan as "free" | "pro" | "business");
+              const selected = imageProviderId === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => { if (!locked) setImageProviderId(p.id); }}
+                  className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-left transition-colors ${
+                    locked ? "border-border-subtle bg-bg-elevated/50 opacity-80" : selected ? "border-info bg-info/10 ring-1 ring-info/20" : "border-border-default bg-bg-base hover:border-border-strong"
+                  }`}
+                >
+                  <div className={`mt-0.5 w-3.5 h-3.5 rounded-full border-2 shrink-0 flex items-center justify-center ${locked ? "border-border-strong" : selected ? "border-info" : "border-border-strong"}`}>
+                    {locked ? <Lock size={10} className="text-text-muted" /> : selected ? <div className="w-1.5 h-1.5 rounded-full bg-info" /> : null}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`font-semibold text-[13px] ${locked ? "text-text-muted" : selected ? "text-text-primary" : "text-text-secondary"}`}>{p.label}</span>
+                      <span className="font-mono text-[10px] px-1.5 py-0.5 rounded border border-border-default bg-bg-base text-text-muted">{p.badge}</span>
+                      {locked && <span className="font-mono text-[9px] px-1.5 py-0.5 rounded border border-amber-500/40 bg-amber-500/10 text-amber-600">Upgrade</span>}
+                    </div>
+                    <p className="font-mono text-[11px] text-text-muted mt-0.5">{locked ? "Upgrade your Studio plan to use this model." : p.description}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Platform format */}
         <div className="bg-bg-surface border border-border-default rounded-2xl p-5">
           <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-3">Format</p>
@@ -367,25 +415,33 @@ function CreateForm() {
           </div>
           {recommendations && recommendations.length > 0 && (
             <div className="mb-3">
-              <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mb-2">Pick a suggestion</p>
-              <div className="flex flex-wrap gap-2">
-                {recommendations.map((rec, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => {
-                      setSelectedRecommendation(rec);
-                      setOccasion(rec.theme);
-                    }}
-                    className={`px-3 py-2 rounded-xl border text-left font-mono text-[11px] transition-colors ${
-                      selectedRecommendation === rec
-                        ? "bg-info/15 border-info/30 text-info"
-                        : "bg-bg-base border-border-default hover:border-border-strong text-text-secondary"
-                    }`}
-                  >
-                    {rec.theme}
-                  </button>
-                ))}
+              <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mb-2">Content recommendations — pick one</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {recommendations.map((rec, i) => {
+                  const isSelected = selectedRecommendation === rec;
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => {
+                        setSelectedRecommendation(rec);
+                        setOccasion(rec.theme);
+                      }}
+                      className={`p-3 rounded-xl border text-left transition-colors ${
+                        isSelected ? "bg-info/10 border-info/30 ring-1 ring-info/20" : "bg-bg-base border-border-default hover:border-border-strong"
+                      }`}
+                    >
+                      <p className={`font-semibold text-[13px] leading-tight ${isSelected ? "text-info" : "text-text-primary"}`}>
+                        {rec.theme}
+                      </p>
+                      {(rec.suggestedHeadline ?? rec.topic) && (
+                        <p className="font-mono text-[11px] text-text-muted mt-0.5 line-clamp-2">
+                          &quot;{rec.suggestedHeadline ?? rec.topic}&quot;
+                        </p>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

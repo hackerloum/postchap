@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
         secondaryColor: body.secondaryColor || "#111111",
         accentColor: body.accentColor || "#FFFFFF",
         logoUrl: body.logoUrl || "",
+        storePhotoUrls: body.storePhotoUrls ?? [],
         brandLocation: body.brandLocation || {
           country: "Unknown",
           countryCode: "XX",

@@ -10,6 +10,19 @@ export interface BrandLocation {
   languages?: string[];
 }
 
+/** Output of multimodal brand analysis (Gemini vision). Optional cache on brand kit. */
+export interface BrandDNA {
+  /** Hex codes extracted from logo/store photos */
+  dominantColors?: string[];
+  /** Short aesthetic label (e.g. "Nairobi Cyberpunk", "Lagos Minimalist") */
+  aestheticProfile?: string;
+  /** Where logo fits and safe zone for text */
+  layoutPreferences?: {
+    logoPosition?: string;
+    safeZone?: string;
+  };
+}
+
 export interface BrandKit {
   id: string;
   brandName?: string;
@@ -19,6 +32,8 @@ export interface BrandKit {
   secondaryColor?: string;
   accentColor?: string;
   logoUrl?: string;
+  /** URLs of store/business photos for multimodal analysis */
+  storePhotoUrls?: string[];
   tone?: string;
   styleNotes?: string;
   brandLocation?: BrandLocation;
@@ -27,6 +42,8 @@ export interface BrandKit {
   platforms?: string[];
   language?: string;
   sampleContent?: string;
+  /** Cached BrandDNA from multimodal analysis (optional) */
+  brandDna?: BrandDNA;
   /** Shown on poster when set (e.g. 012 3456 7890) */
   phoneNumber?: string;
   /** Shown on poster when set (e.g. Dar es Salaam, or full address) */

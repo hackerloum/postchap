@@ -106,10 +106,14 @@ export interface StudioBrandKit {
   secondaryColor?: string;
   accentColor?: string;
   logoUrl?: string;
+  /** URLs of store/business photos for multimodal analysis */
+  storePhotoUrls?: string[];
   tone?: string;
   styleNotes?: string;
   brandLocation?: { country?: string; countryCode?: string; city?: string; continent?: string; timezone?: string; currency?: string; languages?: string[] };
   targetAudience?: string;
+  /** Cached BrandDNA from multimodal analysis (optional) */
+  brandDna?: import("@/types/generation").BrandDNA;
   ageRange?: string;
   platforms?: string[];
   language?: string;

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveStudioContext, hasClientAccess } from "@/lib/studio/auth";
 import { getBrandKit, getClient } from "@/lib/studio/db";
-import { generateRecommendationsFromContext } from "@/lib/generation/generateRecommendations";
+import { analyzeBrandMultimodal } from "@/lib/brand/analyzeBrandMultimodal";
+import { generateStudioRecommendationsFromContext } from "@/lib/generation/generateRecommendations";
 
 export async function POST(request: NextRequest) {
   let ctx;
@@ -38,6 +39,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Brand kit not found" }, { status: 404 });
   }
 
+  let brandDna = (kit as any).brandDna ?? undefined;
+  if (!brandDna && (kit.logoUrl || ((kit as any).storePhotoUrls?.length ?? 0) > 0)) {
+    brandDna = await analyzeBrandMultimodal({
+      logoUrl: kit.logoUrl,
+      storePhotoUrls: (kit as any).storePhotoUrls,
+      industry: kit.industry,
+      brandLocation: kit.brandLocation,
+      brandName: kit.brandName ?? client?.clientName,
+    }) ?? undefined;
+  }
+
   const brandKitContext = {
     brandName: kit.brandName ?? client?.clientName ?? "Brand",
     industry: (kit.industry ?? (client as any)?.industry) ?? "general",
@@ -45,10 +57,11 @@ export async function POST(request: NextRequest) {
     language: (kit as any).language ?? "English",
     targetAudience: (kit as any).targetAudience ?? "general",
     brandLocation: (kit as any).brandLocation ?? {},
+    brandDna: brandDna ?? undefined,
   };
 
   try {
-    const recommendations = await generateRecommendationsFromContext(brandKitContext);
+    const recommendations = await generateStudioRecommendationsFromContext(brandKitContext);
     return NextResponse.json({ recommendations });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
