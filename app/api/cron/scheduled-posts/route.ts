@@ -2,6 +2,11 @@
  * Cron: scheduled Instagram posts.
  * Vercel invokes GET /api/cron/scheduled-posts every 15 minutes (see vercel.json).
  * Processes posters that were scheduled for posting and are now due.
+ *
+ * Required:
+ * - CRON_SECRET env var (min 16 chars); Vercel sends Authorization: Bearer <CRON_SECRET>.
+ * - Firestore index on collection "scheduled_instagram_posts", field "scheduledFor" (Ascending).
+ *   See firestore.indexes.json or create via the link in the first run error.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";

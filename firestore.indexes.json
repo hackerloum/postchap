@@ -1,0 +1,12 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "scheduled_instagram_posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "scheduledFor", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
