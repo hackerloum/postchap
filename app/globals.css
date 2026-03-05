@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* Tailwind v4: define theme colors so bg-accent, text-accent, etc. work */
 @theme {
@@ -116,4 +117,30 @@ body {
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* Blog article prose — dark theme (prose-invert style) */
+.prose-blog {
+  --tw-prose-body: #e4e4e7;
+  --tw-prose-headings: #fafafa;
+  --tw-prose-lead: #a1a1aa;
+  --tw-prose-links: #e8ff47;
+  --tw-prose-bold: #fafafa;
+  --tw-prose-counters: #71717a;
+  --tw-prose-bullets: #71717a;
+  --tw-prose-hr: #3f3f46;
+  --tw-prose-quotes: #a1a1aa;
+  --tw-prose-quote-borders: #e8ff47;
+  --tw-prose-captions: #71717a;
+  --tw-prose-code: #e8ff47;
+  --tw-prose-pre-code: #e4e4e7;
+  --tw-prose-pre-bg: #18181b;
+  --tw-prose-th-borders: #3f3f46;
+  --tw-prose-td-borders: #27272a;
+}
+.prose-blog a {
+  font-weight: 500;
+}
+.prose-blog img {
+  border-radius: 0.5rem;
 }

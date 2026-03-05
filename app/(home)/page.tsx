@@ -78,6 +78,12 @@ export default function Home() {
               For Agencies
             </a>
             <Link
+              href="/blog"
+              className="font-mono text-[12px] text-text-muted hover:text-text-primary transition-colors"
+            >
+              Blog
+            </Link>
+            <Link
               href="/pricing"
               className="font-mono text-[12px] text-text-muted hover:text-text-primary transition-colors"
             >

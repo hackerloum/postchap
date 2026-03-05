@@ -1,7 +1,9 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
+import { getAnalytics, type Analytics } from "firebase/analytics";
 
 let _auth: Auth | null = null;
+let _analytics: Analytics | null = null;
 
 function getConfig() {
   return {
@@ -28,5 +30,21 @@ export function getAuthClient(): Auth {
     _auth = getAuth(app);
   }
   return _auth;
+}
+
+/** Optional Firebase Analytics for blog and marketing events. No-op if not in browser or Analytics unavailable. */
+export function getAnalyticsClient(): Analytics | null {
+  if (typeof window === "undefined") return null;
+  if (_analytics) return _analytics;
+  try {
+    const app = getAppInstance();
+    if (app) {
+      _analytics = getAnalytics(app);
+      return _analytics;
+    }
+  } catch {
+    // Analytics may be disabled or measurementId missing
+  }
+  return null;
 }
 
