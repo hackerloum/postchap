@@ -29,8 +29,8 @@ export default function StudioLoginPage() {
       body: JSON.stringify({ token }),
     });
     if (!res.ok) throw new Error("Failed to create session");
-    // Always send Studio users into Studio (layout will redirect to onboarding if no agency)
-    router.push("/studio");
+    // Send to onboarding first; returning users get redirected to /studio from there
+    router.push("/studio/onboarding");
   }
 
   async function handleSignIn(e: React.FormEvent) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, Users, Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
 import { getClientIdToken } from "@/lib/auth-client";
@@ -11,6 +11,35 @@ export default function StudioOnboardingPage() {
   const [agencyName, setAgencyName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [checkingAgency, setCheckingAgency] = useState(true);
+
+  // If user already has an agency, send them to the dashboard
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getClientIdToken();
+        const res = await fetch("/api/studio/agency", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (cancelled) return;
+        if (res.ok) {
+          const d = await res.json();
+          if (d?.agency) {
+            router.replace("/studio");
+            return;
+          }
+        }
+      } catch {
+        // ignore
+      } finally {
+        if (!cancelled) setCheckingAgency(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -41,6 +70,17 @@ export default function StudioOnboardingPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (checkingAgency) {
+    return (
+      <div className="min-h-screen bg-bg-base flex items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 size={28} className="text-text-muted animate-spin" />
+          <p className="font-mono text-[12px] text-text-muted">Loading…</p>
+        </div>
+      </div>
+    );
   }
 
   return (
