@@ -30,6 +30,12 @@ export async function generateCopy(
   if (!apiKey) throw new Error("Copy generation is not available. Please try again later.");
   const openai = new OpenAI({ apiKey });
 
+  // Normalize language to primary code (e.g. sw-KE → sw) so LANGUAGE_NAMES and override apply
+  const normalizedLang =
+    posterLanguage && posterLanguage !== "en"
+      ? posterLanguage.split(/[-_]/)[0]!.toLowerCase()
+      : posterLanguage;
+
   const isWhatsApp = platformFormatId === "whatsapp_status";
   const platformNote = isWhatsApp
     ? `
@@ -40,11 +46,15 @@ CRITICAL — WhatsApp Status format:
 - Body: concise. High contrast mentally — viewed in bright sunlight.`
     : "";
 
+  const langSystemNote =
+    normalizedLang && normalizedLang !== "en"
+      ? ` When the user requests a non-English language, you MUST output headline, subheadline, body, cta, and hashtags entirely in that language — no English.`
+      : "";
   const systemPrompt = `You are a senior copywriter at a top creative agency.
 You write social media poster copy that is sharp, specific, and on-brand. Never write generic content.
 Every word must be tailored to the exact brand below.
 Output ONLY valid JSON. No explanation. No markdown. No code blocks. Just the raw JSON object.
-JSON format: { "headline": "${isWhatsApp ? "max 6 words" : "max 6 words"}", "subheadline": "${isWhatsApp ? "max 8 words" : "max 12 words"}", "body": "2-3 lines", "cta": "max 4 words", "hashtags": ["#tag1", "#tag2"] } (8-12 tags)${platformNote}`;
+JSON format: { "headline": "${isWhatsApp ? "max 6 words" : "max 6 words"}", "subheadline": "${isWhatsApp ? "max 8 words" : "max 12 words"}", "body": "2-3 lines", "cta": "max 4 words", "hashtags": ["#tag1", "#tag2"] } (8-12 tags)${platformNote}${langSystemNote}`;
 
   const brandContext = `BRAND: Name: ${brandKit.brandName} Industry: ${brandKit.industry} Tagline: ${brandKit.tagline || "none"} Tone: ${brandKit.tone} Language: ${brandKit.language ?? "en"} Target: ${brandKit.targetAudience || "general"} Country: ${brandKit.brandLocation?.country || "Global"} Continent: ${brandKit.brandLocation?.continent || "Global"} Currency: ${brandKit.brandLocation?.currency || "USD"} Languages: ${brandKit.brandLocation?.languages?.join(", ") || "English"} Style: ${brandKit.styleNotes || "none"} Sample: ${brandKit.sampleContent || "none"}`;
 
@@ -70,8 +80,8 @@ Stay on this specific theme.
       : `No specific occasion. Write evergreen content for ${brandKit.brandName}.`;
 
   const languageOverride =
-    posterLanguage && posterLanguage !== "en"
-      ? `CRITICAL — LANGUAGE: Write ALL copy in ${LANGUAGE_NAMES[posterLanguage] ?? posterLanguage}. Headline, subheadline, CTA, and hashtags must be in ${LANGUAGE_NAMES[posterLanguage] ?? posterLanguage}. Do NOT translate from English — write natively as a ${LANGUAGE_NAMES[posterLanguage] ?? posterLanguage} speaker would.`
+    normalizedLang && normalizedLang !== "en"
+      ? `CRITICAL — LANGUAGE: Write ALL copy in ${LANGUAGE_NAMES[normalizedLang] ?? normalizedLang}. Headline, subheadline, body, CTA, and hashtags MUST be in ${LANGUAGE_NAMES[normalizedLang] ?? normalizedLang}. Do NOT use English — write natively in ${LANGUAGE_NAMES[normalizedLang] ?? normalizedLang} only.`
       : "";
 
   // Product-mode: override the content direction with product context

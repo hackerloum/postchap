@@ -376,8 +376,9 @@ export async function generateImage(
     return {
       buffer,
       imageHasText: true,
-      // Seedream used the logo as a reference_image → integrated natively
-      logoHandledByAI: hasLogo,
+      // Seedream reference_image is style-only; the logo is often not visibly rendered.
+      // Always let Sharp composite the logo so it appears on the poster.
+      logoHandledByAI: false,
     };
   } catch (primaryErr) {
     console.error("[ImageGen] Primary failed:", primaryErr);
