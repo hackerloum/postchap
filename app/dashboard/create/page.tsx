@@ -60,7 +60,7 @@ interface BrandKit {
   brandLocation?: { country?: string; city?: string; continent?: string };
 }
 
-type GenerateMode = "ai" | "template" | "inspiration" | "product";
+type GenerateMode = "ai" | "ads" | "template" | "inspiration" | "product";
 
 interface TemplateItem {
   id: string;
@@ -1201,6 +1201,7 @@ function CreatePageContent() {
           {(
             [
               { id: "ai" as GenerateMode, label: "AI Pick", icon: <Sparkles size={13} /> },
+              { id: "ads" as GenerateMode, label: "Ads", icon: <Megaphone size={13} /> },
               { id: "template" as GenerateMode, label: "Templates", icon: <LayoutTemplate size={13} /> },
               { id: "inspiration" as GenerateMode, label: "Inspiration", icon: <ImagePlus size={13} /> },
               { id: "product" as GenerateMode, label: "Product", icon: <Package size={13} /> },
@@ -1659,8 +1660,88 @@ function CreatePageContent() {
             </div>
           )}
 
-          {/* Content recommendations + custom brief — on all tabs except Product (product IS the brief) */}
-          <div className={`bg-bg-surface border border-border-default rounded-2xl overflow-hidden${mode === "product" ? " hidden" : ""}`}>
+          {/* Ads mode: only ads recommendations (conversion-focused) */}
+          {mode === "ads" && (
+            <div className="bg-bg-surface border border-border-default rounded-2xl overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Megaphone size={13} className="text-amber-400" />
+                    <span className="font-semibold text-[14px] text-text-primary">
+                      Ads poster recommendations
+                    </span>
+                  </div>
+                  <p className="font-mono text-[10px] text-text-muted mt-0.5">
+                    Pick a conversion-focused theme to generate an ads poster
+                  </p>
+                </div>
+              </div>
+              {loadingAdsRecs ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="h-[120px] bg-bg-elevated rounded-xl animate-pulse" />
+                  ))}
+                </div>
+              ) : adsRecommendations.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Megaphone size={32} className="text-text-muted mx-auto mb-3" />
+                  <p className="font-medium text-text-primary mb-1">No ads recommendations yet</p>
+                  <p className="font-mono text-[12px] text-text-muted mb-4">
+                    Generate them in Admin → Ads recommendations, then they will appear here.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3">
+                  {adsRecommendations.map((rec, index) => {
+                    const isSelected = selectedRec?.id === rec.id && !useCustom;
+                    const urgencyStyle: Record<string, string> = {
+                      high: "text-error bg-error/10 border-error/20",
+                      medium: "text-warning bg-warning/10 border-warning/20",
+                      low: "text-success bg-success/10 border-success/20",
+                    };
+                    const s = urgencyStyle[rec.urgency ?? "medium"] ?? "";
+                    return (
+                      <button
+                        key={rec.id ?? index}
+                        type="button"
+                        onClick={() => {
+                          setSelectedRec(rec);
+                          setUseCustom(false);
+                        }}
+                        className={`
+                          text-left rounded-xl border p-4 transition-all duration-150 space-y-2.5
+                          ${isSelected
+                            ? "border-accent bg-accent/5 ring-1 ring-accent/20"
+                            : "border-border-default bg-bg-elevated hover:border-border-strong hover:bg-bg-elevated/80"}
+                        `}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-mono text-[9px] uppercase tracking-wider text-text-muted">
+                            {categoryLabel[rec.category] ?? rec.category ?? "promotion"}
+                          </span>
+                          {isSelected && <CheckCircle size={13} className="text-accent shrink-0" />}
+                        </div>
+                        <p className="font-semibold text-[14px] text-text-primary leading-tight">
+                          {rec.theme}
+                        </p>
+                        <p className="font-mono text-[11px] text-text-muted truncate leading-tight">
+                          {rec.topic}
+                        </p>
+                        <div className={`rounded-lg px-2.5 py-1.5 border ${isSelected ? "bg-accent/10 border-accent/20" : "bg-bg-base border-border-subtle"}`}>
+                          <p className={`font-semibold text-[12px] leading-tight ${isSelected ? "text-accent" : "text-text-secondary"}`}>
+                            &quot;{rec.suggestedHeadline}&quot;
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Content recommendations + custom brief — on all tabs except Product and Ads */}
+          <div className={`bg-bg-surface border border-border-default rounded-2xl overflow-hidden${(mode === "product" || mode === "ads") ? " hidden" : ""}`}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle">
               <div>
                 <div className="flex items-center gap-2">
@@ -1950,14 +2031,20 @@ function CreatePageContent() {
           {/* Desktop: selection summary + generate button */}
           <div className="hidden lg:block sticky top-6 space-y-3">
             {(mode === "ai" && (selectedRec || (useCustom && customTopic))) ||
+            (mode === "ads" && selectedRec) ||
             (mode === "template" && selectedTemplateId != null && (selectedRec || (useCustom && customTopic))) ||
             (mode === "inspiration" && (inspirationUrl.trim() || inspirationFile || inspirationImageUrl.trim()) && (selectedRec || (useCustom && customTopic))) ||
             (mode === "product" && selectedProduct) ? (
               <div className="bg-bg-surface border border-border-default rounded-2xl p-4 space-y-2 animate-fade-up">
                 <p className="font-mono text-[10px] uppercase tracking-wider text-accent">
-                  {mode === "ai" ? "Ready" : mode === "template" ? "Template + content" : mode === "inspiration" ? "Inspiration + content" : "Product poster"}
+                  {mode === "ai" ? "Ready" : mode === "ads" ? "Ads poster" : mode === "template" ? "Template + content" : mode === "inspiration" ? "Inspiration + content" : "Product poster"}
                 </p>
-                {mode === "product" && selectedProduct ? (
+                {mode === "ads" && selectedRec ? (
+                  <>
+                    <p className="font-semibold text-[13px] text-text-primary leading-tight">{selectedRec.theme}</p>
+                    <p className="font-mono text-[11px] text-text-muted leading-relaxed line-clamp-2">{selectedRec.topic}</p>
+                  </>
+                ) : mode === "product" && selectedProduct ? (
                   <>
                     <p className="font-semibold text-[13px] text-text-primary leading-tight">{selectedProduct.name}</p>
                     <p className="font-mono text-[11px] text-text-muted">{selectedProduct.priceLabel} · {productIntent}</p>
@@ -2036,6 +2123,7 @@ function CreatePageContent() {
                 (generating ||
                 !selectedPlatform ||
                 (mode === "ai" && !selectedRec && !(useCustom && customTopic.trim())) ||
+                (mode === "ads" && !selectedRec) ||
                 (mode === "template" && (selectedTemplateId == null || (!selectedRec && !(useCustom && customTopic.trim())))) ||
                 (mode === "inspiration" && (!inspirationUrl.trim() && !inspirationImageUrl.trim() || (!selectedRec && !(useCustom && customTopic.trim())))) ||
                 (mode === "product" && !selectedProduct))
@@ -2059,20 +2147,24 @@ function CreatePageContent() {
               )}
             </button>
             {!(mode === "ai" && (selectedRec || (useCustom && customTopic))) &&
+              !(mode === "ads" && selectedRec) &&
               !(mode === "template" && selectedTemplateId != null && (selectedRec || (useCustom && customTopic))) &&
               !(mode === "inspiration" && (inspirationUrl.trim() || inspirationImageUrl.trim()) && (selectedRec || (useCustom && customTopic))) &&
               !(mode === "product" && selectedProduct) && (
               <p className="font-mono text-[10px] text-text-muted text-center">
                 {mode === "ai"
                   ? "Select a recommendation or write a brief"
-                  : mode === "template"
-                    ? "Select a template and choose content"
-                    : mode === "product"
-                      ? "Select a product above"
-                      : "Set inspiration image and choose content"}
+                  : mode === "ads"
+                    ? "Select an ads recommendation above"
+                    : mode === "template"
+                      ? "Select a template and choose content"
+                      : mode === "product"
+                        ? "Select a product above"
+                        : "Set inspiration image and choose content"}
               </p>
             )}
             {((mode === "ai" && (selectedRec || (useCustom && customTopic))) ||
+              (mode === "ads" && selectedRec) ||
               (mode === "template" && selectedTemplateId != null && (selectedRec || (useCustom && customTopic))) ||
               (mode === "inspiration" && (inspirationUrl.trim() || inspirationImageUrl.trim()) && (selectedRec || (useCustom && customTopic))) ||
               (mode === "product" && selectedProduct)) && (
@@ -2092,6 +2184,7 @@ function CreatePageContent() {
             (generating ||
             !selectedPlatform ||
             (mode === "ai" && !selectedRec && !(useCustom && customTopic.trim())) ||
+            (mode === "ads" && !selectedRec) ||
             (mode === "template" && (selectedTemplateId == null || (!selectedRec && !(useCustom && customTopic.trim())))) ||
             (mode === "inspiration" && (!inspirationUrl.trim() && !inspirationImageUrl.trim() || (!selectedRec && !(useCustom && customTopic.trim())))) ||
             (mode === "product" && !selectedProduct))
