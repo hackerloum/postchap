@@ -82,7 +82,7 @@ export default function ProductsPage() {
         const res = await fetch("/api/brand-kits", { headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json();
         if (!cancelled) {
-          const list: BrandKit[] = data.brandKits ?? [];
+          const list: BrandKit[] = data.kits ?? [];
           setKits(list);
           if (list.length > 0) setSelectedKitId(list[0].id);
         }
