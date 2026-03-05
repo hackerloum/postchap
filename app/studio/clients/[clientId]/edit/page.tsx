@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Plus, X, Copy } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, X, Copy, Palette } from "lucide-react";
 import { getClientIdToken } from "@/lib/auth-client";
 
 const INDUSTRIES = [
@@ -23,6 +23,7 @@ export default function EditClientPage({ params }: { params: { clientId: string 
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [portalToken, setPortalToken] = useState<string | null>(null);
+  const [kits, setKits] = useState<{ id: string; brandName?: string; kitPurpose: string; isDefault: boolean; primaryColor?: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -32,9 +33,12 @@ export default function EditClientPage({ params }: { params: { clientId: string 
       try {
         const token = await getClientIdToken();
         const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await fetch(`/api/studio/clients/${clientId}`, { headers });
-        if (res.ok) {
-          const { client } = await res.json();
+        const [clientRes, kitsRes] = await Promise.all([
+          fetch(`/api/studio/clients/${clientId}`, { headers }),
+          fetch(`/api/studio/clients/${clientId}/brand-kits`, { headers }),
+        ]);
+        if (clientRes.ok) {
+          const { client } = await clientRes.json();
           setForm({
             clientName: client.clientName ?? "",
             contactPerson: client.contactPerson ?? "",
@@ -49,6 +53,10 @@ export default function EditClientPage({ params }: { params: { clientId: string 
           });
           setTags(client.tags ?? []);
           setPortalToken(client.portalToken ?? null);
+        }
+        if (kitsRes.ok) {
+          const data = await kitsRes.json();
+          setKits(data.kits ?? []);
         }
       } catch {}
       finally { setLoading(false); }
@@ -206,6 +214,55 @@ export default function EditClientPage({ params }: { params: { clientId: string 
             <textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })}
               className="w-full bg-bg-base border border-border-default rounded-xl px-4 py-3 text-[13px] text-text-primary placeholder:text-text-muted outline-none focus:border-info transition-colors resize-none" />
           </div>
+        </div>
+
+        {/* Brand kits */}
+        <div className="bg-bg-surface border border-border-default rounded-2xl p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted">Brand kits</p>
+            <Link href={`/studio/clients/${clientId}/brand-kits/new`} className="font-mono text-[12px] text-info hover:underline">
+              + Add kit
+            </Link>
+          </div>
+          <p className="font-mono text-[11px] text-text-muted">Edit colors, logo and voice for poster generation.</p>
+          {kits.length === 0 ? (
+            <div className="py-4 text-center border border-dashed border-border-default rounded-xl">
+              <Palette size={20} className="text-text-muted mx-auto mb-2" />
+              <p className="font-mono text-[12px] text-text-muted mb-2">No brand kits yet</p>
+              <Link
+                href={`/studio/clients/${clientId}/brand-kits/new`}
+                className="inline-flex items-center gap-2 bg-info text-black font-semibold text-[12px] px-4 py-2 rounded-xl hover:bg-info/90 transition-colors"
+              >
+                <Palette size={13} />
+                Create brand kit
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {kits.map((kit) => (
+                <Link
+                  key={kit.id}
+                  href={`/studio/clients/${clientId}/brand-kits/${kit.id}/edit`}
+                  className="flex items-center gap-3 p-3 bg-bg-base border border-border-default rounded-xl hover:border-border-strong transition-colors"
+                >
+                  {kit.primaryColor && (
+                    <div className="w-6 h-6 rounded-full border border-border-default shrink-0" style={{ backgroundColor: kit.primaryColor }} />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-[13px] text-text-primary truncate">{kit.brandName || "Unnamed kit"}</p>
+                    <p className="font-mono text-[10px] text-text-muted capitalize">{kit.kitPurpose}</p>
+                  </div>
+                  {kit.isDefault && <span className="font-mono text-[9px] bg-info/15 text-info px-1.5 py-0.5 rounded shrink-0">Default</span>}
+                </Link>
+              ))}
+              <Link
+                href={`/studio/clients/${clientId}/brand-kits/new`}
+                className="flex items-center justify-center gap-2 p-3 bg-bg-base border border-dashed border-border-default rounded-xl text-text-muted hover:border-border-strong hover:text-text-secondary transition-colors font-mono text-[12px]"
+              >
+                <Plus size={14} /> Add kit
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Portal settings */}
