@@ -78,7 +78,13 @@ export default function EditClientPage({ params }: { params: Promise<{ clientId:
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "Failed to save"); return; }
-      router.push(`/studio/clients/${clientId}`);
+      // If portal was enabled and we got back the client with token, stay on page so user can copy the link
+      if (data.client?.portalToken) {
+        setPortalToken(data.client.portalToken);
+        setForm((f) => ({ ...f, portalAccessEnabled: data.client.portalAccessEnabled ?? f.portalAccessEnabled }));
+      } else {
+        router.push(`/studio/clients/${clientId}`);
+      }
     } catch {
       setError("Something went wrong.");
     } finally {

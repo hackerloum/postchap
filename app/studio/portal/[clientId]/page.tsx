@@ -38,12 +38,25 @@ function PortalContent({ clientId }: { clientId: string }) {
       setLoading(true);
       try {
         const headers = { "X-Portal-Token": token };
-        const [postersRes] = await Promise.all([
+        const [postersRes, agencyRes] = await Promise.all([
           fetch("/api/studio/portal/posters", { headers }),
+          fetch("/api/studio/portal/agency", { headers }),
         ]);
         if (postersRes.ok) setPosters((await postersRes.json()).posters ?? []);
-      } catch {}
-      finally { setLoading(false); }
+        if (agencyRes.ok) {
+          const d = await agencyRes.json();
+          setAgency({
+            name: d.name ?? "Client Portal",
+            logoUrl: d.logoUrl ?? null,
+            accentColor: d.accentColor ?? "#4D9EFF",
+            hidePoweredBy: d.hidePoweredBy ?? false,
+          });
+        }
+      } catch {
+        // ignore
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, [token]);

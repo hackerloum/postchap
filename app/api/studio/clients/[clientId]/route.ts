@@ -77,6 +77,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   try {
     await clientsRef(agency.id).doc(clientId).update(updates);
+    // When portal was enabled (token may have been generated), return updated client so the edit page can show the link without redirect
+    if (body.portalAccessEnabled === true || updates.portalToken) {
+      const updated = await getClient(agency.id, clientId);
+      return NextResponse.json({ success: true, client: updated });
+    }
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[studio/clients/[clientId] PATCH]", err);
