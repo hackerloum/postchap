@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Loader2, Plus, X, Copy } from "lucide-react";
@@ -12,8 +12,8 @@ const INDUSTRIES = [
   "Entertainment", "Travel / Tourism", "Fitness / Gym", "Other",
 ];
 
-export default function EditClientPage({ params }: { params: Promise<{ clientId: string }> }) {
-  const { clientId } = use(params);
+export default function EditClientPage({ params }: { params: { clientId: string } }) {
+  const { clientId } = params;
   const router = useRouter();
   const [form, setForm] = useState({
     clientName: "", contactPerson: "", contactEmail: "", contactPhone: "",

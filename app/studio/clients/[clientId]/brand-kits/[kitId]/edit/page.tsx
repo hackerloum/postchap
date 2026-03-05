@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Loader2, Star } from "lucide-react";
@@ -34,9 +34,9 @@ const TONES = ["professional", "casual", "luxury", "playful", "bold", "minimalis
 export default function EditClientBrandKitPage({
   params,
 }: {
-  params: Promise<{ clientId: string; kitId: string }>;
+  params: { clientId: string; kitId: string };
 }) {
-  const { clientId, kitId } = use(params);
+  const { clientId, kitId } = params;
   const router = useRouter();
   const [kit, setKit] = useState<BrandKit | null>(null);
   const [loading, setLoading] = useState(true);

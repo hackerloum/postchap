@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Users, Plus, Search, Filter, MoreHorizontal, Archive, Edit3, Sparkles } from "lucide-react";
+import { Users, Plus, Search, MoreHorizontal, Archive, Edit3, Sparkles, Loader2 } from "lucide-react";
 import { getClientIdToken } from "@/lib/auth-client";
 
 interface Client {
@@ -25,8 +25,12 @@ export default function ClientsPage() {
   const [statusFilter, setStatusFilter] = useState("active");
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
 
-  async function loadClients() {
-    setLoading(true);
+  const [filterRefreshing, setFilterRefreshing] = useState(false);
+  const initialLoadDone = useRef(false);
+
+  async function loadClients(showFullLoading: boolean) {
+    if (showFullLoading) setLoading(true);
+    else setFilterRefreshing(true);
     try {
       const token = await getClientIdToken();
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
@@ -37,10 +41,17 @@ export default function ClientsPage() {
         setClients(d.clients ?? []);
       }
     } catch {}
-    finally { setLoading(false); }
+    finally {
+      if (showFullLoading) setLoading(false);
+      else setFilterRefreshing(false);
+    }
   }
 
-  useEffect(() => { loadClients(); }, [statusFilter]);
+  useEffect(() => {
+    const isInitial = !initialLoadDone.current;
+    if (isInitial) initialLoadDone.current = true;
+    loadClients(isInitial);
+  }, [statusFilter]);
 
   async function archiveClient(clientId: string) {
     const token = await getClientIdToken();
@@ -52,7 +63,7 @@ export default function ClientsPage() {
       },
       body: JSON.stringify({ status: "archived" }),
     });
-    loadClients();
+    loadClients(false);
     setMenuOpen(null);
   }
 
@@ -90,20 +101,24 @@ export default function ClientsPage() {
             className="w-full bg-bg-surface border border-border-default rounded-xl pl-9 pr-4 py-2 text-[13px] text-text-primary placeholder:text-text-muted outline-none focus:border-info transition-colors"
           />
         </div>
-        <div className="flex items-center gap-1 bg-bg-surface border border-border-default rounded-xl p-1">
-          {["active", "paused", "archived", "all"].map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1 rounded-lg font-mono text-[11px] transition-colors capitalize ${
-                statusFilter === s
-                  ? "bg-bg-elevated text-text-primary"
-                  : "text-text-muted hover:text-text-secondary"
-              }`}
-            >
-              {s}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-bg-surface border border-border-default rounded-xl p-1">
+            {["active", "paused", "archived", "all"].map((s) => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                disabled={filterRefreshing}
+                className={`px-3 py-1 rounded-lg font-mono text-[11px] transition-colors capitalize disabled:opacity-70 ${
+                  statusFilter === s
+                    ? "bg-bg-elevated text-text-primary"
+                    : "text-text-muted hover:text-text-secondary"
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+          {filterRefreshing && <Loader2 size={14} className="animate-spin text-text-muted" />}
         </div>
       </div>
 

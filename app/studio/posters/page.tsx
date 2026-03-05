@@ -49,18 +49,6 @@ function PostersContent() {
   const [submittingApproval, setSubmittingApproval] = useState(false);
   const [revisionComment, setRevisionComment] = useState("");
 
-  useEffect(() => {
-    async function loadClients() {
-      try {
-        const token = await getClientIdToken();
-        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await fetch("/api/studio/clients?status=active", { headers });
-        if (res.ok) setClients((await res.json()).clients ?? []);
-      } catch {}
-    }
-    loadClients();
-  }, []);
-
   async function loadPosters() {
     setLoading(true);
     try {
@@ -76,7 +64,28 @@ function PostersContent() {
     finally { setLoading(false); }
   }
 
-  useEffect(() => { loadPosters(); }, [selectedClientId, statusFilter]);
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const token = await getClientIdToken();
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const params = new URLSearchParams();
+      if (selectedClientId) params.set("clientId", selectedClientId);
+      if (statusFilter !== "all") params.set("approvalStatus", statusFilter);
+      params.set("limit", "50");
+      const [clientsRes, postersRes] = await Promise.all([
+        fetch("/api/studio/clients?status=active", { headers }),
+        fetch(`/api/studio/posters?${params}`, { headers }),
+      ]);
+      if (cancelled) return;
+      if (clientsRes.ok) setClients((await clientsRes.json()).clients ?? []);
+      if (postersRes.ok) setPosters((await postersRes.json()).posters ?? []);
+      setLoading(false);
+    }
+    setLoading(true);
+    load();
+    return () => { cancelled = true; };
+  }, [selectedClientId, statusFilter]);
 
   async function updateApproval(posterId: string, status: string, comment?: string) {
     setSubmittingApproval(true);

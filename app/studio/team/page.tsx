@@ -153,14 +153,17 @@ export default function StudioTeamPage() {
           </div>
         ) : (
           <div className="space-y-2">
-            {members.map((m) => (
+            {members.map((m) => {
+              const displayLabel = m.displayName || m.email || (m.role === "owner" ? "Owner" : "Team member");
+              const subLabel = m.email && m.displayName ? m.email : null;
+              return (
               <div key={m.id} className="flex items-center gap-3 bg-bg-surface border border-border-default rounded-xl p-4">
                 <div className="w-9 h-9 rounded-full bg-bg-elevated border border-border-default flex items-center justify-center font-semibold text-[13px] text-text-primary shrink-0">
-                  {(m.displayName ?? m.email ?? "?").charAt(0).toUpperCase()}
+                  {displayLabel.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-[13px] text-text-primary truncate">{m.displayName || m.email || m.userId}</p>
-                  {m.email && m.displayName && <p className="font-mono text-[11px] text-text-muted truncate">{m.email}</p>}
+                  <p className="font-medium text-[13px] text-text-primary truncate">{displayLabel}</p>
+                  {subLabel && <p className="font-mono text-[11px] text-text-muted truncate">{subLabel}</p>}
                 </div>
                 <span className={`font-mono text-[10px] px-2 py-0.5 rounded-full capitalize ${roleColors[m.role] ?? "bg-bg-elevated text-text-muted"}`}>
                   {m.role}
@@ -174,7 +177,8 @@ export default function StudioTeamPage() {
                   </button>
                 )}
               </div>
-            ))}
+            );
+            })}
           </div>
         )}
       </div>

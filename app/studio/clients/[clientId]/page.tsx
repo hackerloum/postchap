@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Palette, Sparkles, Images, Edit3, Mail, Phone, MapPin, Tag, Calendar, ExternalLink } from "lucide-react";
 import { getClientIdToken } from "@/lib/auth-client";
@@ -38,8 +38,8 @@ interface Poster {
   createdAt: number | null;
 }
 
-export default function ClientDetailPage({ params }: { params: Promise<{ clientId: string }> }) {
-  const { clientId } = use(params);
+export default function ClientDetailPage({ params }: { params: { clientId: string } }) {
+  const { clientId } = params;
   const [client, setClient] = useState<Client | null>(null);
   const [kits, setKits] = useState<BrandKit[]>([]);
   const [recentPosters, setRecentPosters] = useState<Poster[]>([]);

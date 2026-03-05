@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense, use } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, MessageCircle, Clock, Download, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -237,8 +237,8 @@ function PortalContent({ clientId }: { clientId: string }) {
   );
 }
 
-export default function ClientPortalPage({ params }: { params: Promise<{ clientId: string }> }) {
-  const { clientId } = use(params);
+export default function ClientPortalPage({ params }: { params: { clientId: string } }) {
+  const { clientId } = params;
   return (
     <Suspense fallback={<div className="min-h-screen bg-bg-base flex items-center justify-center"><Loader2 size={24} className="animate-spin text-text-muted" /></div>}>
       <PortalContent clientId={clientId} />

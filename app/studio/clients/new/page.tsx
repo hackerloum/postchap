@@ -56,14 +56,27 @@ export default function NewClientPage() {
         body: JSON.stringify({ ...form, tags }),
       });
 
-      const data = await res.json();
+      let data: { clientId?: string; error?: string; code?: string } = {};
+      try {
+        const text = await res.text();
+        if (text) data = JSON.parse(text);
+      } catch {
+        setError("Invalid response from server. Please try again.");
+        return;
+      }
+
       if (!res.ok) {
         setError(data.error ?? "Failed to create client");
         return;
       }
 
-      router.push(`/studio/clients/${data.clientId}`);
-    } catch {
+      const clientId = data.clientId && String(data.clientId).trim();
+      if (clientId) {
+        router.push(`/studio/clients/${clientId}`);
+      } else {
+        setError("Client was created but could not open the page. Go to Clients to find it.");
+      }
+    } catch (err) {
       setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { resolveStudioContext, canManageTeam, checkTeamMemberLimit } from "@/lib/studio/auth";
 import { teamRef, listTeamMembers, invitesRef, setInviteTokenLookup } from "@/lib/studio/db";
-import { getAdminDb } from "@/lib/firebase/admin";
+import { getAdminAuth } from "@/lib/firebase/admin";
 import crypto from "crypto";
 import type { TeamRole } from "@/types/studio";
 
@@ -23,7 +23,34 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const members = await listTeamMembers(agency.id);
+    const raw = await listTeamMembers(agency.id);
+    const auth = getAdminAuth();
+    const uids = [...new Set(raw.map((m) => m.userId ?? m.id).filter(Boolean))] as string[];
+    const userMap = new Map<string, { displayName?: string; email?: string }>();
+
+    if (uids.length > 0) {
+      try {
+        const result = await auth.getUsers(uids.map((uid) => ({ uid })));
+        for (const user of result.users) {
+          userMap.set(user.uid, {
+            displayName: user.displayName ?? undefined,
+            email: user.email ?? undefined,
+          });
+        }
+      } catch {
+        // Fallback: leave displayName/email from DB or undefined
+      }
+    }
+
+    const members = raw.map((m) => {
+      const uid = m.userId ?? m.id;
+      const authUser = uid ? userMap.get(uid) : undefined;
+      return {
+        ...m,
+        displayName: m.displayName ?? authUser?.displayName,
+        email: m.email ?? authUser?.email,
+      };
+    });
     return NextResponse.json({ members });
   } catch (err) {
     console.error("[studio/team GET]", err);

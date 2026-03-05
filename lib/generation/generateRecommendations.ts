@@ -740,3 +740,67 @@ export async function getRecommendationsForBrandKit(
 
   return recommendations;
 }
+
+/** Brand kit context shape for recommendation generation (no Firestore). */
+export interface RecommendationBrandKitContext {
+  brandName?: string;
+  industry?: string;
+  tone?: string;
+  language?: string;
+  targetAudience?: string;
+  brandLocation?: {
+    country?: string;
+    city?: string;
+    continent?: string;
+    currency?: string;
+    languages?: string[];
+  };
+}
+
+/**
+ * Generate 6 poster recommendations from a brand kit context (e.g. Studio client + kit).
+ * Does not read or write Firestore. Requires OPENAI_API_KEY.
+ */
+export async function generateRecommendationsFromContext(
+  brandKit: RecommendationBrandKitContext
+): Promise<Recommendation[]> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error("OPENAI_API_KEY not set");
+
+  const context: BrandKitContext = {
+    brandName: brandKit.brandName ?? "Brand",
+    industry: brandKit.industry ?? "general",
+    tone: brandKit.tone ?? "professional",
+    language: brandKit.language ?? "English",
+    targetAudience: brandKit.targetAudience ?? "general",
+    brandLocation: brandKit.brandLocation ?? {},
+  };
+
+  const systemPrompt = buildRecommendationSystemPrompt(context, false);
+  const openai = new OpenAI({ apiKey });
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    temperature: 1.0,
+    top_p: 0.95,
+    max_tokens: 2000,
+    messages: [
+      { role: "system", content: systemPrompt },
+      {
+        role: "user",
+        content: `Generate exactly 6 poster concepts for ${context.brandName}. Return raw JSON array only.`,
+      },
+    ],
+  });
+
+  const raw = response.choices[0]?.message?.content ?? "[]";
+  const cleaned = raw.replace(/```json/g, "").replace(/```/g, "").trim();
+
+  try {
+    const parsed = JSON.parse(cleaned) as unknown[];
+    return Array.isArray(parsed) ? (parsed as Recommendation[]) : [];
+  } catch {
+    console.error("[generateRecommendationsFromContext] Parse error:", cleaned.slice(0, 300));
+    throw new Error("Failed to parse AI response");
+  }
+}

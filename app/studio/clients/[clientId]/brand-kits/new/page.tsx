@@ -1,14 +1,13 @@
 "use client";
 
-import { use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getClientIdToken } from "@/lib/auth-client";
 import BrandKitWizard from "@/components/BrandKitWizard";
 
-export default function NewClientBrandKitPage({ params }: { params: Promise<{ clientId: string }> }) {
-  const { clientId } = use(params);
+export default function NewClientBrandKitPage({ params }: { params: { clientId: string } }) {
+  const { clientId } = params;
   const router = useRouter();
 
   async function handleSubmit(kitData: Record<string, unknown>) {

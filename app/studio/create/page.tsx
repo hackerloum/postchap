@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Sparkles, Loader2, CheckCircle2, ChevronDown, Users, Palette } from "lucide-react";
@@ -19,6 +19,17 @@ interface BrandKit {
   kitPurpose: string;
   isDefault: boolean;
   primaryColor?: string;
+}
+
+/** Recommendation from API for content suggestions. */
+interface StudioRecommendation {
+  theme: string;
+  topic: string;
+  description?: string;
+  suggestedHeadline?: string;
+  suggestedCta?: string;
+  visualMood?: string;
+  hashtags?: string[];
 }
 
 const PLATFORM_FORMATS = [
@@ -43,25 +54,47 @@ function CreateForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [generated, setGenerated] = useState<{ posterId: string; imageUrl: string } | null>(null);
+  const [recommendations, setRecommendations] = useState<StudioRecommendation[] | null>(null);
+  const [recommendationLoading, setRecommendationLoading] = useState(false);
+  const [selectedRecommendation, setSelectedRecommendation] = useState<StudioRecommendation | null>(null);
+
+  const clientsLoadedRef = useRef(false);
 
   useEffect(() => {
-    async function loadClients() {
-      try {
-        const token = await getClientIdToken();
-        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await fetch("/api/studio/clients?status=active", { headers });
-        if (res.ok) setClients((await res.json()).clients ?? []);
-      } catch {}
-    }
-    loadClients();
-  }, []);
+    async function load() {
+      const token = await getClientIdToken();
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-  useEffect(() => {
-    if (!selectedClientId) { setKits([]); setSelectedKitId(""); return; }
-    async function loadKits() {
+      if (!clientsLoadedRef.current) {
+        clientsLoadedRef.current = true;
+        const fetches: Promise<Response>[] = [fetch("/api/studio/clients?status=active", { headers })];
+        if (preselectedClientId) {
+          fetches.push(fetch(`/api/studio/clients/${preselectedClientId}/brand-kits`, { headers }));
+        }
+        const results = await Promise.all(fetches);
+        const clientsRes = results[0];
+        const kitsRes = preselectedClientId ? results[1] : null;
+        if (clientsRes.ok) {
+          const d = await clientsRes.json();
+          const list = (d.clients ?? []) as Client[];
+          setClients(list);
+          if (preselectedClientId && list.some((c) => c.id === preselectedClientId) && kitsRes?.ok) {
+            const kitData = await kitsRes.json();
+            const kitList: BrandKit[] = kitData.kits ?? [];
+            setKits(kitList);
+            const def = kitList.find((k) => k.isDefault) ?? kitList[0];
+            if (def) setSelectedKitId(def.id);
+          }
+        }
+        return;
+      }
+
+      if (!selectedClientId) {
+        setKits([]);
+        setSelectedKitId("");
+        return;
+      }
       try {
-        const token = await getClientIdToken();
-        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
         const res = await fetch(`/api/studio/clients/${selectedClientId}/brand-kits`, { headers });
         if (res.ok) {
           const data = await res.json();
@@ -72,14 +105,57 @@ function CreateForm() {
         }
       } catch {}
     }
-    loadKits();
-  }, [selectedClientId]);
+    load();
+  }, [preselectedClientId, selectedClientId]);
+
+  async function fetchRecommendations() {
+    if (!selectedClientId || !selectedKitId) return;
+    setRecommendationLoading(true);
+    setError("");
+    setRecommendations(null);
+    setSelectedRecommendation(null);
+    try {
+      const token = await getClientIdToken();
+      const res = await fetch("/api/studio/recommendations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ clientId: selectedClientId, brandKitId: selectedKitId }),
+      });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.recommendations)) {
+        setRecommendations(data.recommendations);
+      } else {
+        setError(data.error ?? "Could not load suggestions");
+      }
+    } catch {
+      setError("Failed to load suggestions");
+    } finally {
+      setRecommendationLoading(false);
+    }
+  }
 
   async function handleGenerate() {
     if (!selectedClientId || !selectedKitId) return;
     setLoading(true);
     setError("");
     try {
+      const recommendationPayload = selectedRecommendation
+        ? {
+            theme: selectedRecommendation.theme,
+            topic: selectedRecommendation.topic,
+            description: selectedRecommendation.description ?? "",
+            suggestedHeadline: selectedRecommendation.suggestedHeadline ?? "",
+            suggestedCta: selectedRecommendation.suggestedCta ?? "",
+            visualMood: selectedRecommendation.visualMood ?? "",
+            hashtags: selectedRecommendation.hashtags,
+          }
+        : occasion
+          ? { theme: occasion, topic: occasion, visualMood: "" }
+          : null;
+
       const token = await getClientIdToken();
       const res = await fetch("/api/studio/generate", {
         method: "POST",
@@ -92,7 +168,7 @@ function CreateForm() {
           brandKitId: selectedKitId,
           platformFormatId,
           useEditableLayout,
-          recommendation: occasion ? { theme: occasion, topic: occasion, visualMood: "" } : null,
+          recommendation: recommendationPayload,
         }),
       });
 
@@ -193,36 +269,60 @@ function CreateForm() {
           )}
         </div>
 
-        {/* Brand kit selector */}
-        {kits.length > 0 && (
+        {/* Brand kit selector — always show when a client is selected */}
+        {selectedClientId && (
           <div className="bg-bg-surface border border-border-default rounded-2xl p-5">
             <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-3">Brand kit</p>
-            <div className="grid gap-2">
-              {kits.map((kit) => (
-                <button
-                  key={kit.id}
-                  type="button"
-                  onClick={() => setSelectedKitId(kit.id)}
-                  className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-colors ${
-                    selectedKitId === kit.id
-                      ? "bg-info/10 border-info/20"
-                      : "bg-bg-base border-border-default hover:border-border-strong"
-                  }`}
+            {kits.length === 0 ? (
+              <div className="text-center py-6">
+                <Palette size={22} className="text-text-muted mx-auto mb-2" />
+                <p className="font-mono text-[12px] text-text-muted mb-2">This client has no brand kit yet.</p>
+                <p className="font-mono text-[11px] text-text-muted mb-4">Add a brand kit (colors, logo, voice) to enable the Generate button.</p>
+                <Link
+                  href={`/studio/clients/${selectedClientId}/brand-kits/new`}
+                  className="inline-flex items-center gap-2 bg-info text-black font-semibold text-[12px] px-4 py-2.5 rounded-xl hover:bg-info/90 transition-colors"
                 >
-                  {kit.primaryColor && (
-                    <div className="w-6 h-6 rounded-full border border-border-default shrink-0" style={{ backgroundColor: kit.primaryColor }} />
-                  )}
-                  <div>
-                    <p className={`font-medium text-[13px] ${selectedKitId === kit.id ? "text-info" : "text-text-primary"}`}>
-                      {kit.brandName || "Unnamed kit"}
-                    </p>
-                    <p className="font-mono text-[11px] text-text-muted capitalize">{kit.kitPurpose}</p>
-                  </div>
-                  {kit.isDefault && <span className="ml-auto font-mono text-[10px] bg-bg-elevated px-1.5 py-0.5 rounded text-text-muted">Default</span>}
-                  {selectedKitId === kit.id && <CheckCircle2 size={15} className="text-info" />}
-                </button>
-              ))}
-            </div>
+                  <Palette size={14} />
+                  Add brand kit
+                </Link>
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-2 mb-3">
+                  {kits.map((kit) => (
+                    <button
+                      key={kit.id}
+                      type="button"
+                      onClick={() => setSelectedKitId(kit.id)}
+                      className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-colors ${
+                        selectedKitId === kit.id
+                          ? "bg-info/10 border-info/20"
+                          : "bg-bg-base border-border-default hover:border-border-strong"
+                      }`}
+                    >
+                      {kit.primaryColor && (
+                        <div className="w-6 h-6 rounded-full border border-border-default shrink-0" style={{ backgroundColor: kit.primaryColor }} />
+                      )}
+                      <div>
+                        <p className={`font-medium text-[13px] ${selectedKitId === kit.id ? "text-info" : "text-text-primary"}`}>
+                          {kit.brandName || "Unnamed kit"}
+                        </p>
+                        <p className="font-mono text-[11px] text-text-muted capitalize">{kit.kitPurpose}</p>
+                      </div>
+                      {kit.isDefault && <span className="ml-auto font-mono text-[10px] bg-bg-elevated px-1.5 py-0.5 rounded text-text-muted">Default</span>}
+                      {selectedKitId === kit.id && <CheckCircle2 size={15} className="text-info" />}
+                    </button>
+                  ))}
+                </div>
+                <p className="font-mono text-[10px] text-text-muted">
+                  To edit colors, logo & voice:{" "}
+                  <Link href={`/studio/clients/${selectedClientId}`} className="text-info hover:underline">
+                    Clients → {clients.find((c) => c.id === selectedClientId)?.clientName ?? "this client"}
+                  </Link>
+                  {" "}→ Brand kits → select a kit.
+                </p>
+              </>
+            )}
           </div>
         )}
 
@@ -248,14 +348,55 @@ function CreateForm() {
           </div>
         </div>
 
-        {/* Occasion / theme */}
+        {/* Occasion / theme + content suggestions */}
         <div className="bg-bg-surface border border-border-default rounded-2xl p-5">
           <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-3">Occasion / theme (optional)</p>
+          <p className="font-mono text-[11px] text-text-muted mb-3">
+            Get AI suggestions based on this client&apos;s industry and brand kit, or type your own.
+          </p>
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <button
+              type="button"
+              onClick={fetchRecommendations}
+              disabled={recommendationLoading || !selectedClientId || !selectedKitId}
+              className="inline-flex items-center gap-2 bg-bg-elevated border border-border-default hover:border-border-strong text-text-secondary font-medium text-[12px] px-3 py-2 rounded-xl transition-colors disabled:opacity-50"
+            >
+              {recommendationLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+              Suggest content
+            </button>
+          </div>
+          {recommendations && recommendations.length > 0 && (
+            <div className="mb-3">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted mb-2">Pick a suggestion</p>
+              <div className="flex flex-wrap gap-2">
+                {recommendations.map((rec, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      setSelectedRecommendation(rec);
+                      setOccasion(rec.theme);
+                    }}
+                    className={`px-3 py-2 rounded-xl border text-left font-mono text-[11px] transition-colors ${
+                      selectedRecommendation === rec
+                        ? "bg-info/15 border-info/30 text-info"
+                        : "bg-bg-base border-border-default hover:border-border-strong text-text-secondary"
+                    }`}
+                  >
+                    {rec.theme}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <input
             type="text"
             placeholder="e.g. Eid Mubarak, New Year Sale, Grand Opening"
             value={occasion}
-            onChange={(e) => setOccasion(e.target.value)}
+            onChange={(e) => {
+              setOccasion(e.target.value);
+              if (selectedRecommendation) setSelectedRecommendation(null);
+            }}
             className="w-full bg-bg-base border border-border-default rounded-xl px-4 py-3 text-[13px] text-text-primary placeholder:text-text-muted outline-none focus:border-info transition-colors"
           />
         </div>
