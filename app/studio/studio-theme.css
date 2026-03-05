@@ -1,0 +1,79 @@
+/* ArtMaster Studio — warm dark theme (Parisian creative agency OS) */
+
+.studio-theme {
+  --studio-bg-base: #0f0d0b;
+  --studio-bg-surface: #0e0c09;
+  --studio-bg-elevated: #0c0a08;
+  --studio-border: #211d16;
+  --studio-border-subtle: #181410;
+  --studio-accent: #c8873a;
+  --studio-accent-glow: rgba(200, 135, 58, 0.19);
+  --studio-text-primary: #f0e8dc;
+  --studio-text-secondary: #d4c4a8;
+  --studio-text-muted: #4a4035;
+  --studio-text-dim: #3a3028;
+  --studio-topbar-border: #1e1a14;
+  --studio-sidebar-border: #2a2418;
+  --studio-track-bg: #1a1610;
+  --studio-row-hover: rgba(255, 255, 255, 0.015);
+  --studio-card-glow-brass: rgba(200, 135, 58, 0.08);
+  --studio-card-glow-blue: rgba(100, 140, 180, 0.08);
+  --studio-card-glow-green: rgba(80, 160, 120, 0.08);
+}
+
+.studio-theme .studio-font-display {
+  font-family: var(--font-playfair), "Playfair Display", Georgia, serif;
+}
+
+.studio-theme .studio-font-ui {
+  font-family: var(--font-dm-mono), "DM Mono", ui-monospace, monospace;
+}
+
+@keyframes studio-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.studio-theme .studio-animate-fade-up {
+  animation: studio-fade-up 0.5s ease-out forwards;
+}
+
+@keyframes studio-pulse-glow {
+  0%, 100% {
+    opacity: 0.8;
+    box-shadow: 0 0 0 0 var(--studio-accent-glow);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 12px 2px var(--studio-accent-glow);
+  }
+}
+
+.studio-theme .studio-pulse-dot {
+  animation: studio-pulse-glow 2s ease-in-out infinite;
+}
+
+.studio-theme .studio-stat-card:hover {
+  border-color: rgba(200, 135, 58, 0.4);
+  transition: border-color 0.15s ease;
+}
+
+/* Grain overlay */
+.studio-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.035;
+}
+
+.studio-grain svg {
+  width: 100%;
+  height: 100%;
+}
