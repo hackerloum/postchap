@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Check, ArrowRight } from "lucide-react";
 import { getClientIdToken } from "@/lib/auth-client";
 import { STUDIO_PLANS } from "@/lib/studio-plans";
+import { useCurrency } from "@/lib/geo/useCurrency";
 
 interface Agency {
   plan: string;
@@ -38,6 +39,14 @@ function featureLabel(plan: (typeof STUDIO_PLANS)[0]): string[] {
 export default function StudioBillingPage() {
   const [agency, setAgency] = useState<Agency | null>(null);
   const [loading, setLoading] = useState(true);
+  const { format, prices, currency } = useCurrency();
+
+  function studioPriceLabel(planId: string): string {
+    if (planId === "trial") return "Free";
+    if (planId === "starter") return `${format(prices.studio_starter)}/mo`;
+    if (planId === "pro") return `${format(prices.studio_pro)}/mo`;
+    return `${format(prices.studio_agency)}/mo`;
+  }
 
   useEffect(() => {
     async function load() {
@@ -154,7 +163,7 @@ export default function StudioBillingPage() {
                   className="text-[28px] font-bold tracking-tight mt-1 tabular-nums"
                   style={{ color: "var(--studio-text-primary)" }}
                 >
-                  {plan.priceLabel}
+                  {studioPriceLabel(plan.id)}
                 </p>
                 <p className="text-[11px] mt-1" style={{ color: "var(--studio-text-muted)" }}>
                   {plan.tagline}
@@ -228,12 +237,15 @@ export default function StudioBillingPage() {
         >
           Add-ons
         </p>
+        <p className="font-mono text-[10px] text-text-muted mb-3">
+          Charged in USD · shown in {currency.code} for reference
+        </p>
         <div className="grid sm:grid-cols-2 gap-3">
           {[
-            { label: "+500 posters/month", price: "$19/mo" },
-            { label: "+1,000 posters/month", price: "$34/mo" },
-            { label: "Client portal (Starter)", price: "$15/mo" },
-            { label: "Additional team member", price: "$9/mo each" },
+            { label: "+500 posters/month", usd: 19 },
+            { label: "+1,000 posters/month", usd: 34 },
+            { label: "Client portal (Starter)", usd: 15 },
+            { label: "Additional team member", usd: 9, suffix: " each" },
           ].map((addon) => (
             <div
               key={addon.label}
@@ -247,7 +259,7 @@ export default function StudioBillingPage() {
                 {addon.label}
               </span>
               <span className="text-[13px] font-semibold tabular-nums" style={{ color: "var(--studio-text-primary)" }}>
-                {addon.price}
+                {format(addon.usd * (prices.pro_monthly / 12))}/mo{addon.suffix ?? ""}
               </span>
             </div>
           ))}

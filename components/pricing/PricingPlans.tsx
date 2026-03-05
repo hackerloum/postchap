@@ -9,6 +9,8 @@ import {
   Sparkles,
   Plus,
 } from "lucide-react";
+import { useCurrency } from "@/lib/geo/useCurrency";
+import { CurrencyIndicator } from "@/components/pricing/CurrencyIndicator";
 
 export type PlanId = "free" | "pro" | "business";
 
@@ -49,11 +51,19 @@ interface PlanItem {
   features: PlanFeature[];
 }
 
-const PLANS: PlanItem[] = [
+function getPlanPrices(
+  id: "free" | "pro" | "business",
+  prices: { pro_monthly: number; pro_annual: number; business_monthly: number; business_annual: number }
+) {
+  if (id === "free") return { monthly: 0, annual: 0 };
+  if (id === "pro") return { monthly: prices.pro_monthly, annual: prices.pro_annual };
+  return { monthly: prices.business_monthly, annual: prices.business_annual };
+}
+
+const PLANS_CONFIG: Omit<PlanItem, "price">[] = [
   {
     id: "free",
     name: "Free",
-    price: { monthly: 0, annual: 0 },
     description: "Try it out — no card needed",
     badge: null,
     cta: "Get started free",
@@ -85,7 +95,6 @@ const PLANS: PlanItem[] = [
   {
     id: "pro",
     name: "Pro",
-    price: { monthly: 12, annual: 10 },
     description: "For growing businesses posting daily",
     badge: "Most popular",
     cta: "Start Pro",
@@ -116,7 +125,6 @@ const PLANS: PlanItem[] = [
   {
     id: "business",
     name: "Business",
-    price: { monthly: 39, annual: 33 },
     description: "For agencies and scaling brands",
     badge: null,
     cta: "Start Business",
@@ -196,9 +204,17 @@ export function PricingPlans({
   context = "landing",
 }: PricingPlansProps) {
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
+  const { format, prices, currency } = useCurrency();
+  const plansWithPrices = PLANS_CONFIG.map((p) => ({ ...p, price: getPlanPrices(p.id, prices) }));
 
   return (
     <div className="w-full">
+      <CurrencyIndicator />
+      {currency.code !== "USD" && (
+        <p className="font-mono text-[10px] text-text-muted text-center mb-4">
+          Charged in USD · shown in {currency.code} for reference
+        </p>
+      )}
       {/* Billing toggle */}
       <div className="flex items-center justify-center gap-4 mb-12">
         <span
@@ -241,7 +257,7 @@ export function PricingPlans({
 
       {/* Plan cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl mx-auto">
-        {PLANS.map((plan) => {
+        {plansWithPrices.map((plan) => {
           const price = plan.price[billing];
           const isCurrent = currentPlan === plan.id;
           const isPopular = plan.badge === "Most popular";
@@ -298,12 +314,14 @@ export function PricingPlans({
                 <div className="mb-6 pb-6 border-b border-border-subtle">
                   <div className="flex items-end gap-1.5">
                     <span className="font-bold text-[42px] text-text-primary leading-none tracking-tight">
-                      ${price}
+                      {plan.id === "free" ? "Free" : format(price)}
                     </span>
                     <div className="mb-1">
-                      <span className="font-mono text-[12px] text-text-muted">
-                        /mo
-                      </span>
+                      {plan.id !== "free" && (
+                        <span className="font-mono text-[12px] text-text-muted">
+                          /mo
+                        </span>
+                      )}
                       {billing === "annual" && price > 0 && (
                         <p className="font-mono text-[10px] text-text-muted">
                           billed annually
@@ -314,7 +332,7 @@ export function PricingPlans({
 
                   {billing === "annual" && price > 0 && (
                     <p className="font-mono text-[11px] text-text-muted/60 mt-1 line-through">
-                      ${plan.price.monthly}/mo monthly
+                      {format(plan.price.monthly)}/mo monthly
                     </p>
                   )}
                 </div>
@@ -427,7 +445,7 @@ export function PricingPlans({
                 Feature
               </span>
             </div>
-            {PLANS.map((plan) => (
+            {plansWithPrices.map((plan) => (
               <div
                 key={plan.id}
                 className={`px-6 py-4 text-center ${
@@ -440,7 +458,7 @@ export function PricingPlans({
                   {plan.name}
                 </p>
                 <p className="font-mono text-[11px] text-text-muted mt-0.5">
-                  ${plan.price.monthly}/mo
+                  {plan.id === "free" ? "Free" : `${format(plan.price.monthly)}/mo`}
                 </p>
               </div>
             ))}

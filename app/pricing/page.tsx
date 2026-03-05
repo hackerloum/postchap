@@ -8,7 +8,7 @@ import { CookiePreferencesLink } from "@/components/CookiePreferencesLink";
 export const metadata: Metadata = {
   title: "Pricing — Affordable AI Poster Plans | ArtMaster",
   description:
-    "Start free, upgrade when ready. ArtMaster's Pro plan ($12/mo) gives you 60 AI posters per month. Business plan ($24/mo) is unlimited. Built for African SMBs.",
+    "Start free, upgrade when ready. ArtMaster Pro and Business plans with local currency display. Built for African SMBs.",
   alternates: { canonical: "https://artmasterpro.com/pricing" },
   openGraph: {
     title: "ArtMaster Pricing — Free, Pro & Business Plans",

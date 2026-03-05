@@ -23,11 +23,25 @@ import { CookiePreferencesLink } from "@/components/CookiePreferencesLink";
 import { TrustBarSection } from "@/app/TrustBarSection";
 import { PLANS } from "@/lib/plans";
 import { STUDIO_PLANS } from "@/lib/studio-plans";
+import { useCurrency } from "@/lib/geo/useCurrency";
+import { CurrencyIndicator } from "@/components/pricing/CurrencyIndicator";
 import { useState } from "react";
 
 export default function Home() {
   const [pricingProduct, setPricingProduct] = useState<"business" | "studio">("business");
+  const { format, prices, currency } = useCurrency();
   const studioPlansDisplay = STUDIO_PLANS.filter((p) => p.id !== "trial");
+
+  function businessPriceMain(planId: string): string {
+    if (planId === "free") return "Free";
+    if (planId === "pro") return format(prices.pro_monthly);
+    return format(prices.business_monthly);
+  }
+  function studioPriceMain(planId: string): string {
+    if (planId === "starter") return format(prices.studio_starter);
+    if (planId === "pro") return format(prices.studio_pro);
+    return format(prices.studio_agency);
+  }
   return (
     <>
       {/* Nav */}
@@ -523,7 +537,7 @@ export default function Home() {
               {[
                 {
                   name: "Starter",
-                  price: "$29/mo",
+                  price: `${format(prices.studio_starter)}/mo`,
                   clients: "5 clients",
                   posters: "100 posters/mo",
                   team: "1 seat",
@@ -531,7 +545,7 @@ export default function Home() {
                 },
                 {
                   name: "Pro",
-                  price: "$59/mo",
+                  price: `${format(prices.studio_pro)}/mo`,
                   clients: "20 clients",
                   posters: "500 posters/mo",
                   team: "5 seats",
@@ -539,7 +553,7 @@ export default function Home() {
                 },
                 {
                   name: "Agency",
-                  price: "$129/mo",
+                  price: `${format(prices.studio_agency)}/mo`,
                   clients: "Unlimited clients",
                   posters: "Unlimited posters",
                   team: "Unlimited seats",
@@ -613,6 +627,12 @@ export default function Home() {
           </div>
 
           {/* Product toggle — switch between Business and Studio pricing on same page */}
+          <CurrencyIndicator />
+          {currency.code !== "USD" && (
+            <p className="font-mono text-[10px] text-text-muted text-center mb-6">
+              Charged in USD · shown in {currency.code} for reference
+            </p>
+          )}
           <div className="flex items-center justify-center gap-2 mb-16">
             <button
               type="button"
@@ -650,10 +670,8 @@ export default function Home() {
                   ? "Unlimited"
                   : `${limits.postersPerMonth} / month`;
               const isPro = plan.id === "pro";
-              const [priceMain, priceSub] =
-                plan.priceMonthly === 0
-                  ? ["Free", ""]
-                  : plan.priceLabel.split("/");
+              const priceMain = businessPriceMain(plan.id);
+              const priceSub = plan.id === "free" ? "" : "mo";
               return (
                 <div
                   key={plan.id}
@@ -735,8 +753,8 @@ export default function Home() {
               studioPlansDisplay.map((plan) => {
                 const limits = plan.limits;
                 const isPro = plan.id === "pro";
-                const [priceMain, priceSub] =
-                  plan.priceMonthly === 0 ? ["Free", ""] : plan.priceLabel.split("/");
+                const priceMain = studioPriceMain(plan.id);
+                const priceSub = "mo";
                 const clientsLabel =
                   limits.maxClients === -1 ? "Unlimited" : `${limits.maxClients} clients`;
                 const postersLabel =

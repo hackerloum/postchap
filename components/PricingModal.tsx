@@ -9,6 +9,7 @@ import {
   getPerPosterPriceForCountry,
   getPlanEffectivePerPosterLabel,
 } from "@/lib/pricing";
+import { useCurrency } from "@/lib/geo/useCurrency";
 import { Button } from "@/components/ui/Button";
 
 interface PricingModalProps {
@@ -254,9 +255,16 @@ export function PricingModal({
 
   if (!open) return null;
 
+  const { format, prices, currency } = useCurrency();
   const perPosterPrice = getPerPosterPriceForCountry(countryCode);
   const proPerPosterLabel = getPlanEffectivePerPosterLabel("pro", countryCode);
   const posterHasMobile = perPosterPrice.mobileMoney;
+
+  function planDisplayPrice(planId: PlanId): string {
+    if (planId === "free") return "Free";
+    if (planId === "pro") return format(prices.pro_monthly);
+    return format(prices.business_monthly);
+  }
 
   // -----------------------------------------------------------------
   // "Buy 1 poster" panel — rendered as a full overlay inside the modal
@@ -398,6 +406,11 @@ export function PricingModal({
             </button>
           </div>
           <div className="overflow-y-auto p-6 md:p-8">
+            {currency.code !== "USD" && (
+              <p className="font-mono text-[10px] text-text-muted mb-4">
+                Charged in USD · shown in {currency.code} for reference
+              </p>
+            )}
             {/* Upsell hook: per-poster cost comparison */}
             {currentPlan === "free" && (
               <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3">
@@ -429,6 +442,7 @@ export function PricingModal({
                 const isPro = plan.id === "pro";
                 const priceInfo = getPlanPriceForCountry(plan.id, countryCode);
                 const showMobileOption = plan.id !== "free" && priceInfo.mobileMoney;
+                const displayPrice = planDisplayPrice(plan.id);
                 const showMobileInput = selectedPlanForMobile === plan.id;
                 const showCardBilling = cardBillingPlanId === plan.id;
 
@@ -452,7 +466,7 @@ export function PricingModal({
                       </h3>
                       <div className="flex items-baseline gap-1 mb-5">
                         <span className="text-[28px] font-semibold text-text-primary tracking-tight tabular-nums">
-                          {priceInfo.label.replace(/\/mo$/, "").trim()}
+                          {displayPrice}
                         </span>
                         {plan.id !== "free" && (
                           <span className="text-[13px] font-medium text-text-muted">/mo</span>
@@ -460,7 +474,7 @@ export function PricingModal({
                       </div>
                       {plan.id !== "free" && plan.priceYearlyUSD != null && (
                         <p className="text-[12px] text-text-muted mb-4" title="Pay yearly and save 2 months. Billed annually.">
-                          or ${plan.priceYearlyUSD}/year — save 2 months
+                          or {format((plan.id === "pro" ? prices.pro_annual : prices.business_annual) * 10)}/year — save 2 months
                         </p>
                       )}
                       <div className="h-px bg-border-default mb-5" />

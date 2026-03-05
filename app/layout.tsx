@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import { CookieConsent } from "@/components/CookieConsent";
 import { SessionRefresher } from "@/app/dashboard/SessionRefresher";
+import { CurrencyProvider } from "@/lib/geo/CurrencyContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -88,9 +89,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-bg-base text-text-primary antialiased">
-        {/* Keeps the __session cookie valid on every page, not just the dashboard */}
-        <SessionRefresher />
-        {children}
+        <CurrencyProvider>
+          {/* Keeps the __session cookie valid on every page, not just the dashboard */}
+          <SessionRefresher />
+          {children}
+        </CurrencyProvider>
         <CookieConsent />
         <Toaster
           position="top-center"

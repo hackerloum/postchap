@@ -33,6 +33,7 @@ import { IMAGE_PROVIDERS, DEFAULT_IMAGE_PROVIDER, isProviderLockedForPlan } from
 import { LogoLoadingScreen } from "@/components/dashboard/LogoLoadingScreen";
 import { PricingModal } from "@/components/PricingModal";
 import { getPerPosterPriceForCountry } from "@/lib/pricing";
+import { useCurrency } from "@/lib/geo/useCurrency";
 import type { PlanId } from "@/lib/plans";
 
 interface Recommendation {
@@ -420,6 +421,7 @@ function CreatePageContent() {
   });
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
   const [countryCode, setCountryCode] = useState<string | null>(null);
+  const { format, prices } = useCurrency();
   const [profilePhoneNumber, setProfilePhoneNumber] = useState<string | null>(null);
   const [postersThisMonth, setPostersThisMonth] = useState(0);
   const [postersLimit, setPostersLimit] = useState<number | null>(null);
@@ -1183,12 +1185,7 @@ function CreatePageContent() {
               </button>
             </div>
             <p className="font-mono text-[10px] text-text-muted">
-              Pro = {(() => {
-                const proPrice = getPerPosterPriceForCountry(countryCode);
-                return proPrice.currency === "TZS"
-                  ? "30,000 TZS/mo for 50 posters (~600 TZS each)"
-                  : "$12/mo for 50 posters (~$0.24 each)";
-              })()}. Save {getPerPosterPriceForCountry(countryCode).currency === "TZS" ? "6x" : "6x"} with monthly.
+              Pro = {format(prices.pro_monthly)}/mo for 50 posters (~{format(Math.round(prices.pro_monthly / 50))} each). Save 6x with monthly.
             </p>
           </div>
         )}
