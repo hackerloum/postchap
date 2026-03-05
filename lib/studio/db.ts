@@ -50,6 +50,35 @@ export function referralsRef(agencyId: string) {
   return getAdminDb().collection("studio_agencies").doc(agencyId).collection("referrals");
 }
 
+/** One doc per user: { agencyId }. Used to resolve agency without collection-group queries (no index required). */
+export function userAgencyRef(uid: string) {
+  return getAdminDb().collection("studio_user_agency").doc(uid);
+}
+
+export async function setUserAgency(uid: string, agencyId: string): Promise<void> {
+  await userAgencyRef(uid).set({ agencyId, updatedAt: FieldValue.serverTimestamp() });
+}
+
+export async function deleteUserAgency(uid: string): Promise<void> {
+  await userAgencyRef(uid).delete();
+}
+
+/** Invite lookup by token so we can resolve invite without collection-group query. */
+export function inviteByTokenRef(token: string) {
+  return getAdminDb().collection("studio_invite_by_token").doc(token);
+}
+
+export async function setInviteTokenLookup(
+  token: string,
+  data: { agencyId: string; inviteId: string; expiresAt: Date }
+): Promise<void> {
+  await inviteByTokenRef(token).set({ ...data, updatedAt: FieldValue.serverTimestamp() });
+}
+
+export async function deleteInviteTokenLookup(token: string): Promise<void> {
+  await inviteByTokenRef(token).delete();
+}
+
 // ─── Get agency by id ────────────────────────────────────────────────────────
 
 export async function getAgency(agencyId: string): Promise<StudioAgency | null> {
@@ -60,12 +89,12 @@ export async function getAgency(agencyId: string): Promise<StudioAgency | null> 
 
 /**
  * Find the agency where uid is the owner, or a team member.
- * Returns the first found agency (users should only belong to one agency).
+ * Uses owner query + studio_user_agency lookup only (no collection-group queries, so no index required).
  */
 export async function getAgencyForUser(uid: string): Promise<StudioAgency | null> {
   const db = getAdminDb();
 
-  // Check if owner
+  // 1. Owner: single-field query on collection (auto-indexed)
   const ownerSnap = await db
     .collection("studio_agencies")
     .where("ownerId", "==", uid)
@@ -77,23 +106,20 @@ export async function getAgencyForUser(uid: string): Promise<StudioAgency | null
     return { id: doc.id, ...doc.data() } as StudioAgency;
   }
 
-  // Check if team member — single-field filter only to avoid composite index requirement.
-  // inviteStatus is checked in-memory since a user is unlikely to be on many teams.
-  const teamSnap = await db
-    .collectionGroup("team")
-    .where("userId", "==", uid)
-    .limit(10)
-    .get();
+  // 2. Team member: direct doc read (no index)
+  const userAgencySnap = await userAgencyRef(uid).get();
+  if (!userAgencySnap.exists) return null;
 
-  for (const teamDoc of teamSnap.docs) {
-    if (teamDoc.data().inviteStatus !== "active") continue;
-    const agencyId = teamDoc.ref.parent.parent?.id;
-    if (agencyId) {
-      return getAgency(agencyId);
-    }
+  const agencyId = userAgencySnap.data()?.agencyId as string | undefined;
+  if (!agencyId) return null;
+
+  const member = await getTeamMember(agencyId, uid);
+  if (!member || member.inviteStatus !== "active") {
+    await userAgencyRef(uid).delete(); // cleanup stale lookup
+    return null;
   }
 
-  return null;
+  return getAgency(agencyId);
 }
 
 export async function createAgency(
@@ -115,7 +141,7 @@ export async function createAgency(
     updatedAt: FieldValue.serverTimestamp(),
   });
 
-  // Also add owner as team member
+  // Also add owner as team member and user→agency lookup (no collection-group index needed)
   await teamRef(docRef.id).doc(uid).set({
     userId: uid,
     role: "owner",
@@ -123,6 +149,7 @@ export async function createAgency(
     inviteStatus: "active",
     createdAt: FieldValue.serverTimestamp(),
   });
+  await setUserAgency(uid, docRef.id);
 
   const snap = await docRef.get();
   return { id: snap.id, ...snap.data() } as StudioAgency;

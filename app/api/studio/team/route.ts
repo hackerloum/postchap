@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { resolveStudioContext, canManageTeam, checkTeamMemberLimit } from "@/lib/studio/auth";
-import { teamRef, listTeamMembers, invitesRef } from "@/lib/studio/db";
+import { teamRef, listTeamMembers, invitesRef, setInviteTokenLookup } from "@/lib/studio/db";
 import { getAdminDb } from "@/lib/firebase/admin";
 import crypto from "crypto";
 import type { TeamRole } from "@/types/studio";
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
-    await invitesRef(agency.id).add({
+    const inviteRef = await invitesRef(agency.id).add({
       agencyId: agency.id,
       email: body.email.toLowerCase().trim(),
       role: body.role,
@@ -83,6 +83,8 @@ export async function POST(request: NextRequest) {
       createdAt: FieldValue.serverTimestamp(),
       expiresAt,
     });
+
+    await setInviteTokenLookup(token, { agencyId: agency.id, inviteId: inviteRef.id, expiresAt });
 
     return NextResponse.json({
       success: true,

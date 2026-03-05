@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { resolveStudioContext, canManageTeam } from "@/lib/studio/auth";
-import { teamRef } from "@/lib/studio/db";
+import { teamRef, deleteUserAgency } from "@/lib/studio/db";
 import type { TeamRole } from "@/types/studio";
 
 type Params = { params: Promise<{ memberId: string }> };
@@ -76,6 +76,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
 
   try {
     await teamRef(agency.id).doc(memberId).delete();
+    await deleteUserAgency(memberId); // so getAgencyForUser no longer returns this agency
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[studio/team/[memberId] DELETE]", err);
