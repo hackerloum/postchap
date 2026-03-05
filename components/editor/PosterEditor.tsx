@@ -51,8 +51,8 @@ export function PosterEditor({ layout, posterId, brandColors, onSaved }: Props) 
   const [fabricReady, setFabricReady] = useState(false);
   const [initError,   setInitError]   = useState<string | null>(null);
 
-  const CANVAS_W = layout.width;
-  const CANVAS_H = layout.height;
+  const CANVAS_W = layout.width  || 1080;
+  const CANVAS_H = layout.height || 1080;
 
   // Keep layoutRef in sync with incoming prop (first load only — edits update it via state)
   useEffect(() => { layoutRef.current = layout; }, [layout]);
@@ -107,7 +107,7 @@ export function PosterEditor({ layout, posterId, brandColors, onSaved }: Props) 
       canvasInst = new fabric.Canvas(canvasElRef.current, {
         width:  CANVAS_W * sc,
         height: CANVAS_H * sc,
-        backgroundColor: layout.backgroundDominantColor,
+        backgroundColor: layout.backgroundDominantColor ?? "#1a1a2e",
         preserveObjectStacking: true,
         selection: true,
       }) as FabricCanvas;
@@ -133,10 +133,14 @@ export function PosterEditor({ layout, posterId, brandColors, onSaved }: Props) 
         { crossOrigin: "anonymous" }
       );
 
-      // Render elements sorted by zIndex
-      const sorted = [...layout.elements].sort((a, b) => a.zIndex - b.zIndex);
+      // Render elements sorted by zIndex (skip any that throw individually)
+      const sorted = [...(layout.elements ?? [])].sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0));
       for (const el of sorted) {
-        addElementToCanvas(canvasInst as FabricCanvas, el, sc, fabric, CANVAS_W, CANVAS_H);
+        try {
+          addElementToCanvas(canvasInst as FabricCanvas, el, sc, fabric, CANVAS_W, CANVAS_H);
+        } catch (elErr) {
+          console.warn("[PosterEditor] Skipped element due to error:", el.id, elErr);
+        }
       }
 
       // Selection events
@@ -170,24 +174,25 @@ export function PosterEditor({ layout, posterId, brandColors, onSaved }: Props) 
   // ── Add a single element to the Fabric canvas ──────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function addElementToCanvas(canvas: FabricCanvas, el: PosterElement, sc: number, fabric: any, W: number, H: number) {
-    const x = (el.x / 100) * W * sc;
-    const y = (el.y / 100) * H * sc;
+    // Guard against mal-formed elements — GPT can occasionally omit required fields.
+    const safeX = (Number(el.x) || 0) / 100 * W * sc;
+    const safeY = (Number(el.y) || 0) / 100 * H * sc;
 
     if (el.type === "text") {
       const t = el as TextElement;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const textbox: any = new fabric.Textbox(t.content, {
-        left:        x,
-        top:         y,
-        width:       (t.width / 100) * W * sc,
-        fontSize:    t.fontSize * sc,
-        fontFamily:  t.fontFamily,
-        fontWeight:  String(t.fontWeight),
-        fill:        t.color,
-        textAlign:   t.textAlign,
-        lineHeight:  t.lineHeight,
-        charSpacing: t.letterSpacing * 1000,
-        opacity:     t.opacity,
+      const textbox: any = new fabric.Textbox(t.content ?? "", {
+        left:        safeX,
+        top:         safeY,
+        width:       ((Number(t.width) || 80) / 100) * W * sc,
+        fontSize:    (Number(t.fontSize) || 32) * sc,
+        fontFamily:  t.fontFamily   ?? "DM Sans",
+        fontWeight:  String(t.fontWeight ?? 400),
+        fill:        t.color        ?? "#FFFFFF",
+        textAlign:   t.textAlign    ?? "left",
+        lineHeight:  Number(t.lineHeight)    || 1.2,
+        charSpacing: (Number(t.letterSpacing) || 0) * 1000,
+        opacity:     Number(t.opacity) ?? 1,
         selectable:  !t.locked,
         hasControls: !t.locked,
         data: { id: el.id, type: "text" },
@@ -196,16 +201,18 @@ export function PosterEditor({ layout, posterId, brandColors, onSaved }: Props) 
 
     } else if (el.type === "logo") {
       const l = el as LogoElement;
+      if (!l.src) return; // skip logo elements with no URL
       fabric.Image.fromURL(
         l.src,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (img: any) => {
-          const w = (l.width / 100) * W * sc;
+          if (!fabricRef.current) return;
+          const w = ((Number(l.width) || 20) / 100) * W * sc;
           img.scaleToWidth(w);
           img.set({
-            left:       x,
-            top:        y,
-            opacity:    l.opacity,
+            left:       safeX,
+            top:        safeY,
+            opacity:    Number(l.opacity) ?? 1,
             selectable: false,
             evented:    false,
             data: { id: el.id, type: "logo" },
@@ -219,12 +226,12 @@ export function PosterEditor({ layout, posterId, brandColors, onSaved }: Props) 
     } else if (el.type === "shape") {
       const s = el as ShapeElement;
       const rect = new fabric.Rect({
-        left:    x,
-        top:     y,
-        width:   (s.width  / 100) * W * sc,
-        height:  (s.height / 100) * H * sc,
-        fill:    s.fill,
-        opacity: s.opacity,
+        left:    safeX,
+        top:     safeY,
+        width:   ((Number(s.width)  || 100) / 100) * W * sc,
+        height:  ((Number(s.height) || 100) / 100) * H * sc,
+        fill:    s.fill    ?? "#000000",
+        opacity: Number(s.opacity) ?? 0.5,
         rx:      s.borderRadius ?? 0,
         ry:      s.borderRadius ?? 0,
         selectable: !s.locked,
