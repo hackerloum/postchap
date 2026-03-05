@@ -18,6 +18,8 @@ import {
   Send,
   FileText,
   ChevronRight,
+  Menu,
+  X,
 } from "lucide-react";
 import { CookiePreferencesLink } from "@/components/CookiePreferencesLink";
 import { TrustBarSection } from "@/app/TrustBarSection";
@@ -29,6 +31,7 @@ import { useState } from "react";
 
 export default function Home() {
   const [pricingProduct, setPricingProduct] = useState<"business" | "studio">("business");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { format, prices, currency } = useCurrency();
   const studioPlansDisplay = STUDIO_PLANS.filter((p) => p.id !== "trial");
 
@@ -105,7 +108,75 @@ export default function Home() {
               Get started
               <ArrowRight size={13} />
             </Link>
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((o) => !o)}
+              className="md:hidden p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors"
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            >
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
           </div>
+        </div>
+
+        {/* Mobile menu */}
+        <div
+          className={`md:hidden absolute top-full left-0 right-0 bg-bg-base border-b border-border-subtle overflow-hidden transition-all duration-200 ${
+            mobileMenuOpen ? "max-h-[320px] opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <nav className="flex flex-col px-4 py-4 gap-1">
+            <a
+              href="#features"
+              onClick={() => setMobileMenuOpen(false)}
+              className="font-mono text-[13px] text-text-muted hover:text-text-primary py-3 border-b border-border-subtle"
+            >
+              Features
+            </a>
+            <a
+              href="#how-it-works"
+              onClick={() => setMobileMenuOpen(false)}
+              className="font-mono text-[13px] text-text-muted hover:text-text-primary py-3 border-b border-border-subtle"
+            >
+              How it works
+            </a>
+            <a
+              href="#studio"
+              onClick={() => setMobileMenuOpen(false)}
+              className="font-mono text-[13px] text-text-muted hover:text-text-primary py-3 border-b border-border-subtle"
+            >
+              For Agencies
+            </a>
+            <Link
+              href="/blog"
+              onClick={() => setMobileMenuOpen(false)}
+              className="font-mono text-[13px] text-text-muted hover:text-text-primary py-3 border-b border-border-subtle"
+            >
+              Blog
+            </Link>
+            <Link
+              href="/pricing"
+              onClick={() => setMobileMenuOpen(false)}
+              className="font-mono text-[13px] text-text-muted hover:text-text-primary py-3 border-b border-border-subtle"
+            >
+              Pricing
+            </Link>
+            <Link
+              href="/login"
+              onClick={() => setMobileMenuOpen(false)}
+              className="font-mono text-[13px] text-text-muted hover:text-text-primary py-3 border-b border-border-subtle sm:hidden"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/signup"
+              onClick={() => setMobileMenuOpen(false)}
+              className="font-mono text-[13px] font-medium text-accent py-3 flex items-center gap-2"
+            >
+              Get started
+              <ArrowRight size={14} />
+            </Link>
+          </nav>
         </div>
       </header>
 
