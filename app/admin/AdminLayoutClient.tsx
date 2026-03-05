@@ -12,11 +12,13 @@ import {
   Settings,
   ExternalLink,
   Instagram,
+  Megaphone,
 } from "lucide-react";
 
 const NAV = [
   { label: "Overview", href: "/admin", icon: <LayoutDashboard size={14} /> },
   { label: "Create Poster", href: "/admin/create", icon: <Sparkles size={14} /> },
+  { label: "Ads recommendations", href: "/admin/ads-recommendations", icon: <Megaphone size={14} /> },
   { label: "Schedule", href: "/admin/schedule", icon: <CalendarClock size={14} /> },
   { label: "Users", href: "/admin/users", icon: <Users size={14} /> },
   { label: "Brand Kits", href: "/admin/brand-kits", icon: <Palette size={14} /> },
