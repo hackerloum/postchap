@@ -213,7 +213,7 @@ export async function getUpcomingUserSchedules(limit: number = 50): Promise<Upco
   const slice = list.slice(0, limit);
   if (slice.length === 0) return [];
 
-  const userIds = [...new Set(slice.map((s) => s.uid))];
+  const userIds = Array.from(new Set(slice.map((s) => s.uid)));
   const userSnaps = await Promise.all(userIds.map((id) => db.collection("users").doc(id).get()));
   const userMap: Record<string, { email: string | null; displayName: string | null }> = {};
   userSnaps.forEach((s, i) => {
