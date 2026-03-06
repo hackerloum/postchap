@@ -105,11 +105,24 @@ function isLatinRenderable(text: string): boolean {
 /** Font stack that is available on server-side Linux (Vercel / Amazon Linux). */
 const SERVER_FONT = "'Liberation Sans', 'FreeSans', 'DejaVu Sans', Arial, Helvetica, sans-serif";
 
+/**
+ * Force Cloudinary logo URLs to serve PNG so Sharp always gets a known-good format.
+ * Cloudinary `f_auto` may serve AVIF on server environments — not always decodable.
+ */
+function normalizeLogoUrl(url: string): string {
+  if (!url.includes("res.cloudinary.com")) return url;
+  // Replace f_auto with f_png so Sharp always receives a known-good format.
+  // Cloudinary may serve AVIF for f_auto in server environments.
+  return url.replace(/\/f_auto(,|\/)/g, "/f_png$1").replace(/(,)f_auto/g, "$1f_png");
+}
+
 async function downloadImage(url: string): Promise<Buffer | null> {
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    const finalUrl = normalizeLogoUrl(url);
+    if (finalUrl !== url) console.log("[sharp] Logo URL normalized to PNG:", finalUrl.slice(0, 100));
+    const res = await fetch(finalUrl, { signal: AbortSignal.timeout(10000) });
     if (!res.ok) {
-      console.warn("[sharp] downloadImage HTTP", res.status, url.slice(0, 80));
+      console.warn("[sharp] downloadImage HTTP", res.status, finalUrl.slice(0, 80));
       return null;
     }
     return Buffer.from(await res.arrayBuffer());
@@ -200,6 +213,8 @@ export async function compositePoster({
   const LOGO_SIZE = Math.round(140 * scale);
   const LOGO_PAD_X = Math.round(20 * scale);
   const LOGO_PAD_Y = Math.round(16 * scale);
+
+  console.log("[sharp] logoHandledByAI:", logoHandledByAI, "| logoUrl:", brandKit.logoUrl ? brandKit.logoUrl.slice(0, 60) : "MISSING");
 
   if (!logoHandledByAI && brandKit.logoUrl) {
     try {
