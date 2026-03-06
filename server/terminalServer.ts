@@ -22,11 +22,15 @@ try {
   // .env.local not found — rely on existing env vars
 }
 
+import { createServer as createHttpServer } from "http";
+import { createServer as createHttpsServer } from "https";
 import { WebSocketServer, WebSocket } from "ws";
 import { Client as SSHClient } from "ssh2";
 import jwt from "jsonwebtoken";
 
 const PORT = parseInt(process.env.TERMINAL_WS_PORT || "3001", 10);
+const SSL_KEY = process.env.TERMINAL_SSL_KEY;
+const SSL_CERT = process.env.TERMINAL_SSL_CERT;
 const MAX_CONCURRENT = 3;
 const MAX_PER_USER = 1;
 const INACTIVITY_MS = 30 * 60 * 1000;
@@ -54,7 +58,20 @@ function unregisterSession(uid: string, ws: WebSocket): void {
   totalConnections = Math.max(0, totalConnections - 1);
 }
 
-const wss = new WebSocketServer({ port: PORT });
+// Use HTTPS/WSS if SSL cert and key are provided, otherwise plain HTTP/WS
+let httpServer: ReturnType<typeof createHttpServer>;
+if (SSL_KEY && SSL_CERT) {
+  httpServer = createHttpsServer({
+    key: readFileSync(SSL_KEY),
+    cert: readFileSync(SSL_CERT),
+  });
+  console.log("WSS (secure) mode enabled");
+} else {
+  httpServer = createHttpServer();
+}
+httpServer.listen(PORT);
+
+const wss = new WebSocketServer({ server: httpServer });
 
 interface ShellStream {
   on(event: string, cb: (...args: unknown[]) => void): void;
