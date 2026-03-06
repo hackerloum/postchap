@@ -52,40 +52,81 @@ export type VpsInfoPayload = {
   label?: string | null;
 };
 
+/** eVPS returns all numeric fields as strings — parse safely */
+function n(v: unknown): number {
+  if (v == null) return 0;
+  const f = parseFloat(String(v));
+  return Number.isFinite(f) ? f : 0;
+}
+
+function str(v: unknown): string | null {
+  if (v == null || v === "") return null;
+  return String(v);
+}
+
 function normalizeEvpsToPayload(raw: EvpsVpsInfo): VpsInfoPayload {
-  const ramGb = parseFloat(raw.ram) || 0;
-  const diskGb = parseFloat(raw.disk) || 0;
-  const ramUsageBytes = typeof raw.ram_usage === "number" ? raw.ram_usage : 0;
+  const ramGb = n(raw.ram);
+  const diskGb = n(raw.disk);
+
+  // ram_usage is in bytes (per docs)
+  const ramUsageBytes = n(raw.ram_usage);
   const ramPercent =
-    ramGb > 0 && ramUsageBytes >= 0
-      ? Math.min(100, (ramUsageBytes / (ramGb * 1e9)) * 100)
+    ramGb > 0 && raw.ram_usage != null
+      ? Math.min(100, (ramUsageBytes / (ramGb * 1024 * 1024 * 1024)) * 100)
       : null;
-  const cpuPercent =
-    typeof raw.cpu_usage === "number" ? Math.min(100, raw.cpu_usage) : null;
-  const diskUsage = typeof raw.disk_usage === "number" ? raw.disk_usage : 0;
+
+  // cpu_usage is a percentage 0–100 (per docs: "CPU usage")
+  const cpuPercent = raw.cpu_usage != null ? Math.min(100, n(raw.cpu_usage)) : null;
+
+  // disk_usage: docs don't specify units; if it's bytes use same conversion as RAM
+  // If the text field is provided (e.g. "47.2 GB") we surface that directly
+  const diskUsageRaw = n(raw.disk_usage);
+  // Heuristic: if value > 1000 assume bytes, else assume GB
+  const diskUsedGb =
+    raw.disk_usage != null
+      ? diskUsageRaw > 1000
+        ? diskUsageRaw / (1024 * 1024 * 1024)
+        : diskUsageRaw
+      : 0;
   const diskPercent =
-    diskGb > 0 && diskUsage >= 0
-      ? Math.min(100, (diskUsage / (diskGb * 1e9)) * 100)
+    diskGb > 0 && raw.disk_usage != null
+      ? Math.min(100, (diskUsedGb / diskGb) * 100)
       : null;
-  const bandwidthTb = parseFloat(raw.bandwidth) || 0;
-  const bandwidthUsageTb = raw.bandwidth_usage != null ? parseFloat(String(raw.bandwidth_usage)) : null;
+
+  const bandwidthTb = n(raw.bandwidth);
+  const bandwidthUsageTb =
+    raw.bandwidth_usage != null ? n(raw.bandwidth_usage) : null;
+
+  // Build a RAM used text if api didn't provide it
+  const ramUsedText =
+    str(raw.ram_usage_text) ??
+    (ramGb > 0 && raw.ram_usage != null
+      ? `${(ramUsageBytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
+      : null);
+
+  // Build disk used text if api didn't provide it
+  const diskUsedText =
+    str(raw.disk_usage_text) ??
+    (diskGb > 0 && raw.disk_usage != null
+      ? `${diskUsedGb.toFixed(1)} GB`
+      : null);
 
   return {
     cpuPercent,
-    cpuText: raw.cpu_usage_text ?? null,
+    cpuText: str(raw.cpu_usage_text) ?? (cpuPercent != null ? `${cpuPercent.toFixed(1)}%` : null),
     ramGb,
-    ramUsedText: raw.ram_usage_text ?? null,
+    ramUsedText,
     ramPercent,
     diskGb,
-    diskUsedText: raw.disk_usage_text ?? null,
+    diskUsedText,
     diskPercent,
     bandwidthTb,
     bandwidthUsageTb: bandwidthUsageTb !== null && !Number.isNaN(bandwidthUsageTb) ? bandwidthUsageTb : null,
-    uptimeText: raw.uptime_text ?? null,
-    ip: raw.ip ?? null,
-    hostname: raw.hostname ?? null,
-    status: raw.status ?? null,
-    vmStatus: raw.vm_status ?? null,
+    uptimeText: str(raw.uptime_text),
+    ip: str(raw.ip),
+    hostname: str(raw.hostname),
+    status: str(raw.status),
+    vmStatus: str(raw.vm_status),
   };
 }
 
