@@ -159,18 +159,22 @@ export function getUpcomingCronTimes(count: number): {
     nextRunTimes: occTimes,
   });
 
-  // scheduled-posts: 0 8 * * * (08:00 UTC daily)
+  // scheduled-posts: 0,30 * * * * (every 30 min UTC, like generation)
   const postTimes: Date[] = [];
   let p = new Date(now);
-  p.setUTCHours(8, 0, 0, 0);
-  if (p.getTime() <= now.getTime()) p.setUTCDate(p.getUTCDate() + 1);
+  const pMin = p.getUTCMinutes();
+  if (pMin < 30) p.setUTCMinutes(30, 0, 0);
+  else {
+    p.setUTCHours(p.getUTCHours() + 1);
+    p.setUTCMinutes(0, 0, 0);
+  }
   for (let i = 0; i < count; i++) {
     postTimes.push(new Date(p));
-    p.setUTCDate(p.getUTCDate() + 1);
+    p.setTime(p.getTime() + 30 * 60 * 1000);
   }
   result.push({
     endpoint: "scheduled-posts",
-    schedule: "08:00 UTC daily",
+    schedule: "Every 30 min (0,30 * * * *)",
     nextRunTimes: postTimes,
   });
 

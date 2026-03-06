@@ -178,6 +178,9 @@ interface ScheduleData {
   notifyEmail: boolean;
   notifySms: boolean;
   activeDays: number[];
+  postToInstagramEnabled: boolean;
+  postTime: string;
+  postTimezone: string;
   nextRunAt: number | null;
   lastRunAt: number | null;
 }
@@ -190,6 +193,9 @@ const DEFAULT_SCHEDULE: ScheduleData = {
   notifyEmail: true,
   notifySms: false,
   activeDays: ALL_DAYS,
+  postToInstagramEnabled: false,
+  postTime: "08:00",
+  postTimezone: "Africa/Lagos",
   nextRunAt: null,
   lastRunAt: null,
 };
@@ -234,6 +240,8 @@ export function ScheduleForm() {
             ? detected
             : data.timezone ?? "Africa/Lagos";
 
+        const rawPostTime = data.postTime ?? data.time ?? "08:00";
+        const postTime = ALLOWED_SCHEDULE_TIMES.includes(rawPostTime) ? rawPostTime : snapToAllowedTime(rawPostTime);
         setSchedule({
           enabled: data.enabled ?? false,
           time,
@@ -242,6 +250,9 @@ export function ScheduleForm() {
           notifyEmail: data.notifyEmail ?? true,
           notifySms: data.notifySms ?? false,
           activeDays: Array.isArray(data.activeDays) ? data.activeDays : ALL_DAYS,
+          postToInstagramEnabled: data.postToInstagramEnabled ?? false,
+          postTime,
+          postTimezone: data.postTimezone ?? data.timezone ?? timezone,
           nextRunAt: data.nextRunAt ?? null,
           lastRunAt: data.lastRunAt ?? null,
         });
@@ -292,6 +303,9 @@ export function ScheduleForm() {
           notifyEmail: schedule.notifyEmail,
           notifySms: schedule.notifySms,
           activeDays: schedule.activeDays,
+          postToInstagramEnabled: schedule.postToInstagramEnabled,
+          postTime: schedule.postTime,
+          postTimezone: schedule.postTimezone,
         }),
       });
       if (!res.ok) {
@@ -497,7 +511,94 @@ export function ScheduleForm() {
             </div>
           </div>
 
-          {/* 2. Notifications */}
+          {/* 2. Auto-post to Instagram */}
+          <div className="bg-bg-surface border border-border-default rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle">
+              <div>
+                <p className="font-semibold text-[14px] text-text-primary">
+                  Auto-post to Instagram
+                </p>
+                <p className="text-[12px] text-text-muted mt-0.5">
+                  After each scheduled generation, post the poster to Instagram at a time you choose
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => update({ postToInstagramEnabled: !schedule.postToInstagramEnabled })}
+                disabled={!schedule.enabled}
+                className={`relative w-11 h-6 rounded-full transition-all duration-200 disabled:opacity-50 ${
+                  schedule.postToInstagramEnabled
+                    ? "bg-accent"
+                    : "bg-bg-elevated border border-border-strong"
+                }`}
+                role="switch"
+                aria-checked={schedule.postToInstagramEnabled}
+              >
+                <div
+                  className={`absolute top-1 w-4 h-4 rounded-full transition-all duration-200 shadow-sm ${
+                    schedule.postToInstagramEnabled ? "left-6 bg-black" : "left-1 bg-text-muted"
+                  }`}
+                />
+              </button>
+            </div>
+            <div
+              className={`transition-all duration-200 ${
+                schedule.postToInstagramEnabled ? "opacity-100" : "opacity-40 pointer-events-none"
+              }`}
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5">
+                <div>
+                  <label className="font-mono text-[10px] uppercase tracking-wider text-text-muted block mb-2">
+                    Post time
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={schedule.postTime}
+                      onChange={(e) => update({ postTime: e.target.value })}
+                      className="w-full bg-bg-elevated border border-border-default rounded-xl px-4 py-3 text-[13px] text-text-primary font-mono appearance-none outline-none hover:border-border-strong focus:border-accent transition-colors cursor-pointer min-h-[44px]"
+                    >
+                      {ALLOWED_SCHEDULE_TIMES.map((t) => (
+                        <option key={t} value={t}>
+                          {formatTimeLabel(t)}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      size={14}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="font-mono text-[10px] uppercase tracking-wider text-text-muted block mb-2">
+                    Timezone
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={schedule.postTimezone}
+                      onChange={(e) => update({ postTimezone: e.target.value })}
+                      className="w-full bg-bg-elevated border border-border-default rounded-xl px-4 py-3 text-[13px] text-text-primary font-mono appearance-none outline-none hover:border-border-strong focus:border-accent transition-colors cursor-pointer min-h-[44px]"
+                    >
+                      {tzList.map((tz) => (
+                        <option key={tz.value} value={tz.value}>
+                          {tz.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      size={14}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
+                    />
+                  </div>
+                </div>
+              </div>
+              <p className="text-[11px] text-text-muted px-5 pb-5">
+                Connect Instagram in Settings → Connected Accounts. The poster will be scheduled for this time after each daily generation.
+              </p>
+            </div>
+          </div>
+
+          {/* 3. Notifications */}
           <div className="bg-bg-surface border border-border-default rounded-2xl p-5">
             <div className="mb-4">
               <p className="font-semibold text-[14px] text-text-primary">
@@ -562,7 +663,7 @@ export function ScheduleForm() {
             </div>
           </div>
 
-          {/* 3. Brand kit */}
+          {/* 4. Brand kit */}
           <div className="bg-bg-surface border border-border-default rounded-2xl p-5">
             <div className="mb-4">
               <p className="font-semibold text-[14px] text-text-primary">

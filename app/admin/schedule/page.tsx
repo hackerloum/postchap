@@ -232,7 +232,7 @@ export default function AdminSchedulePage() {
             <span className="text-text-muted">— upcoming occasions (future: email)</span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-text-muted">08:00 UTC daily</span>
+            <span className="text-text-muted">Every 30 min</span>
             <span className="text-text-primary">scheduled-posts</span>
             <span className="text-text-muted">— post due Instagram scheduled posts</span>
           </div>

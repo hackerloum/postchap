@@ -26,16 +26,20 @@ export async function GET(request: NextRequest) {
   try {
     const doc = await getAdminDb().collection("schedules").doc(uid).get();
     if (!doc.exists) {
-      return NextResponse.json({
-        enabled: false,
-        time: DEFAULT_TIME,
-        timezone: DEFAULT_TIMEZONE,
-        brandKitId: "",
-        notifyEmail: true,
-        notifySms: false,
-        nextRunAt: null,
-        lastRunAt: null,
-      });
+    return NextResponse.json({
+      enabled: false,
+      time: DEFAULT_TIME,
+      timezone: DEFAULT_TIMEZONE,
+      brandKitId: "",
+      notifyEmail: true,
+      notifySms: false,
+      activeDays: [0, 1, 2, 3, 4, 5, 6],
+      postToInstagramEnabled: false,
+      postTime: DEFAULT_TIME,
+      postTimezone: DEFAULT_TIMEZONE,
+      nextRunAt: null,
+      lastRunAt: null,
+    });
     }
     const d = doc.data()!;
     const nextRunAt = d.nextRunAt?.toMillis?.() ?? d.nextRunAt ?? null;
@@ -48,6 +52,9 @@ export async function GET(request: NextRequest) {
       notifyEmail: d.notifyEmail ?? true,
       notifySms: d.notifySms ?? false,
       activeDays: Array.isArray(d.activeDays) ? d.activeDays : [0, 1, 2, 3, 4, 5, 6],
+      postToInstagramEnabled: d.postToInstagramEnabled ?? false,
+      postTime: d.postTime ?? d.time ?? DEFAULT_TIME,
+      postTimezone: d.postTimezone ?? d.timezone ?? DEFAULT_TIMEZONE,
       nextRunAt: nextRunAt != null ? nextRunAt : null,
       lastRunAt: lastRunAt != null ? lastRunAt : null,
     });
@@ -76,6 +83,9 @@ export async function PATCH(request: NextRequest) {
     notifyEmail?: boolean;
     notifySms?: boolean;
     activeDays?: number[];
+    postToInstagramEnabled?: boolean;
+    postTime?: string;
+    postTimezone?: string;
   };
   try {
     body = await request.json();
@@ -122,6 +132,12 @@ export async function PATCH(request: NextRequest) {
       ? rawActiveDays.filter((d) => typeof d === "number" && d >= 0 && d <= 6)
       : [0, 1, 2, 3, 4, 5, 6];
 
+  let postToInstagramEnabled = body.postToInstagramEnabled ?? current.postToInstagramEnabled ?? false;
+  let postTime = body.postTime ?? current.postTime ?? time;
+  let postTimezone = body.postTimezone ?? current.postTimezone ?? timezone;
+  if (postTime && !isAllowedScheduleTime(postTime)) postTime = snapToAllowedTime(postTime);
+  if (!postTime || !isAllowedScheduleTime(postTime)) postTime = time;
+
   if (enabled && brandKitId) {
     const kitSnap = await db
       .collection("users")
@@ -151,6 +167,9 @@ export async function PATCH(request: NextRequest) {
     notifyEmail,
     notifySms,
     activeDays,
+    postToInstagramEnabled,
+    postTime,
+    postTimezone,
     ...(nextRunAt && { nextRunAt }),
     updatedAt: Timestamp.now(),
   };
@@ -170,6 +189,9 @@ export async function PATCH(request: NextRequest) {
     notifyEmail: savedData.notifyEmail ?? true,
     notifySms: savedData.notifySms ?? false,
     activeDays: Array.isArray(savedData.activeDays) ? savedData.activeDays : [0, 1, 2, 3, 4, 5, 6],
+    postToInstagramEnabled: savedData.postToInstagramEnabled ?? false,
+    postTime: savedData.postTime ?? savedData.time ?? DEFAULT_TIME,
+    postTimezone: savedData.postTimezone ?? savedData.timezone ?? DEFAULT_TIMEZONE,
     nextRunAt: nextRunAtMs,
     lastRunAt: lastRunAtMs ?? null,
   });

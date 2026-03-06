@@ -7,10 +7,10 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { Timestamp } from "firebase-admin/firestore";
+import { Timestamp, FieldValue } from "firebase-admin/firestore";
 import { getRecommendationsForBrandKit } from "@/lib/generation/generateRecommendations";
 import { runGenerationForUser } from "@/lib/generation/runGeneration";
-import { getNextRunAfter } from "@/lib/schedule/nextRunAt";
+import { getNextRunAfter, getNextRunAt } from "@/lib/schedule/nextRunAt";
 import { getCronState, clearSkipNextRun, logCronRun } from "@/lib/admin/cronControl";
 
 export const maxDuration = 300;
@@ -156,13 +156,39 @@ export async function GET(request: NextRequest) {
     const rec = recommendations[Math.floor(Math.random() * recommendations.length)];
 
     try {
-      await runGenerationForUser(uid, brandKitId, rec);
+      const genResult = await runGenerationForUser(uid, brandKitId, rec);
       await db.collection("schedules").doc(uid).update({
         lastRunAt: Timestamp.now(),
         nextRunAt: Timestamp.fromDate(nextDate),
         updatedAt: Timestamp.now(),
       });
       console.log("[cron scheduled-generation] Success", uid, "nextRunAt", nextDate.toISOString());
+
+      // If user has auto-post to Instagram enabled, schedule this poster for postTime
+      const postEnabled = data.postToInstagramEnabled === true;
+      const postTime = (data.postTime as string) ?? data.time ?? "08:00";
+      const postTimezone = (data.postTimezone as string) ?? data.timezone ?? "Africa/Lagos";
+      const userSnap = await db.collection("users").doc(uid).get();
+      const instagram = (userSnap.data()?.instagram as { connected?: boolean; pageAccessToken?: string; accountId?: string } | undefined);
+      const instagramConnected = instagram?.connected && instagram?.pageAccessToken && instagram?.accountId;
+
+      if (postEnabled && instagramConnected && genResult.posterId) {
+        const postAt = getNextRunAt(postTime, postTimezone, new Date());
+        const scheduledForTimestamp = Timestamp.fromDate(postAt);
+        await db.collection("scheduled_instagram_posts").add({
+          userId: uid,
+          posterId: genResult.posterId,
+          scheduledFor: scheduledForTimestamp,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+        await db.collection("users").doc(uid).collection("posters").doc(genResult.posterId).update({
+          postStatus: "scheduled",
+          scheduledFor: scheduledForTimestamp,
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+        console.log("[cron scheduled-generation] Scheduled Instagram post", genResult.posterId, "for", postAt.toISOString());
+      }
+
       results.push({ uid, success: true });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

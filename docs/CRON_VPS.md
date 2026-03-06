@@ -8,7 +8,7 @@ Cron jobs are **not** run by Vercel. The VPS triggers the same API routes at fix
 |----------|-------------------------|----------------------------------|
 | Every 30 min (0,30 * * * *) | scheduled-generation | Poster generation; runs at :00 and :30 so user-chosen times (e.g. 07:00 or 07:30) are respected |
 | 06:00 daily | occasion-alerts         | Upcoming occasions (future: email)    |
-| 08:00 daily | scheduled-posts         | Post due Instagram scheduled posts    |
+| Every 30 min (0,30 * * * *) | scheduled-posts         | Post due Instagram scheduled posts; runs every 30 min so user-chosen post times are respected |
 
 ## One-time setup on the VPS
 
@@ -55,11 +55,11 @@ Add these three lines (adjust the path if your repo is not at `/var/www/postchap
 ```cron
 0,30 * * * * /var/www/postchap/scripts/trigger-cron.sh scheduled-generation >> /var/log/postchap-cron.log 2>&1
 0 6 * * * /var/www/postchap/scripts/trigger-cron.sh occasion-alerts >> /var/log/postchap-cron.log 2>&1
-0 8 * * * /var/www/postchap/scripts/trigger-cron.sh scheduled-posts >> /var/log/postchap-cron.log 2>&1
+0,30 * * * * /var/www/postchap/scripts/trigger-cron.sh scheduled-posts >> /var/log/postchap-cron.log 2>&1
 ```
 
-- **scheduled-generation** runs **every 30 minutes** (at :00 and :30) so user-chosen times like 07:00 or 07:30 are picked up within ~30 minutes.
-- **occasion-alerts** and **scheduled-posts** run once per day at 06:00 and 08:00 UTC.
+- **scheduled-generation** and **scheduled-posts** run **every 30 minutes** (at :00 and :30) so user-chosen generate/post times are picked up within ~30 minutes.
+- **occasion-alerts** runs once per day at 06:00 UTC.
 
 ## Logs
 
