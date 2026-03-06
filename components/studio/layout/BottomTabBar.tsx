@@ -19,8 +19,11 @@ export function BottomTabBar({ onOpenMore }: BottomTabBarProps) {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden items-center justify-around h-16 pt-2 pb-[env(safe-area-inset-bottom)] border-t border-[#ffffff08] bg-[#080808]"
-      style={{ paddingBottom: "max(env(safe-area-inset-bottom), 8px)" }}
+      className="fixed inset-x-0 bottom-0 z-[100] flex md:hidden items-center justify-around h-16 pt-2 border-t border-[#ffffff08] bg-[#080808]"
+      style={{
+        paddingBottom: "max(env(safe-area-inset-bottom, 0px), 8px)",
+        WebkitTransform: "translateZ(0)",
+      }}
     >
       {TABS.map((tab) => {
         const isActive =

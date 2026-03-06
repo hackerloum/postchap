@@ -39,7 +39,7 @@ export function StudioLayout({ children, primaryAction = "generate" }: StudioLay
   }, []);
 
   return (
-    <div className="studio-theme min-h-screen bg-[#080808]">
+    <div className="studio-theme min-h-screen bg-[#080808] flex flex-col md:block">
       {isTablet && sidebarExpanded && (
         <div
           className="fixed inset-0 z-30 bg-black/40 lg:hidden"
@@ -53,10 +53,10 @@ export function StudioLayout({ children, primaryAction = "generate" }: StudioLay
         onCollapse={() => setSidebarExpanded(false)}
       />
       <div
-        className="relative z-10 flex flex-col min-h-screen md:pl-[56px] lg:pl-[232px]"
+        className="relative z-10 flex flex-col min-h-screen h-screen md:h-auto md:min-h-screen md:pl-[56px] lg:pl-[232px] overflow-hidden"
       >
         <TopBar primaryAction={primaryAction} onSearchClick={() => setSearchOpen(true)} />
-        <main className="flex-1 overflow-y-auto pt-0 pb-20 md:pb-8 px-4 md:px-8 lg:px-8">
+        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pt-0 pb-20 md:pb-8 px-4 md:px-8 lg:px-8">
           <div className="max-w-[1400px] mx-auto py-6 md:py-8">
             {children}
           </div>
