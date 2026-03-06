@@ -454,6 +454,21 @@ export default function TerminalPage() {
     setSelectedSearchIndex(0);
   }, [searchQuery]);
 
+  // Re-fit xterm when the terminal becomes visible (shellReady transitions false→true)
+  useEffect(() => {
+    if (!shellReady) return;
+    const t = setTimeout(() => {
+      const term = xtermRef.current?.terminal;
+      const fit = xtermRef.current?.fit;
+      if (term && fit) {
+        fit.fit();
+        setTermRows(term.rows);
+        setTermCols(term.cols);
+      }
+    }, 100);
+    return () => clearTimeout(t);
+  }, [shellReady]);
+
   useEffect(() => {
     const term = xtermRef.current?.terminal;
     const fit = xtermRef.current?.fit;

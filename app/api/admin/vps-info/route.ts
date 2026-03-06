@@ -115,41 +115,36 @@ export async function GET(req: NextRequest) {
     "User-Agent": "ArtMaster-Admin/1.0",
   };
 
+  // eVPS API returns status as 1 (number) or "1" (string) — normalize both
+  const isOk = (status: unknown) => status === 1 || status === "1";
+
   try {
     let raw: EvpsVpsInfo;
 
     if (vpsId) {
       const res = await fetch(`${EVPS_API_BASE}/vps/${vpsId}`, { headers });
       if (!res.ok) {
-        const text = await res.text();
-        return NextResponse.json(
-          { error: "eVPS API error", details: text },
-          { status: res.status === 401 ? 401 : 502 }
-        );
+        const text = await res.text().catch(() => "");
+        console.error("[vps-info] eVPS HTTP error", res.status, text.slice(0, 200));
+        return NextResponse.json({ error: "eVPS API error", details: `HTTP ${res.status}` });
       }
       const json = await res.json();
-      if (json.status !== 1 || !json.result) {
-        return NextResponse.json(
-          { error: "eVPS returned no data", result: json.result },
-          { status: 502 }
-        );
+      if (!isOk(json.status) || !json.result) {
+        console.error("[vps-info] eVPS bad response", JSON.stringify(json).slice(0, 300));
+        return NextResponse.json({ error: "eVPS returned no data", raw: json.result });
       }
       raw = json.result as EvpsVpsInfo;
     } else {
       const res = await fetch(`${EVPS_API_BASE}/vps/`, { headers });
       if (!res.ok) {
-        const text = await res.text();
-        return NextResponse.json(
-          { error: "eVPS API error", details: text },
-          { status: res.status === 401 ? 401 : 502 }
-        );
+        const text = await res.text().catch(() => "");
+        console.error("[vps-info] eVPS list HTTP error", res.status, text.slice(0, 200));
+        return NextResponse.json({ error: "eVPS API error", details: `HTTP ${res.status}` });
       }
       const json = await res.json();
-      if (json.status !== 1 || !Array.isArray(json.result) || json.result.length === 0) {
-        return NextResponse.json(
-          { error: "No VPS found" },
-          { status: 404 }
-        );
+      if (!isOk(json.status) || !Array.isArray(json.result) || json.result.length === 0) {
+        console.error("[vps-info] eVPS list bad response", JSON.stringify(json).slice(0, 300));
+        return NextResponse.json({ error: "No VPS found" });
       }
       const first = json.result[0] as EvpsVpsInfo;
       const detailRes = await fetch(`${EVPS_API_BASE}/vps/${first.id}`, { headers });
@@ -157,7 +152,7 @@ export async function GET(req: NextRequest) {
         raw = first;
       } else {
         const detailJson = await detailRes.json();
-        raw = detailJson.status === 1 && detailJson.result
+        raw = isOk(detailJson.status) && detailJson.result
           ? (detailJson.result as EvpsVpsInfo)
           : first;
       }
@@ -167,9 +162,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(payload);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
-    return NextResponse.json(
-      { error: "Failed to fetch VPS info", details: message },
-      { status: 500 }
-    );
+    console.error("[vps-info] fetch error:", message);
+    return NextResponse.json({ error: "Failed to fetch VPS info", details: message });
   }
 }
