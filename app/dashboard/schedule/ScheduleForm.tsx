@@ -592,9 +592,14 @@ export function ScheduleForm() {
                   </div>
                 </div>
               </div>
-              <p className="text-[11px] text-text-muted px-5 pb-5">
-                Connect Instagram in Settings → Connected Accounts. The poster will be scheduled for this time after each daily generation.
-              </p>
+              <div className="px-5 pb-5 space-y-2">
+                <p className="text-[11px] text-text-muted">
+                  Connect Instagram in Settings → Connected Accounts.
+                </p>
+                <div className="text-[11px] text-text-muted bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                  <strong className="text-amber-600">Post time tip:</strong> The poster is posted at the <em>next</em> occurrence of the time you choose. If you set the <strong>same time</strong> as generation (e.g. both 7:00 PM), the post will go out <strong>the next day</strong> at 7:00 PM. To post the same day, set post time <strong>after</strong> generation time (e.g. generate 7:00 PM, post 7:30 PM).
+                </div>
+              </div>
             </div>
           </div>
 

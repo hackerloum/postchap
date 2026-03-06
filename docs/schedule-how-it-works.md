@@ -117,3 +117,17 @@ If the user’s plan doesn’t allow scheduling, the PATCH returns 403 with `cod
 | **After run** | `lastRunAt` and `nextRunAt` updated (next run = next day at same local time). |
 
 So in one sentence: **the schedule is a daily cron at midnight UTC that, for each user who has enabled it and whose next run time has passed, generates one poster with their chosen brand kit and then sets the next run to the next day at their chosen time.**
+
+---
+
+## 8. Auto-post to Instagram
+
+Users can turn on **Auto-post to Instagram** and set a **post time** (and timezone). After each scheduled generation, if this is enabled and Instagram is connected, the new poster is added to `scheduled_instagram_posts` with `scheduledFor` = the **next** occurrence of the post time.
+
+### Post time behaviour (important for users)
+
+- The poster is posted at the **next** occurrence of the time you choose.
+- **If you set the same time for generation and post** (e.g. both 7:00 PM), the poster is created at ~7:00 PM, so the “next” 7:00 PM is **the next day**. The post will go out **tomorrow** at 7:00 PM, not a few minutes after generation.
+- **To post the same day**, set **post time after generation time** (e.g. generate 7:00 PM, post 7:30 PM). Then the “next” 7:30 PM is still today and the post goes out ~30 minutes after the poster is created.
+
+The Schedule UI shows this in a tip box under the post time picker so users don’t assume “same time” means “post right after generation”.
