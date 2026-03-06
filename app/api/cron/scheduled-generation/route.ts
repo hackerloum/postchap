@@ -11,6 +11,7 @@ import { Timestamp } from "firebase-admin/firestore";
 import { getRecommendationsForBrandKit } from "@/lib/generation/generateRecommendations";
 import { runGenerationForUser } from "@/lib/generation/runGeneration";
 import { getNextRunAfter } from "@/lib/schedule/nextRunAt";
+import { getCronState, clearSkipNextRun, logCronRun } from "@/lib/admin/cronControl";
 
 export const maxDuration = 300;
 
@@ -30,6 +31,8 @@ function verifyCronSecret(request: NextRequest): { ok: boolean; reason?: string 
   return { ok: true };
 }
 
+const ENDPOINT = "scheduled-generation" as const;
+
 export async function GET(request: NextRequest) {
   const auth = verifyCronSecret(request);
   if (!auth.ok) {
@@ -38,6 +41,30 @@ export async function GET(request: NextRequest) {
       { error: "Unauthorized", message: auth.reason },
       { status: 401 }
     );
+  }
+
+  const startedAt = Date.now();
+  const state = await getCronState();
+  if (state.paused) {
+    await logCronRun({
+      endpoint: ENDPOINT,
+      startedAt,
+      finishedAt: Date.now(),
+      status: "skipped",
+      reason: "Cron paused by admin",
+    });
+    return NextResponse.json({ ok: true, skipped: true, reason: "Cron paused" });
+  }
+  if (state.skipNextRun.scheduledGeneration) {
+    await clearSkipNextRun(ENDPOINT);
+    await logCronRun({
+      endpoint: ENDPOINT,
+      startedAt,
+      finishedAt: Date.now(),
+      status: "skipped",
+      reason: "Skip next run (admin)",
+    });
+    return NextResponse.json({ ok: true, skipped: true, reason: "Skip next run" });
   }
 
   const db = getAdminDb();
@@ -145,11 +172,22 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({
+  const payload = {
     ok: true,
     due: due.length,
     processed: toProcess.length,
     skipped,
     results,
+  };
+  await logCronRun({
+    endpoint: ENDPOINT,
+    startedAt,
+    finishedAt: Date.now(),
+    status: "ok",
+    due: due.length,
+    processed: toProcess.length,
+    skipped,
+    results,
   });
+  return NextResponse.json(payload);
 }

@@ -222,9 +222,9 @@ export default function AdminSchedulePage() {
         </p>
         <div className="font-mono text-[11px] space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-text-muted">Every hour</span>
+            <span className="text-text-muted">Every 30 min</span>
             <span className="text-text-primary">scheduled-generation</span>
-            <span className="text-text-muted">— daily poster generation (hourly run so user times e.g. 07:00 are respected)</span>
+            <span className="text-text-muted">— poster generation (runs every 30 min so 07:00 or 07:30 are respected)</span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-text-muted">06:00 UTC daily</span>

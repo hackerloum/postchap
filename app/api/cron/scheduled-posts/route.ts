@@ -12,6 +12,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { postToInstagram } from "@/lib/instagram/postToInstagram";
+import { getCronState, clearSkipNextRun, logCronRun } from "@/lib/admin/cronControl";
+
+const ENDPOINT = "scheduled-posts" as const;
 
 export const maxDuration = 120;
 
@@ -45,6 +48,30 @@ export async function GET(request: NextRequest) {
       { error: "Unauthorized", message: auth.reason },
       { status: 401 }
     );
+  }
+
+  const startedAt = Date.now();
+  const state = await getCronState();
+  if (state.paused) {
+    await logCronRun({
+      endpoint: ENDPOINT,
+      startedAt,
+      finishedAt: Date.now(),
+      status: "skipped",
+      reason: "Cron paused by admin",
+    });
+    return NextResponse.json({ ok: true, skipped: true, reason: "Cron paused" });
+  }
+  if (state.skipNextRun.scheduledPosts) {
+    await clearSkipNextRun(ENDPOINT);
+    await logCronRun({
+      endpoint: ENDPOINT,
+      startedAt,
+      finishedAt: Date.now(),
+      status: "skipped",
+      reason: "Skip next run (admin)",
+    });
+    return NextResponse.json({ ok: true, skipped: true, reason: "Skip next run" });
   }
 
   const db = getAdminDb();
@@ -159,6 +186,14 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  await logCronRun({
+    endpoint: ENDPOINT,
+    startedAt,
+    finishedAt: Date.now(),
+    status: "ok",
+    processed: snap.size,
+    results,
+  });
   return NextResponse.json({
     ok: true,
     processed: snap.size,

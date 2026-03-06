@@ -2,8 +2,8 @@
 # Trigger a single cron endpoint on the production app.
 # Usage: trigger-cron.sh <scheduled-generation|scheduled-posts|occasion-alerts>
 # Requires: .env.cron in project root with CRON_SECRET=... and optionally BASE_URL=...
-# Crontab (UTC): scheduled-generation hourly so user times (e.g. 07:00) are respected
-#   0 * * * * /var/www/postchap/scripts/trigger-cron.sh scheduled-generation >> /var/log/postchap-cron.log 2>&1
+# Crontab (UTC): scheduled-generation every 30 min so user times (e.g. 07:00 or 07:30) are respected
+#   0,30 * * * * /var/www/postchap/scripts/trigger-cron.sh scheduled-generation >> /var/log/postchap-cron.log 2>&1
 #   0 6 * * * /var/www/postchap/scripts/trigger-cron.sh occasion-alerts >> /var/log/postchap-cron.log 2>&1
 #   0 8 * * * /var/www/postchap/scripts/trigger-cron.sh scheduled-posts >> /var/log/postchap-cron.log 2>&1
 
