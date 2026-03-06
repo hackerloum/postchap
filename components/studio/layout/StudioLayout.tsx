@@ -72,7 +72,7 @@ export function StudioLayout({ children, primaryAction = "generate" }: StudioLay
         <header className="flex-shrink-0 z-20">
           <TopBar primaryAction={primaryAction} onSearchClick={() => setSearchOpen(true)} />
         </header>
-        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pt-0 pb-20 md:pb-8 px-4 md:px-8 lg:px-8">
+        <main id="studio-main" className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pt-0 pb-20 md:pb-8 px-4 md:px-8 lg:px-8">
           <div className="max-w-[1400px] mx-auto py-6 md:py-8">
             {children}
           </div>

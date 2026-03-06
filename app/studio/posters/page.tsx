@@ -49,6 +49,23 @@ function PostersContent() {
   const [submittingApproval, setSubmittingApproval] = useState(false);
   const [revisionComment, setRevisionComment] = useState("");
 
+  // Lock background scroll when poster modal is open
+  useEffect(() => {
+    const el = typeof document !== "undefined" ? document.getElementById("studio-main") : null;
+    if (!el) return;
+    if (selectedPoster) {
+      el.style.overflow = "hidden";
+      el.style.touchAction = "none";
+    } else {
+      el.style.overflow = "";
+      el.style.touchAction = "";
+    }
+    return () => {
+      el.style.overflow = "";
+      el.style.touchAction = "";
+    };
+  }, [selectedPoster]);
+
   async function loadPosters() {
     setLoading(true);
     try {
@@ -235,9 +252,12 @@ function PostersContent() {
         </div>
       )}
 
-      {/* Poster detail modal */}
+      {/* Poster detail modal — overlay locks background scroll via useEffect */}
       {selectedPoster && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setSelectedPoster(null)}>
+        <div
+          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 overscroll-contain"
+          onClick={() => setSelectedPoster(null)}
+        >
           <div className="bg-bg-base border border-border-default rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-5">
               <div className="flex items-start justify-between mb-4">
