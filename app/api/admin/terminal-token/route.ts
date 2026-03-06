@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
-import { verifySuperadminSession } from "@/lib/admin-auth";
+import { requireAdmin } from "@/lib/admin-auth";
 
 export async function GET(req: NextRequest) {
   let uid: string;
   try {
-    const session = await verifySuperadminSession(req);
-    uid = session.uid;
+    uid = await requireAdmin(req);
   } catch {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -17,7 +16,7 @@ export async function GET(req: NextRequest) {
   }
 
   const token = jwt.sign(
-    { uid, role: "superadmin", purpose: "terminal" },
+    { uid, purpose: "terminal" },
     secret,
     { expiresIn: "5m" }
   );

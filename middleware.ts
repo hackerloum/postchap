@@ -31,11 +31,6 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
-    // Terminal route requires superadmin role
-    if (pathname.startsWith("/admin/terminal") && payload.role !== "superadmin") {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-
     return response;
   } catch {
     return NextResponse.redirect(new URL("/dashboard", request.url));
