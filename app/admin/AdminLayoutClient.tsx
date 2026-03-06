@@ -14,6 +14,7 @@ import {
   Instagram,
   Megaphone,
   Building2,
+  Terminal,
 } from "lucide-react";
 
 const NAV = [
@@ -25,6 +26,7 @@ const NAV = [
   { label: "Studio", href: "/admin/studio", icon: <Building2 size={14} /> },
   { label: "Brand Kits", href: "/admin/brand-kits", icon: <Palette size={14} /> },
   { label: "ArtMaster Kit", href: "/admin/artmaster-kit", icon: <Settings size={14} /> },
+  { label: "Terminal", href: "/admin/terminal", icon: <Terminal size={14} /> },
 ];
 
 export default function AdminLayoutClient({

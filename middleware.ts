@@ -24,10 +24,15 @@ export async function middleware(request: NextRequest) {
     const [, payloadB64] = token.split(".");
     const payload = JSON.parse(
       Buffer.from(payloadB64, "base64url").toString("utf8")
-    ) as { isAdmin?: boolean; exp?: number };
+    ) as { isAdmin?: boolean; role?: string; exp?: number };
 
     const now = Math.floor(Date.now() / 1000);
     if (!payload.isAdmin || (payload.exp && payload.exp < now)) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+
+    // Terminal route requires superadmin role
+    if (pathname.startsWith("/admin/terminal") && payload.role !== "superadmin") {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 

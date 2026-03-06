@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "terminal:server": "npx tsx server/terminalServer.ts"
   },
   "dependencies": {
     "@google/genai": "^1.43.0",
@@ -23,6 +24,7 @@
     "github-slugger": "^2.0.0",
     "gray-matter": "^4.0.3",
     "jose": "^6.1.3",
+    "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.575.0",
     "next": "14.2.18",
     "next-mdx-remote": "^6.0.0",
@@ -37,12 +39,20 @@
     "remark-gfm": "^4.0.1",
     "sharp": "^0.33.5",
     "sonner": "^2.0.7",
-    "tailwindcss": "^4.2.0"
+    "ssh2": "^1.17.0",
+    "tailwindcss": "^4.2.0",
+    "ws": "^8.19.0",
+    "xterm": "^5.3.0",
+    "xterm-addon-fit": "^0.8.0",
+    "xterm-addon-web-links": "^0.9.0"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/ssh2": "^1.15.5",
+    "@types/ws": "^8.18.1",
     "typescript": "^5"
   }
 }

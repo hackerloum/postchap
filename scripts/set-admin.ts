@@ -2,10 +2,11 @@
  * One-time script to grant admin privileges to a Firebase user.
  *
  * Usage:
- *   npx ts-node -e "require('./scripts/set-admin.ts')" -- <uid>
+ *   npx tsx scripts/set-admin.ts <uid> [role]
  *
- * Or with tsx:
- *   npx tsx scripts/set-admin.ts <uid>
+ * role: "admin" (default) or "superadmin"
+ * - admin: isAdmin true, role "admin" (dashboard access)
+ * - superadmin: isAdmin true, role "superadmin" (dashboard + /admin/terminal)
  *
  * The UID can be found in the Firebase Console → Authentication → Users.
  */
@@ -33,8 +34,10 @@ import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 
 const uid = process.argv[2];
+const roleArg = process.argv[3];
+const role = roleArg === "superadmin" ? "superadmin" : "admin";
 if (!uid) {
-  console.error("Usage: npx tsx scripts/set-admin.ts <firebase-uid>");
+  console.error("Usage: npx tsx scripts/set-admin.ts <firebase-uid> [admin|superadmin]");
   process.exit(1);
 }
 
@@ -56,9 +59,9 @@ if (!getApps().length) {
 
 (async () => {
   try {
-    await getAuth().setCustomUserClaims(uid, { isAdmin: true });
+    await getAuth().setCustomUserClaims(uid, { isAdmin: true, role });
     const user = await getAuth().getUser(uid);
-    console.log(`✓ isAdmin claim set on ${user.email ?? uid}`);
+    console.log(`✓ isAdmin + role="${role}" set on ${user.email ?? uid}`);
     console.log("  The user must sign out and sign back in for the claim to take effect.");
     process.exit(0);
   } catch (err) {
