@@ -36,12 +36,22 @@ interface UpcomingItem {
   nextRunTimes: string[];
 }
 
+interface UpcomingUserSchedule {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  nextRunAt: number;
+  time: string;
+  timezone: string;
+}
+
 interface CronControlState {
   paused: boolean;
   skipNextRun: CronSkipNextRun;
   updatedAt: number | null;
   runs: CronRun[];
   upcoming: UpcomingItem[];
+  upcomingUserSchedules?: UpcomingUserSchedule[];
 }
 
 const ENDPOINT_LABELS: Record<CronEndpoint, string> = {
@@ -220,12 +230,63 @@ export default function AdminCronPage() {
             </div>
           </div>
 
-          {/* Upcoming runs */}
+          {/* Upcoming user generations (e.g. "3:00 PM" poster generation) */}
           <div className="bg-bg-surface border border-border-default rounded-2xl overflow-hidden">
             <div className="px-6 py-4 border-b border-border-subtle">
-              <h2 className="text-[14px] font-semibold text-text-primary">Upcoming runs (UTC)</h2>
+              <h2 className="text-[14px] font-semibold text-text-primary">Upcoming user generations</h2>
               <p className="text-[11px] text-text-muted mt-0.5">
-                Next run times for each job (VPS crontab controls when the app is called)
+                Users who have scheduled poster generation — next run in their timezone (e.g. 3:00 PM)
+              </p>
+            </div>
+            {(data.upcomingUserSchedules?.length ?? 0) > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-border-subtle text-[11px] font-medium text-text-muted uppercase tracking-wider">
+                      <th className="px-6 py-3">When (local)</th>
+                      <th className="px-6 py-3">User</th>
+                      <th className="px-6 py-3">Timezone</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-[12px]">
+                    {data.upcomingUserSchedules?.map((u) => (
+                      <tr key={u.uid} className="border-b border-border-subtle/50 hover:bg-bg-elevated/50">
+                        <td className="px-6 py-3 font-mono text-text-primary whitespace-nowrap">
+                          {new Date(u.nextRunAt).toLocaleString(undefined, {
+                            weekday: "short",
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                          <span className="text-text-muted font-normal ml-1">
+                            ({u.time})
+                          </span>
+                        </td>
+                        <td className="px-6 py-3 text-text-secondary">
+                          {u.email ?? u.displayName ?? u.uid}
+                        </td>
+                        <td className="px-6 py-3 text-text-muted font-mono text-[11px]">
+                          {u.timezone}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="px-6 py-8 text-center text-[12px] text-text-muted">
+                No upcoming user generations. Users must enable &quot;Scheduled generation&quot; and save on their Schedule page.
+              </div>
+            )}
+          </div>
+
+          {/* Upcoming cron trigger times (UTC) */}
+          <div className="bg-bg-surface border border-border-default rounded-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-border-subtle">
+              <h2 className="text-[14px] font-semibold text-text-primary">When cron runs (UTC)</h2>
+              <p className="text-[11px] text-text-muted mt-0.5">
+                Next times the VPS will call each endpoint
               </p>
             </div>
             <div className="divide-y divide-border-subtle/50">

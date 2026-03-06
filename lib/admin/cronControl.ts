@@ -176,3 +176,61 @@ export function getUpcomingCronTimes(count: number): {
 
   return result;
 }
+
+/** Upcoming poster-generation runs from user schedules (enabled, nextRunAt in the future). */
+export interface UpcomingUserSchedule {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  nextRunAt: number;
+  time: string;
+  timezone: string;
+}
+
+export async function getUpcomingUserSchedules(limit: number = 50): Promise<UpcomingUserSchedule[]> {
+  const db = getAdminDb();
+  const nowMs = Date.now();
+  const snap = await db.collection("schedules").where("enabled", "==", true).get();
+  const list: { uid: string; nextRunAt: number; time: string; timezone: string }[] = [];
+  snap.docs.forEach((doc) => {
+    const d = doc.data();
+    const nextRunAt =
+      typeof d.nextRunAt?.toMillis === "function"
+        ? d.nextRunAt.toMillis()
+        : typeof d.nextRunAt === "number"
+          ? d.nextRunAt
+          : null;
+    if (nextRunAt != null && nextRunAt > nowMs) {
+      list.push({
+        uid: doc.id,
+        nextRunAt,
+        time: (d.time as string) ?? "08:00",
+        timezone: (d.timezone as string) ?? "Africa/Lagos",
+      });
+    }
+  });
+  list.sort((a, b) => a.nextRunAt - b.nextRunAt);
+  const slice = list.slice(0, limit);
+  if (slice.length === 0) return [];
+
+  const userIds = [...new Set(slice.map((s) => s.uid))];
+  const userSnaps = await Promise.all(userIds.map((id) => db.collection("users").doc(id).get()));
+  const userMap: Record<string, { email: string | null; displayName: string | null }> = {};
+  userSnaps.forEach((s, i) => {
+    const uid = userIds[i];
+    const data = s.data();
+    userMap[uid] = {
+      email: (data?.email as string) ?? null,
+      displayName: (data?.displayName as string) ?? null,
+    };
+  });
+
+  return slice.map((s) => ({
+    uid: s.uid,
+    email: userMap[s.uid]?.email ?? null,
+    displayName: userMap[s.uid]?.displayName ?? null,
+    nextRunAt: s.nextRunAt,
+    time: s.time,
+    timezone: s.timezone,
+  }));
+}

@@ -5,6 +5,7 @@ import {
   updateCronState,
   getCronRuns,
   getUpcomingCronTimes,
+  getUpcomingUserSchedules,
   type CronEndpoint,
   type CronSkipNextRun,
 } from "@/lib/admin/cronControl";
@@ -19,10 +20,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const [state, runs, upcoming] = await Promise.all([
+    const [state, runs, upcoming, upcomingUserSchedules] = await Promise.all([
       getCronState(),
       getCronRuns(80),
       Promise.resolve(getUpcomingCronTimes(5)),
+      getUpcomingUserSchedules(50),
     ]);
 
     return NextResponse.json({
@@ -35,6 +37,7 @@ export async function GET(request: NextRequest) {
         schedule: u.schedule,
         nextRunTimes: u.nextRunTimes.map((d) => d.toISOString()),
       })),
+      upcomingUserSchedules,
     });
   } catch (err) {
     console.error("[admin/cron-control GET]", err);
