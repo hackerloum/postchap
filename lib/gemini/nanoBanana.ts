@@ -273,8 +273,8 @@ Apply the same structural approach with ${brandKit.brandName ?? "this brand"}'s 
     if (part.inlineData?.data) {
       const buffer = Buffer.from(part.inlineData.data, "base64");
       console.log("[NanaBanana] Success:", buffer.length, "bytes");
-      // Always let Sharp composite the logo; Gemini does not reliably render it from reference.
-      return { buffer, imageHasText: true, logoHandledByAI: false, addCTAFromSharp: true };
+      // When logo was sent as inline data (multi-modal reference), Gemini integrated it — skip Sharp overlay.
+      return { buffer, imageHasText: true, logoHandledByAI: logoSentToAI, addCTAFromSharp: true };
     }
   }
 
