@@ -292,24 +292,28 @@ export async function listPostersForAgency(
     });
   }
 
-  // Collection group query — single where only (no composite index required).
-  // Filter by approvalStatus in memory to avoid needing agencyId+approvalStatus index.
-  const query = getAdminDb()
-    .collectionGroup("posters")
-    .where("agencyId", "==", agencyId) as FirebaseFirestore.Query;
+  // No collection group (avoids needing a Firestore collection group index).
+  // Fetch clients, then each client's posters, merge and sort.
+  const clients = await listClients(agencyId, { limit: 200 });
+  const limit = options?.limit ?? 50;
+  const perClientLimit = Math.max(limit, 50);
 
-  const snap = await query.get();
-  let posters = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as StudioPoster);
-  if (options?.approvalStatus) {
-    posters = posters.filter((p) => p.approvalStatus === options.approvalStatus);
-  }
+  const results = await Promise.all(
+    clients.map((c) =>
+      listPostersForClient(agencyId, c.id, {
+        approvalStatus: options?.approvalStatus,
+        limit: perClientLimit,
+      })
+    )
+  );
+
+  let posters = results.flat();
   posters.sort((a, b) => {
     const aMs = (a as any).createdAt?.toMillis?.() ?? 0;
     const bMs = (b as any).createdAt?.toMillis?.() ?? 0;
     return bMs - aMs;
   });
-  if (options?.limit) posters = posters.slice(0, options.limit);
-  return posters;
+  return posters.slice(0, limit);
 }
 
 // ─── Approval history ────────────────────────────────────────────────────────
