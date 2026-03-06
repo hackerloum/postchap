@@ -292,17 +292,17 @@ export async function listPostersForAgency(
     });
   }
 
-  // Collection group query — single where only to avoid composite index requirement
-  let query = getAdminDb()
+  // Collection group query — single where only (no composite index required).
+  // Filter by approvalStatus in memory to avoid needing agencyId+approvalStatus index.
+  const query = getAdminDb()
     .collectionGroup("posters")
     .where("agencyId", "==", agencyId) as FirebaseFirestore.Query;
 
-  if (options?.approvalStatus) {
-    query = query.where("approvalStatus", "==", options.approvalStatus);
-  }
-
   const snap = await query.get();
   let posters = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as StudioPoster);
+  if (options?.approvalStatus) {
+    posters = posters.filter((p) => p.approvalStatus === options.approvalStatus);
+  }
   posters.sort((a, b) => {
     const aMs = (a as any).createdAt?.toMillis?.() ?? 0;
     const bMs = (b as any).createdAt?.toMillis?.() ?? 0;
