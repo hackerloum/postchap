@@ -74,20 +74,11 @@ const FLAT_COMMANDS = QUICK_COMMAND_GROUPS.flatMap((g) =>
   g.commands.map((c) => ({ ...c, group: g.label }))
 );
 
-const SERVER_INFO_DEFAULTS = {
-  host: "artmastervps",
-  ip: process.env.NEXT_PUBLIC_VPS_SERVER_IP || "—",
-  os: "Ubuntu 24.04 LTS",
-  uptime: "—",
-  user: "root",
-  port: "22",
-};
-
 const APP_SERVICES = [
-  { id: "artmaster", name: "ArtMaster (PM2)", pm2Name: "artmaster", status: "RUNNING" as const, uptime: "14d 6h" },
-  { id: "terminal-ws", name: "WebSocket Server", pm2Name: "terminal-ws", status: "RUNNING" as const, uptime: "6h 12m" },
-  { id: "nginx", name: "Nginx", pm2Name: null, status: "RUNNING" as const, uptime: "14d 6h" },
-  { id: "cron", name: "Cron Runner", pm2Name: null, status: "RUNNING" as const, uptime: "2d 3h" },
+  { id: "artmaster", name: "ArtMaster (PM2)", pm2Name: "artmaster" },
+  { id: "terminal-ws", name: "WebSocket Server", pm2Name: "terminal-ws" },
+  { id: "nginx", name: "Nginx", pm2Name: null, cmd: "systemctl status nginx" },
+  { id: "cron", name: "Cron Runner", pm2Name: null, cmd: "crontab -l" },
 ];
 
 function formatSessionTime(seconds: number): string {
@@ -112,7 +103,6 @@ export default function TerminalPage() {
   const [connectedAt, setConnectedAt] = useState<number | null>(null);
   const [sessionSeconds, setSessionSeconds] = useState(0);
   const [disconnectModalOpen, setDisconnectModalOpen] = useState(false);
-  const [serverInfo, setServerInfo] = useState(SERVER_INFO_DEFAULTS);
   const [commandHistory, setCommandHistory] = useState<string[]>(() => {
     if (typeof window === "undefined") return [];
     try {
@@ -391,7 +381,7 @@ export default function TerminalPage() {
               setShellReady(true);
               return;
             }
-            if (j.type === "metrics") setServerInfo((s) => ({ ...s }));
+            if (j.type === "metrics") { /* future metrics handling */ }
             return;
           } catch {}
         }
@@ -635,12 +625,16 @@ export default function TerminalPage() {
               <div className="hidden md:block w-3 h-3 rounded-full bg-[#4ade80]" />
               <div className="hidden md:block w-px h-4 bg-[#ffffff08] mx-1" />
               <span className="text-[12px] md:text-[13px] font-medium text-[#fafafa] truncate">{hostLabel}</span>
-              <span className="hidden lg:inline font-mono text-[11px] bg-[#ffffff08] border border-[#ffffff0f] rounded px-2 py-0.5 text-[#a1a1aa]">
-                {serverInfo.ip}
-              </span>
-              <span className="hidden xl:inline font-mono text-[11px] bg-[#ffffff08] border border-[#ffffff0f] rounded px-2 py-0.5 text-[#a1a1aa]">
-                {serverInfo.os}
-              </span>
+              {(vpsInfo?.ip || process.env.NEXT_PUBLIC_VPS_SERVER_IP) && (
+                <span className="hidden lg:inline font-mono text-[11px] bg-[#ffffff08] border border-[#ffffff0f] rounded px-2 py-0.5 text-[#a1a1aa]">
+                  {vpsInfo?.ip || process.env.NEXT_PUBLIC_VPS_SERVER_IP}
+                </span>
+              )}
+              {process.env.NEXT_PUBLIC_VPS_OS && (
+                <span className="hidden xl:inline font-mono text-[11px] bg-[#ffffff08] border border-[#ffffff0f] rounded px-2 py-0.5 text-[#a1a1aa]">
+                  {process.env.NEXT_PUBLIC_VPS_OS}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <div
@@ -692,14 +686,14 @@ export default function TerminalPage() {
             >
               <div className="pt-4 pb-2 px-4">
                 <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-[#71717a] mb-2">SERVER</p>
-                {[
-                  { icon: "🖥", label: "HOST", value: serverInfo.host },
-                  { icon: "🌐", label: "IP", value: serverInfo.ip },
-                  { icon: "💾", label: "OS", value: serverInfo.os },
-                  { icon: "⚡", label: "UPTIME", value: serverInfo.uptime },
-                  { icon: "👤", label: "USER", value: serverInfo.user },
-                  { icon: "📡", label: "PORT", value: serverInfo.port },
-                ].map((row) => (
+                {([
+                  { icon: "🖥", label: "HOST", value: hostLabel },
+                  { icon: "🌐", label: "IP", value: vpsInfo?.ip || process.env.NEXT_PUBLIC_VPS_SERVER_IP || "—" },
+                  { icon: "💾", label: "OS", value: process.env.NEXT_PUBLIC_VPS_OS || "—" },
+                  { icon: "⚡", label: "UPTIME", value: vpsInfo?.uptimeText || "—" },
+                  { icon: "👤", label: "USER", value: "root" },
+                  { icon: "📡", label: "PORT", value: "22" },
+                ] as { icon: string; label: string; value: string }[]).map((row) => (
                   <div
                     key={row.label}
                     className="flex items-center justify-between h-8 px-4 rounded hover:bg-[#ffffff04] transition-colors"
@@ -1026,32 +1020,31 @@ export default function TerminalPage() {
                   )}
                 </div>
                 <div className="h-px bg-[#ffffff08]" />
-                <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-[#71717a] py-1">APP SERVICES</p>
+                <div className="flex items-center justify-between py-1">
+                  <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-[#71717a]">APP SERVICES</p>
+                  <button
+                    type="button"
+                    onClick={() => runQuickCommand("pm2 list\r", "pm2 list")}
+                    className="text-[8px] text-[#71717a] hover:text-[#E8FF47] transition-colors"
+                  >
+                    pm2 list →
+                  </button>
+                </div>
                 {APP_SERVICES.map((svc) => (
                   <button
                     key={svc.id}
                     type="button"
-                    onClick={() => svc.pm2Name && runQuickCommand(`pm2 show ${svc.pm2Name}\r`, `pm2 show ${svc.pm2Name}`)}
+                    onClick={() => {
+                      if (svc.pm2Name) runQuickCommand(`pm2 show ${svc.pm2Name}\r`, `pm2 show ${svc.pm2Name}`);
+                      else if (svc.cmd) runQuickCommand(`${svc.cmd}\r`, svc.cmd);
+                    }}
                     className="w-full flex items-center justify-between h-9 px-2 rounded hover:bg-[#ffffff04] transition-colors text-left"
                   >
                     <span className="flex items-center gap-2 min-w-0">
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                          svc.status === "RUNNING" ? "bg-[#4ade80]" : svc.status === "STOPPED" ? "bg-[#ef4444]" : "bg-[#fbbf24]"
-                        }`}
-                      />
+                      <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-[#71717a]" />
                       <span className="text-[12px] text-[#fafafa] truncate">{svc.name}</span>
                     </span>
-                    <span className="flex items-center gap-2 shrink-0">
-                      <span
-                        className={`text-[10px] font-medium ${
-                          svc.status === "RUNNING" ? "text-[#4ade80]" : svc.status === "STOPPED" ? "text-[#ef4444]" : "text-[#fbbf24]"
-                        }`}
-                      >
-                        {svc.status}
-                      </span>
-                      <span className="text-[10px] text-[#71717a]">{svc.uptime}</span>
-                    </span>
+                    <ChevronRight size={12} className="text-[#71717a] shrink-0" />
                   </button>
                 ))}
                 <div className="h-px bg-[#ffffff08]" />
@@ -1221,11 +1214,49 @@ export default function TerminalPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="space-y-4 text-[12px] text-[#a1a1aa]">
-                      <p>CPU: 24%</p>
-                      <p>Memory: 2.1 GB / 8 GB</p>
-                      <p>Disk: 47.2 GB / 80 GB</p>
-                      <p>Load: 0.42</p>
+                    <div className="space-y-3 text-[12px] text-[#a1a1aa]">
+                      {vpsInfo ? (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-[#71717a]">CPU</span>
+                            <span>{vpsInfo.cpuPercent != null ? `${vpsInfo.cpuPercent.toFixed(1)}%` : vpsInfo.cpuText ?? "—"}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-[#71717a]">Memory</span>
+                            <span>{vpsInfo.ramUsedText && vpsInfo.ramGb ? `${vpsInfo.ramUsedText} / ${vpsInfo.ramGb} GB` : "—"}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-[#71717a]">Disk</span>
+                            <span>{vpsInfo.diskUsedText && vpsInfo.diskGb ? `${vpsInfo.diskUsedText} / ${vpsInfo.diskGb} GB` : "—"}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-[#71717a]">Bandwidth</span>
+                            <span>
+                              {vpsInfo.bandwidthUsageTb != null && vpsInfo.bandwidthTb != null
+                                ? `${vpsInfo.bandwidthUsageTb.toFixed(2)} / ${vpsInfo.bandwidthTb} TB`
+                                : "—"}
+                            </span>
+                          </div>
+                          {vpsInfo.uptimeText && (
+                            <div className="flex justify-between">
+                              <span className="text-[#71717a]">Uptime</span>
+                              <span>{vpsInfo.uptimeText}</span>
+                            </div>
+                          )}
+                          {vpsInfo.vmStatus && (
+                            <div className="flex justify-between">
+                              <span className="text-[#71717a]">VM Status</span>
+                              <span className={vpsInfo.vmStatus === "running" ? "text-[#4ade80]" : "text-[#fbbf24]"}>
+                                {vpsInfo.vmStatus.toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-[#3f3f46] text-center py-4">
+                          {vpsInfoError ? `Error: ${vpsInfoError}` : "Connecting to VPS…"}
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
