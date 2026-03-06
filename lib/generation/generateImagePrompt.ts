@@ -1,13 +1,10 @@
 import OpenAI from "openai";
 import type {
-  BrandDNA,
   BrandKit,
   CopyData,
   OccasionContext,
   Recommendation,
 } from "@/types/generation";
-import { getImageProvider } from "@/lib/image-models";
-import { getLocalPattern, getTimeOfDay, getLocationDescription } from "@/lib/generation/africanContext";
 
 /** ISO 639-1 codes we treat as "non-English" for poster text display instructions */
 const NON_ENGLISH_CODES = new Set([
@@ -20,94 +17,14 @@ function isNonEnglishDisplay(lang: string | undefined): boolean {
   return code !== "en" && (NON_ENGLISH_CODES.has(code) || code.length === 2);
 }
 
-/**
- * Build a narrative/spatial image prompt for Gemini (African Premium Injector template).
- * Background-only: no text or logos in the generated image; composite adds them.
- */
-function buildGeminiStylePrompt(
-  brandKit: BrandKit,
-  _copy: CopyData,
-  recommendation: Recommendation | null | undefined,
-  brandDna: BrandDNA | null | undefined
-): string {
-  const industry = brandKit.industry ?? "business";
-  const location = getLocationDescription(brandKit.brandLocation);
-  const aestheticProfile =
-    brandDna?.aestheticProfile ?? brandKit.tone ?? "professional";
-  const textPosition =
-    brandDna?.layoutPreferences?.safeZone ?? "top-center";
-  const localPattern = getLocalPattern(brandKit.brandLocation);
-  const timeOfDay = getTimeOfDay(brandKit.brandLocation?.timezone);
-
-  const brandColors =
-    brandDna?.dominantColors?.length
-      ? brandDna.dominantColors.join(", ")
-      : [brandKit.primaryColor, brandKit.secondaryColor, brandKit.accentColor]
-          .filter(Boolean)
-          .join(", ") || "professional palette";
-
-  const visualMood = recommendation?.visualMood ?? "clean, premium";
-
-  return `A premium marketing background for ${industry} located in ${location}.
-VISUAL STYLE: ${aestheticProfile}. ${visualMood}.
-COLOR HARMONY: Use a palette based on ${brandColors}.
-COMPOSITION: Ensure a clean Safe Zone for text in the ${textPosition}. Negative space in top-left for logo placement.
-CULTURAL TOUCH: Incorporate subtle ${localPattern} in the shadows.
-LIGHTING: ${timeOfDay} lighting, reflecting the warmth of ${location}.
-Cinematic atmosphere, ethereal lighting, high-end feel.
-DO NOT: Include any text, watermarks, or logos in the generated image.`.trim();
-}
-
-/**
- * Build a technical/keyword-heavy prompt for Freepik Seedream/Mystic.
- */
-function buildFreepikStylePrompt(
-  brandKit: BrandKit,
-  copy: CopyData,
-  recommendation: Recommendation | null | undefined,
-  brandDna: BrandDNA | null | undefined
-): string {
-  const industry = brandKit.industry ?? "business";
-  const location = getLocationDescription(brandKit.brandLocation);
-  const aestheticProfile =
-    brandDna?.aestheticProfile ?? brandKit.tone ?? "professional";
-  const brandColors =
-    brandDna?.dominantColors?.length
-      ? brandDna.dominantColors.join(", ")
-      : [brandKit.primaryColor, brandKit.secondaryColor, brandKit.accentColor]
-          .filter(Boolean)
-          .join(", ") || "neutral palette";
-
-  return `${industry} professional background, ${aestheticProfile} style, ${location}.
-Hex colors ${brandColors}, studio lighting, macro photography, sharp focus, 8k resolution,
-minimalist composition, commercial stock photo style, bokeh background, high-end feel.
-Headline text: "${copy.headline}". CTA button: "${copy.cta}".
-f/1.8, ISO 100, high-end commercial photography, clean background.
-Do not include logos or watermarks.`.trim();
-}
-
 export async function generateImagePrompt(
   brandKit: BrandKit,
   copy: CopyData,
   _occasionContext?: OccasionContext | null,
   recommendation?: Recommendation | null,
   platformFormatId?: string | null,
-  posterLanguage?: string | null,
-  imageProviderId?: string | null,
-  brandDna?: BrandDNA | null
+  posterLanguage?: string | null
 ): Promise<string> {
-  const provider = imageProviderId ? getImageProvider(imageProviderId) : undefined;
-  if (provider?.provider === "gemini") {
-    const prompt = buildGeminiStylePrompt(brandKit, copy, recommendation, brandDna ?? null);
-    console.log("[ImagePrompt] Gemini (narrative):", prompt.slice(0, 120));
-    return prompt;
-  }
-  if (provider?.provider === "freepik") {
-    const prompt = buildFreepikStylePrompt(brandKit, copy, recommendation, brandDna ?? null);
-    console.log("[ImagePrompt] Freepik (technical):", prompt.slice(0, 120));
-    return prompt;
-  }
-
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("Image prompt generation is not available. Please try again later.");
   const openai = new OpenAI({ apiKey });

@@ -1,6 +1,5 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { analyzeBrandKit } from "@/lib/brand/analyzeBrandMultimodal";
 import { generateCopy } from "@/lib/generation/generateCopy";
 import { generateImage } from "@/lib/generation/imageProvider";
 import { generateImagePrompt } from "@/lib/generation/generateImagePrompt";
@@ -11,8 +10,7 @@ import { getPlatformFormat } from "@/lib/generation/platformFormats";
 import { compositePoster } from "@/lib/sharp/compositePoster";
 import { uploadBufferToCloudinary } from "@/lib/uploadToCloudinary";
 import { generateLayout, buildPosterLayout, BACKGROUND_ONLY_INSTRUCTION } from "@/lib/generation/generateLayout";
-import type { BrandDNA, BrandKit, CopyData, Recommendation, Product, ProductIntent, ProductOverrides } from "@/types/generation";
-import type { LogoSafeZone } from "@/lib/sharp/compositePoster";
+import type { BrandKit, CopyData, Recommendation, Product, ProductIntent, ProductOverrides } from "@/types/generation";
 
 /** Describe brand colors for the image prompt using color names only — never hex codes. */
 function describeBrandColorsForPrompt(
@@ -162,8 +160,6 @@ export async function runGenerationForUser(
     secondaryColor: kitData.secondaryColor,
     accentColor: kitData.accentColor,
     logoUrl: kitData.logoUrl,
-    storePhotoUrls: kitData.storePhotoUrls,
-    brandDna: kitData.brandDna,
     tone: kitData.tone,
     styleNotes: kitData.styleNotes,
     brandLocation: kitData.brandLocation,
@@ -176,12 +172,6 @@ export async function runGenerationForUser(
     contactLocation: kitData.contactLocation,
     website: kitData.website,
   };
-
-  // Multimodal Brand Analysis (on-demand when logo or store photos exist; use cache if present)
-  let brandDna: BrandDNA | null | undefined = brandKit.brandDna ?? null;
-  if (!brandDna && (brandKit.logoUrl || (brandKit.storePhotoUrls?.length ?? 0) > 0)) {
-    brandDna = await analyzeBrandKit(brandKit) ?? null;
-  }
 
   // Optionally load the product document for product-mode generation
   let product: Product | null = null;
@@ -386,16 +376,7 @@ export async function runGenerationForUser(
     ].filter(Boolean).join(" ");
   } else {
     const effectiveLang = posterLanguage ?? kitData.language;
-    imagePrompt = await generateImagePrompt(
-      brandKit,
-      copy,
-      null,
-      recommendation ?? null,
-      platformFormatId,
-      effectiveLang,
-      imageProviderId,
-      brandDna ?? undefined
-    );
+    imagePrompt = await generateImagePrompt(brandKit, copy, null, recommendation ?? null, platformFormatId, effectiveLang);
     const shouldImprove =
       useImprovePrompt === true || (useImprovePrompt !== false && process.env.USE_FREEPIK_IMPROVE_PROMPT === "true");
     if (shouldImprove) {
@@ -441,15 +422,6 @@ export async function runGenerationForUser(
     }
   );
 
-  const logoPosition = brandDna?.layoutPreferences?.logoPosition;
-  const BASE_LOGO = 172;
-  const logoSafeZone: LogoSafeZone | undefined =
-    logoPosition === "top-right"
-      ? { x: 1080 - BASE_LOGO, y: 0 }
-      : logoPosition === "center"
-        ? { x: Math.round((1080 - BASE_LOGO) / 2), y: Math.round((1080 - BASE_LOGO) / 2) }
-        : undefined;
-
   const finalBuffer = await compositePoster({
     backgroundBuffer,
     brandKit: {
@@ -475,7 +447,6 @@ export async function runGenerationForUser(
     addCTAFromSharp,
     width:  format.width,
     height: format.height,
-    logoSafeZone,
   });
 
   // Create Firestore doc first so we get a stable ID for both Cloudinary public_ids.

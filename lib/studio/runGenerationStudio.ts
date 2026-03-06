@@ -5,7 +5,6 @@
  */
 
 import { FieldValue } from "firebase-admin/firestore";
-import { analyzeBrandKit } from "@/lib/brand/analyzeBrandMultimodal";
 import { getBrandKit, postersRef, brandKitsRef } from "@/lib/studio/db";
 import { generateCopy } from "@/lib/generation/generateCopy";
 import { generateImage } from "@/lib/generation/imageProvider";
@@ -16,9 +15,8 @@ import { getPlatformFormat } from "@/lib/generation/platformFormats";
 import { compositePoster } from "@/lib/sharp/compositePoster";
 import { uploadBufferToCloudinary } from "@/lib/uploadToCloudinary";
 import { generateLayout, buildPosterLayout, BACKGROUND_ONLY_INSTRUCTION } from "@/lib/generation/generateLayout";
-import type { BrandDNA, BrandKit, CopyData, Recommendation } from "@/types/generation";
+import type { BrandKit, CopyData, Recommendation } from "@/types/generation";
 import type { ApprovalStatus } from "@/types/studio";
-import type { LogoSafeZone } from "@/lib/sharp/compositePoster";
 
 export interface StudioGenerationResult {
   posterId: string;
@@ -61,8 +59,6 @@ export async function runGenerationForStudio(
     secondaryColor: kitData.secondaryColor,
     accentColor: kitData.accentColor,
     logoUrl: kitData.logoUrl,
-    storePhotoUrls: (kitData as any).storePhotoUrls,
-    brandDna: (kitData as any).brandDna,
     tone: kitData.tone,
     styleNotes: kitData.styleNotes,
     brandLocation: kitData.brandLocation,
@@ -75,11 +71,6 @@ export async function runGenerationForStudio(
     contactLocation: kitData.contactLocation,
     website: kitData.website,
   };
-
-  let brandDna: BrandDNA | null | undefined = brandKit.brandDna ?? null;
-  if (!brandDna && (brandKit.logoUrl || (brandKit.storePhotoUrls?.length ?? 0) > 0)) {
-    brandDna = await analyzeBrandKit(brandKit) ?? null;
-  }
 
   const copy = await generateCopy(brandKit, null, recommendation ?? null, null, platformFormatId ?? null, posterLanguage ?? kitData.language ?? null);
 
@@ -173,22 +164,13 @@ export async function runGenerationForStudio(
       ? await improvePrompt(extractedPrompt)
       : extractedPrompt;
   } else {
-    imagePrompt = await generateImagePrompt(
-      brandKit,
-      copy,
-      null,
-      recommendation ?? null,
-      platformFormatId ?? null,
-      posterLanguage ?? kitData.language ?? null,
-      imageProviderId,
-      brandDna ?? undefined
-    );
+    imagePrompt = await generateImagePrompt(brandKit, copy, null, recommendation ?? null, platformFormatId ?? null);
     if (useImprovePrompt) {
       imagePrompt = await improvePrompt(imagePrompt);
     }
   }
 
-  const { buffer: backgroundBuffer, imageHasText, logoHandledByAI, addCTAFromSharp } = await generateImage(
+  const { buffer: backgroundBuffer } = await generateImage(
     imagePrompt,
     format.freepikAspectRatio,
     imageProviderId,
@@ -201,14 +183,9 @@ export async function runGenerationForStudio(
     }
   );
 
-  const logoPosition = brandDna?.layoutPreferences?.logoPosition;
-  const BASE_LOGO = 172;
-  const logoSafeZone: LogoSafeZone | undefined =
-    logoPosition === "top-right"
-      ? { x: 1080 - BASE_LOGO, y: 0 }
-      : logoPosition === "center"
-        ? { x: Math.round((1080 - BASE_LOGO) / 2), y: Math.round((1080 - BASE_LOGO) / 2) }
-        : undefined;
+  let imageHasText = false;
+  let logoHandledByAI = false;
+  let addCTAFromSharp = false;
 
   const compositeBrandKit = {
     brandName: brandKit.brandName ?? "",
@@ -231,7 +208,6 @@ export async function runGenerationForStudio(
     addCTAFromSharp,
     width: format.width,
     height: format.height,
-    logoSafeZone,
   });
 
   const ref = await postersRef(agencyId, clientId).add({

@@ -23,8 +23,6 @@ function kitFromDoc(id: string, data: Record<string, unknown>) {
     secondaryColor: data.secondaryColor,
     accentColor: data.accentColor,
     logoUrl: data.logoUrl,
-    storePhotoUrls: data.storePhotoUrls,
-    brandDna: data.brandDna,
     brandLocation: data.brandLocation,
     targetAudience: data.targetAudience,
     ageRange: data.ageRange,
@@ -96,7 +94,6 @@ export async function PATCH(
     "brandName", "industry", "tagline", "website",
     "phoneNumber", "contactLocation",
     "primaryColor", "secondaryColor", "accentColor", "logoUrl",
-    "storePhotoUrls", "brandDna",
     "brandLocation", "targetAudience", "ageRange", "platforms",
     "language", "tone", "styleNotes", "sampleContent",
   ];

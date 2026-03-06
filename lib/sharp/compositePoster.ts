@@ -20,14 +20,6 @@ interface CopyData {
   hashtags: string[];
 }
 
-/** Optional Safe Zone from BrandDNA for logo placement when !logoHandledByAI */
-export interface LogoSafeZone {
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
-}
-
 interface CompositeInput {
   backgroundBuffer: Buffer;
   brandKit: BrandKit;
@@ -47,10 +39,6 @@ interface CompositeInput {
    * Sharp adds the CTA button precisely on top of the generated image.
    */
   addCTAFromSharp?: boolean;
-  /** Override headline color; when not set, Smart Color Match uses background luminance */
-  headlineColor?: string;
-  /** When set and !logoHandledByAI, place logo in this zone (px). Otherwise top-left. */
-  logoSafeZone?: LogoSafeZone;
 }
 
 function wrapText(text: string, maxChars: number): string[] {
@@ -134,51 +122,6 @@ async function downloadImage(url: string): Promise<Buffer | null> {
 
 const BASE = 1080;
 const PADDING_BASE = 64;
-const LUMINANCE_THRESHOLD = 0.4;
-
-/** Parse hex #RRGGBB to r,g,b 0-255. Falls back to 0,0,0 if invalid. */
-function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  const h = String(hex).replace(/^#/, "").trim();
-  if (!/^[0-9A-Fa-f]{6}$/.test(h)) return { r: 0, g: 0, b: 0 };
-  return {
-    r: parseInt(h.slice(0, 2), 16),
-    g: parseInt(h.slice(2, 4), 16),
-    b: parseInt(h.slice(4, 6), 16),
-  };
-}
-
-function hexToRgba(hex: string, alpha: number): string {
-  const { r, g, b } = hexToRgb(hex);
-  return `rgba(${r},${g},${b},${alpha})`;
-}
-
-/**
- * Compute average luminance (0-1) from a buffer using a small sample.
- * Used for Smart Color Match: dark background → white headline, light → primary.
- */
-async function getBackgroundLuminance(buffer: Buffer): Promise<number> {
-  try {
-    const { data, info } = await sharp(buffer)
-      .resize(80, 80, { fit: "cover" })
-      .removeAlpha()
-      .raw()
-      .toBuffer({ resolveWithObject: true });
-    const channels = (info as { channels?: number }).channels ?? 3;
-    let r = 0, g = 0, b = 0, n = 0;
-    for (let i = 0; i < data.length; i += channels) {
-      r += data[i];
-      g += channels >= 2 ? data[i + 1] : 0;
-      b += channels >= 3 ? data[i + 2] : 0;
-      n++;
-    }
-    if (n === 0) return 0.5;
-    r /= n; g /= n; b /= n;
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return Math.min(1, Math.max(0, luminance));
-  } catch {
-    return 0.5;
-  }
-}
 
 export async function compositePoster({
   backgroundBuffer,
@@ -189,8 +132,6 @@ export async function compositePoster({
   height: inputH,
   logoHandledByAI = false,
   addCTAFromSharp = false,
-  headlineColor: headlineColorOverride,
-  logoSafeZone,
 }: CompositeInput): Promise<Buffer> {
   const W = inputW ?? BASE;
   const H = inputH ?? BASE;
@@ -211,17 +152,36 @@ export async function compositePoster({
   const compositeInputs: sharp.OverlayOptions[] = [];
 
   const LOGO_SIZE = Math.round(140 * scale);
-  const LOGO_PAD_X = Math.round(20 * scale);
-  const LOGO_PAD_Y = Math.round(16 * scale);
-
-  console.log("[sharp] logoHandledByAI:", logoHandledByAI, "| logoUrl:", brandKit.logoUrl ? brandKit.logoUrl.slice(0, 60) : "MISSING");
+  const BADGE_PAD_X = Math.round(20 * scale);
+  const BADGE_PAD_Y = Math.round(16 * scale);
+  const BADGE_W = LOGO_SIZE + BADGE_PAD_X * 2;
+  const BADGE_H = LOGO_SIZE + BADGE_PAD_Y * 2;
+  // Only round the bottom-right corner — top-left corner anchors to image edge
+  const BADGE_R = Math.round(20 * scale);
 
   if (!logoHandledByAI && brandKit.logoUrl) {
     try {
       console.log("[sharp] Downloading logo:", brandKit.logoUrl.slice(0, 80));
       const logoBuffer = await downloadImage(brandKit.logoUrl);
       if (logoBuffer) {
-        console.log("[sharp] Logo downloaded, bytes:", logoBuffer.length);
+        // 1. Opaque badge anchored flush to top-left corner — fully covers any AI icon
+        const badgeSvg = `<svg width="${BADGE_W}" height="${BADGE_H}" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="${BADGE_W}" height="${BADGE_H}"
+                rx="0" ry="0"
+                fill="rgba(0,0,0,0.92)" />
+          <rect x="${Math.round(BADGE_W * 0.6)}" y="${Math.round(BADGE_H * 0.6)}"
+                width="${Math.round(BADGE_W * 0.4)}" height="${Math.round(BADGE_H * 0.4)}"
+                rx="${BADGE_R}" ry="${BADGE_R}"
+                fill="rgba(0,0,0,0.92)" />
+        </svg>`;
+        compositeInputs.push({
+          input: Buffer.from(badgeSvg),
+          top: 0,
+          left: 0,
+          blend: "over",
+        });
+
+        // 2. Logo centered within the badge
         const logoResized = await sharp(logoBuffer)
           .resize(LOGO_SIZE, LOGO_SIZE, {
             fit: "contain",
@@ -231,11 +191,11 @@ export async function compositePoster({
           .toBuffer();
         compositeInputs.push({
           input: logoResized,
-          top: LOGO_PAD_Y,
-          left: LOGO_PAD_X,
+          top: BADGE_PAD_Y,
+          left: BADGE_PAD_X,
           blend: "over",
         });
-        console.log("[sharp] Logo queued at", LOGO_PAD_X, LOGO_PAD_Y);
+        console.log("[sharp] Logo queued at", BADGE_PAD_X, BADGE_PAD_Y);
       } else {
         console.warn("[sharp] Logo buffer was null — logo not composited");
       }
@@ -257,12 +217,6 @@ export async function compositePoster({
     console.log("[sharp] Poster composited (imageHasText, logo only). Size:", finalBuffer.length);
     return finalBuffer;
   }
-
-  // Smart Color Match: headline color from background luminance (or override)
-  const luminance = headlineColorOverride !== undefined ? 0.5 : await getBackgroundLuminance(backgroundBuffer);
-  const headlineColor =
-    headlineColorOverride ??
-    (luminance < LUMINANCE_THRESHOLD ? "#FFFFFF" : primary);
 
   // Full overlay: headline, body, CTA, hashtags (Mystic fallback)
   const headline = escapeXml(copy.headline || brandKit.brandName);
@@ -346,7 +300,7 @@ export async function compositePoster({
 
   <rect x="${PADDING}" y="${panelY + Math.round(40 * scaleY)}"
         width="${Math.round(48 * scale)}" height="${Math.round(4 * scale)}"
-        rx="${Math.round(2 * scale)}" fill="${headlineColor}" />
+        rx="${Math.round(2 * scale)}" fill="${primary}" />
 
   <text
     x="${PADDING}"
@@ -354,7 +308,7 @@ export async function compositePoster({
     font-family="${SERVER_FONT}"
     font-weight="900"
     font-size="${hl1Size}"
-    fill="${headlineColor}"
+    fill="#FFFFFF"
     letter-spacing="-1"
   >${hl1}</text>
 
@@ -365,7 +319,7 @@ export async function compositePoster({
     font-family="${SERVER_FONT}"
     font-weight="900"
     font-size="${hl2Size}"
-    fill="${headlineColor}"
+    fill="${primary}"
     letter-spacing="-1"
   >${hl2}</text>
   ` : ""}
@@ -409,7 +363,7 @@ export async function compositePoster({
     width="${Math.min(cta.length * Math.round(14 * scale) + Math.round(48 * scale), W - PADDING * 2)}"
     height="${ctaH}"
     rx="${Math.round(8 * scale)}"
-    fill="${hexToRgba(primary, 0.7)}"
+    fill="${primary}"
   />
   <text
     x="${PADDING + Math.round(24 * scale)}"
@@ -457,6 +411,21 @@ export async function compositePoster({
       console.log("[sharp] Downloading logo (full overlay):", brandKit.logoUrl.slice(0, 80));
       const logoBuffer = await downloadImage(brandKit.logoUrl);
       if (logoBuffer) {
+        const badgeSvg2 = `<svg width="${BADGE_W}" height="${BADGE_H}" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="${BADGE_W}" height="${BADGE_H}"
+                rx="0" ry="0"
+                fill="rgba(0,0,0,0.92)" />
+          <rect x="${Math.round(BADGE_W * 0.6)}" y="${Math.round(BADGE_H * 0.6)}"
+                width="${Math.round(BADGE_W * 0.4)}" height="${Math.round(BADGE_H * 0.4)}"
+                rx="${BADGE_R}" ry="${BADGE_R}"
+                fill="rgba(0,0,0,0.92)" />
+        </svg>`;
+        fullOverlayInputs.push({
+          input: Buffer.from(badgeSvg2),
+          top: 0,
+          left: 0,
+          blend: "over",
+        });
         const logoResized = await sharp(logoBuffer)
           .resize(LOGO_SIZE, LOGO_SIZE, {
             fit: "contain",
@@ -466,11 +435,11 @@ export async function compositePoster({
           .toBuffer();
         fullOverlayInputs.push({
           input: logoResized,
-          top: LOGO_PAD_Y,
-          left: LOGO_PAD_X,
+          top: BADGE_PAD_Y,
+          left: BADGE_PAD_X,
           blend: "over",
         });
-        console.log("[sharp] Logo queued (full overlay) at", LOGO_PAD_X, LOGO_PAD_Y);
+        console.log("[sharp] Logo queued (full overlay) at", BADGE_PAD_X, BADGE_PAD_Y);
       } else {
         console.warn("[sharp] Logo buffer was null (full overlay) — logo not composited");
       }

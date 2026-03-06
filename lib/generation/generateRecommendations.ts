@@ -7,7 +7,7 @@
 
 import { getFirestore } from "firebase-admin/firestore";
 import OpenAI from "openai";
-import type { BrandDNA, Recommendation } from "@/types/generation";
+import type { Recommendation } from "@/types/generation";
 
 type Firestore = ReturnType<typeof getFirestore>;
 
@@ -354,10 +354,6 @@ interface BrandKitContext {
     currency?: string;
     languages?: string[];
   };
-  /** From multimodal brand analysis (Gemini vision). Injects aesthetic + dynamic real-time alignment. */
-  brandDna?: BrandDNA | null;
-  /** Optional placeholder for trending local topic (future: API or cron). */
-  trendingLocalTopic?: string | null;
 }
 
 function buildFreshnessContext(brandKit: BrandKitContext): string {
@@ -425,31 +421,12 @@ export function buildRecommendationSystemPrompt(
   const freshness = buildFreshnessContext(brandKit);
 
   const now = new Date();
-  const hour = now.getHours();
-  const timeOfDay = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
-  const locationDesc = [brandKit.brandLocation?.city, brandKit.brandLocation?.country]
-    .filter(Boolean)
-    .join(", ") || "the brand's market";
-
-  const dynamicRealTimeBlock =
-    brandKit.brandDna?.aestheticProfile
-      ? `
-AESTHETIC PROFILE (from brand visual analysis): ${brandKit.brandDna.aestheticProfile}
-DYNAMIC REAL-TIME ALIGNMENT: Prefer themes and visual moods that match ${timeOfDay} in ${locationDesc}.
-E.g. if it's Friday evening in Johannesburg, suggest "after-work drinks" or "weekend vibes" with golden hour lighting; if morning in Lagos, suggest "start the day" energy. Consider local relevance for ${brandKit.brandLocation?.country ?? "this market"}.
-${brandKit.trendingLocalTopic ? `TRENDING LOCAL CONTEXT: ${brandKit.trendingLocalTopic}` : ""}
-`.trim()
-      : brandKit.trendingLocalTopic
-        ? `TRENDING LOCAL CONTEXT: ${brandKit.trendingLocalTopic}`
-        : "";
-
-  const now2 = new Date();
   const todayPromo =
-    matrix.promotionAngles[now2.getDate() % matrix.promotionAngles.length];
+    matrix.promotionAngles[now.getDate() % matrix.promotionAngles.length];
   const todayEmotion =
-    matrix.emotionAngles[now2.getHours() % matrix.emotionAngles.length];
+    matrix.emotionAngles[now.getHours() % matrix.emotionAngles.length];
   const todayCultural =
-    matrix.culturalAngles[now2.getDay() % matrix.culturalAngles.length];
+    matrix.culturalAngles[now.getDay() % matrix.culturalAngles.length];
 
   return `
 You are ${
@@ -459,7 +436,6 @@ You are ${
   }
 
 ${freshness}
-${dynamicRealTimeBlock ? `\n${dynamicRealTimeBlock}\n` : ""}
 
 YOUR TASK:
 Generate exactly 6 VISUALLY DISTINCT poster concepts for ${brandKit.brandName}.
@@ -688,13 +664,11 @@ Generate concepts that are completely unrelated to the above.
  * Load brand kit, generate 6 recommendations via OpenAI, persist themes, return array.
  * Used by POST /api/recommendations (with auth) and by the scheduled-generation cron (no user token).
  * Requires OPENAI_API_KEY. Throws on missing brand kit or API key.
- * @param options.brandDna — Optional BrandDNA from multimodal analysis; overrides cached kit.brandDna when provided.
  */
 export async function getRecommendationsForBrandKit(
   db: Firestore,
   uid: string,
-  brandKitId: string,
-  options?: { brandDna?: BrandDNA | null; trendingLocalTopic?: string | null }
+  brandKitId: string
 ): Promise<Recommendation[]> {
   const snap = await db
     .collection("users")
@@ -708,7 +682,7 @@ export async function getRecommendationsForBrandKit(
   }
 
   const kit = snap.data() as Record<string, unknown>;
-  const brandKit: BrandKitContext = {
+  const brandKit = {
     brandName: (kit.brandName as string) ?? "",
     industry: (kit.industry as string) ?? "",
     tone: (kit.tone as string) ?? "professional",
@@ -721,8 +695,6 @@ export async function getRecommendationsForBrandKit(
       currency?: string;
       languages?: string[];
     }) ?? {},
-    brandDna: options?.brandDna !== undefined ? options.brandDna : ((kit.brandDna as BrandDNA | undefined) ?? undefined),
-    trendingLocalTopic: options?.trendingLocalTopic !== undefined ? options.trendingLocalTopic : ((kit.trendingLocalTopic as string | undefined) ?? undefined),
   };
 
   const apiKey = process.env.OPENAI_API_KEY;
@@ -783,105 +755,11 @@ export interface RecommendationBrandKitContext {
     currency?: string;
     languages?: string[];
   };
-  brandDna?: BrandDNA | null;
-  trendingLocalTopic?: string | null;
-}
-
-/**
- * Studio-only: simple content suggestions (occasion/campaign names + headlines).
- * Theme must be user-facing (e.g. "Eid Mubarak", "New Year Sale"), NOT design jargon.
- */
-function buildStudioRecommendationSystemPrompt(brandKit: RecommendationBrandKitContext): string {
-  const industry = brandKit.industry?.toLowerCase() ?? "general";
-  const dynamicBlock =
-    brandKit.brandDna?.aestheticProfile
-      ? `AESTHETIC PROFILE (from brand visual analysis): ${brandKit.brandDna.aestheticProfile}. Align theme mood and visual suggestions with this profile and local relevance for ${brandKit.brandLocation?.country ?? "the market"}.`
-      : brandKit.trendingLocalTopic
-        ? `Consider local relevance: ${brandKit.trendingLocalTopic}.`
-        : "";
-  return `
-You are a creative director for social media posters. Generate exactly 6 poster CONTENT ideas for ${brandKit.brandName}.
-${dynamicBlock ? `\n${dynamicBlock}\n` : ""}
-
-CRITICAL — theme field:
-- "theme" MUST be a 2–4 word OCCASION or CAMPAIGN name that a client would recognize.
-- GOOD: "Eid Mubarak", "New Year Sale", "Grand Opening", "Back to School", "Ramadan Offers", "Mother's Day", "Flash Sale Weekend", "Summer Collection"
-- BAD: "Bold Contrast", "Typographic Power", "Dark Luxury", "Environmental Scene", "Flat Graphic" (these are design styles, not content themes)
-
-Industry: ${industry}
-Brand: ${brandKit.brandName}
-Tone: ${brandKit.tone ?? "professional"}
-Language: ${brandKit.language ?? "English"}
-
-For each concept provide:
-- theme: 2–4 word occasion/campaign name (see GOOD examples above)
-- topic: One sentence describing what the poster is about
-- suggestedHeadline: Punchy headline (max 8 words), billboard-quality
-- suggestedCta: Call-to-action (max 5 words)
-- visualMood: Short art direction note (e.g. "Warm sunset, product hero shot")
-- description: 1–2 sentences on what to show
-- hashtags: 3–4 relevant hashtags
-- category: one of promotion | occasion | engagement | brand | product | seasonal
-- urgency: high | medium | low
-- reason: One sentence why this works
-
-Return ONLY a raw JSON array of 6 objects. No markdown. No code fences. Each object: theme, topic, suggestedHeadline, suggestedCta, visualMood, description, hashtags, category, urgency, reason. Include "id" as a short unique string per item.
-`.trim();
-}
-
-/**
- * Generate 6 Studio content recommendations (user-facing themes, like ArtMaster business flow).
- * Uses simpler prompt so theme = occasion/campaign name, not design jargon.
- */
-export async function generateStudioRecommendationsFromContext(
-  brandKit: RecommendationBrandKitContext
-): Promise<Recommendation[]> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("OPENAI_API_KEY not set");
-
-  const context: RecommendationBrandKitContext = {
-    brandName: brandKit.brandName ?? "Brand",
-    industry: brandKit.industry ?? "general",
-    tone: brandKit.tone ?? "professional",
-    language: brandKit.language ?? "English",
-    targetAudience: brandKit.targetAudience ?? "general",
-    brandLocation: brandKit.brandLocation ?? {},
-    brandDna: brandKit.brandDna ?? undefined,
-    trendingLocalTopic: brandKit.trendingLocalTopic ?? undefined,
-  };
-
-  const systemPrompt = buildStudioRecommendationSystemPrompt(context);
-  const openai = new OpenAI({ apiKey });
-
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o",
-    temperature: 0.9,
-    top_p: 0.95,
-    max_tokens: 2000,
-    messages: [
-      { role: "system", content: systemPrompt },
-      {
-        role: "user",
-        content: `Generate exactly 6 poster content ideas for ${context.brandName}. Return raw JSON array only.`,
-      },
-    ],
-  });
-
-  const raw = response.choices[0]?.message?.content ?? "[]";
-  const cleaned = raw.replace(/```json/g, "").replace(/```/g, "").trim();
-
-  try {
-    const parsed = JSON.parse(cleaned) as unknown[];
-    return Array.isArray(parsed) ? (parsed as Recommendation[]) : [];
-  } catch {
-    console.error("[generateStudioRecommendationsFromContext] Parse error:", cleaned.slice(0, 300));
-    throw new Error("Failed to parse AI response");
-  }
 }
 
 /**
  * Generate 6 poster recommendations from a brand kit context (e.g. Studio client + kit).
- * Uses full creative prompt (visual archetypes). For user-facing content suggestions use generateStudioRecommendationsFromContext instead.
+ * Does not read or write Firestore. Requires OPENAI_API_KEY.
  */
 export async function generateRecommendationsFromContext(
   brandKit: RecommendationBrandKitContext
@@ -896,8 +774,6 @@ export async function generateRecommendationsFromContext(
     language: brandKit.language ?? "English",
     targetAudience: brandKit.targetAudience ?? "general",
     brandLocation: brandKit.brandLocation ?? {},
-    brandDna: brandKit.brandDna ?? undefined,
-    trendingLocalTopic: brandKit.trendingLocalTopic ?? undefined,
   };
 
   const systemPrompt = buildRecommendationSystemPrompt(context, false);

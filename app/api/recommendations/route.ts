@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { verifyRequestAuth } from "@/lib/firebase/verify-auth";
-import { analyzeBrandKit } from "@/lib/brand/analyzeBrandMultimodal";
 import { getRecommendationsForBrandKit } from "@/lib/generation/generateRecommendations";
-import type { BrandKit } from "@/types/generation";
 
 export async function POST(request: NextRequest) {
   let uid: string;
@@ -29,23 +27,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const db = getAdminDb();
-    const kitSnap = await db.collection("users").doc(uid).collection("brand_kits").doc(brandKitId).get();
-    let brandDna = kitSnap.exists ? (kitSnap.data() as Record<string, unknown>)?.brandDna : undefined;
-    if (!brandDna && kitSnap.exists) {
-      const kit = kitSnap.data() as Record<string, unknown>;
-      const brandKit: BrandKit = {
-        id: kitSnap.id,
-        brandName: kit.brandName as string,
-        industry: kit.industry as string,
-        logoUrl: kit.logoUrl as string,
-        storePhotoUrls: kit.storePhotoUrls as string[] | undefined,
-        brandLocation: kit.brandLocation as BrandKit["brandLocation"],
-      };
-      if (brandKit.logoUrl || (brandKit.storePhotoUrls?.length ?? 0) > 0) {
-        brandDna = await analyzeBrandKit(brandKit) ?? undefined;
-      }
-    }
-    const recommendations = await getRecommendationsForBrandKit(db, uid, brandKitId, { brandDna: brandDna ?? null });
+    const recommendations = await getRecommendationsForBrandKit(db, uid, brandKitId);
     return NextResponse.json({ recommendations });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
