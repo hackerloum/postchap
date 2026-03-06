@@ -545,27 +545,16 @@ export default function TerminalPage() {
                 className={`w-2 h-2 rounded-full ${
                   status === "connected"
                     ? "bg-[#4ade80] animate-[status-pulse_2s_ease-in-out_infinite]"
-                    : status === "connecting"
-                      ? "bg-[#fbbf24] animate-pulse"
-                      : "bg-[#ef4444]"
+                    : "bg-[#ef4444]"
                 }`}
               />
               <span
                 className="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider"
                 style={{
-                  color:
-                    status === "connected"
-                      ? "#4ade80"
-                      : status === "connecting"
-                        ? "#fbbf24"
-                        : "#ef4444",
+                  color: status === "connected" ? "#4ade80" : "#ef4444",
                 }}
               >
-                {status === "connecting"
-                  ? "CONNECTING..."
-                  : status === "connected"
-                    ? "CONNECTED"
-                    : "DISCONNECTED"}
+                {status === "connected" ? "CONNECTED" : "DISCONNECTED"}
               </span>
             </div>
             <div className="hidden md:flex items-center gap-3">
