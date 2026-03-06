@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifySuperadminSession } from "@/lib/admin-auth";
+import { requireAdmin } from "@/lib/admin-auth";
 
 const EVPS_API_BASE = "https://www.evps.net/api/v1";
 
@@ -91,7 +91,7 @@ function normalizeEvpsToPayload(raw: EvpsVpsInfo): VpsInfoPayload {
 
 export async function GET(req: NextRequest) {
   try {
-    await verifySuperadminSession(req);
+    await requireAdmin(req);
   } catch {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

@@ -212,11 +212,15 @@ export default function TerminalPage() {
       const cmdWithoutCr = command.replace(/\r$/, "").trim();
       if (!cmdWithoutCr) return;
 
-      // Focus terminal so user sees output
+      // Focus terminal and scroll into view so user sees command and output
+      termRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       termRef.current?.focus();
       term.focus();
 
-      // Send full command + Enter in one go so the shell receives it reliably
+      // Write command to terminal immediately so user sees what's being run
+      term.write("\r\n\x1b[90m$ " + cmdWithoutCr + "\x1b[0m\r\n");
+
+      // Send full command + Enter so the shell receives it
       sendCommand(cmdWithoutCr + "\r");
 
       setCommandHistory((prev) => {
@@ -810,8 +814,8 @@ export default function TerminalPage() {
                       : "✗ failed"
                     : "—"}
                 </span>
-                <span className="text-[9px] tracking-wider">
-                  Ctrl+C kill · Ctrl+L clear · ↑ history
+                <span className="text-[9px] tracking-wider" title="Click the terminal area above to type your own commands">
+                  Type here or use Quick Commands · Ctrl+L clear
                 </span>
               </div>
             </section>
