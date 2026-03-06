@@ -203,11 +203,6 @@ export async function compositePoster({
   const logoZoneH = logoSafeZone?.height != null ? Math.round(logoSafeZone.height * scale) : null;
 
   const LOGO_SIZE = logoZoneW != null && logoZoneH != null ? Math.min(logoZoneW, logoZoneH) : Math.round(140 * scale);
-  const BADGE_PAD_X = Math.round(20 * scale);
-  const BADGE_PAD_Y = Math.round(16 * scale);
-  const BADGE_W = logoZoneW ?? (LOGO_SIZE + BADGE_PAD_X * 2);
-  const BADGE_H = logoZoneH ?? (LOGO_SIZE + BADGE_PAD_Y * 2);
-  const BADGE_R = Math.round(20 * scale);
 
   if (!logoHandledByAI && brandKit.logoUrl) {
     try {
@@ -215,22 +210,8 @@ export async function compositePoster({
       const logoBuffer = await downloadImage(brandKit.logoUrl);
       if (logoBuffer) {
         console.log("[sharp] Logo downloaded, bytes:", logoBuffer.length);
-        const badgeTop = Math.max(0, logoZoneY);
-        const badgeLeft = Math.max(0, Math.min(logoZoneX, W - BADGE_W));
-        // Use fill + fill-opacity (SVG presentation attributes) instead of rgba()
-        // so librsvg on Vercel renders the badge correctly.
-        const badgeSvg = `<svg width="${BADGE_W}" height="${BADGE_H}" xmlns="http://www.w3.org/2000/svg">
-          <rect x="0" y="0" width="${BADGE_W}" height="${BADGE_H}"
-                rx="${BADGE_R}" ry="${BADGE_R}"
-                fill="#000000" fill-opacity="0.82" />
-        </svg>`;
-        compositeInputs.push({
-          input: Buffer.from(badgeSvg),
-          top: badgeTop,
-          left: badgeLeft,
-          blend: "over",
-        });
-
+        const logoTop = Math.max(0, logoZoneY);
+        const logoLeft = Math.max(0, Math.min(logoZoneX, W - LOGO_SIZE));
         const logoResized = await sharp(logoBuffer)
           .resize(LOGO_SIZE, LOGO_SIZE, {
             fit: "contain",
@@ -238,15 +219,13 @@ export async function compositePoster({
           })
           .png()
           .toBuffer();
-        const logoPadX = Math.round((BADGE_W - LOGO_SIZE) / 2);
-        const logoPadY = Math.round((BADGE_H - LOGO_SIZE) / 2);
         compositeInputs.push({
           input: logoResized,
-          top: badgeTop + logoPadY,
-          left: badgeLeft + logoPadX,
+          top: logoTop,
+          left: logoLeft,
           blend: "over",
         });
-        console.log("[sharp] Logo badge queued at", badgeLeft, badgeTop);
+        console.log("[sharp] Logo queued at", logoLeft, logoTop);
       } else {
         console.warn("[sharp] Logo buffer was null — logo not composited");
       }
@@ -468,21 +447,8 @@ export async function compositePoster({
       console.log("[sharp] Downloading logo (full overlay):", brandKit.logoUrl.slice(0, 80));
       const logoBuffer = await downloadImage(brandKit.logoUrl);
       if (logoBuffer) {
-        const badgeTop = Math.max(0, logoZoneY);
-        const badgeLeft = Math.max(0, Math.min(logoZoneX, W - BADGE_W));
-        const logoPadX = Math.round((BADGE_W - LOGO_SIZE) / 2);
-        const logoPadY = Math.round((BADGE_H - LOGO_SIZE) / 2);
-        const badgeSvg2 = `<svg width="${BADGE_W}" height="${BADGE_H}" xmlns="http://www.w3.org/2000/svg">
-          <rect x="0" y="0" width="${BADGE_W}" height="${BADGE_H}"
-                rx="${BADGE_R}" ry="${BADGE_R}"
-                fill="#000000" fill-opacity="0.82" />
-        </svg>`;
-        fullOverlayInputs.push({
-          input: Buffer.from(badgeSvg2),
-          top: badgeTop,
-          left: badgeLeft,
-          blend: "over",
-        });
+        const logoTop = Math.max(0, logoZoneY);
+        const logoLeft = Math.max(0, Math.min(logoZoneX, W - LOGO_SIZE));
         const logoResized = await sharp(logoBuffer)
           .resize(LOGO_SIZE, LOGO_SIZE, {
             fit: "contain",
@@ -492,11 +458,11 @@ export async function compositePoster({
           .toBuffer();
         fullOverlayInputs.push({
           input: logoResized,
-          top: badgeTop + logoPadY,
-          left: badgeLeft + logoPadX,
+          top: logoTop,
+          left: logoLeft,
           blend: "over",
         });
-        console.log("[sharp] Logo badge queued (full overlay) at", badgeLeft, badgeTop);
+        console.log("[sharp] Logo queued (full overlay) at", logoLeft, logoTop);
       } else {
         console.warn("[sharp] Logo buffer was null (full overlay) — logo not composited");
       }
