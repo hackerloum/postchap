@@ -3,6 +3,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import "xterm/css/xterm.css";
 
+// Fix xterm canvas sizing inside flex containers
+const TERMINAL_STYLE = `
+  .xterm { height: 100%; }
+  .xterm-viewport { overflow-y: auto !important; }
+  .xterm-screen { width: 100% !important; }
+`;
+
 type Status = "connecting" | "connected" | "error" | "disconnected" | "forbidden";
 
 const QUICK_COMMANDS = [
@@ -13,8 +20,8 @@ const QUICK_COMMANDS = [
   { label: "Memory usage", command: "free -h\r" },
   { label: "CPU usage", command: "top -bn1 | head -20\r" },
   { label: "List processes", command: "pm2 list\r" },
-  { label: "Pull latest code", command: "cd /var/www/artmaster && git pull\r" },
-  { label: "Rebuild app", command: "npm run build\r" },
+  { label: "Pull latest code", command: "cd /var/www/postchap && git pull\r" },
+  { label: "Rebuild app", command: "cd /var/www/postchap && npm install\r" },
   { label: "Check nginx", command: "nginx -t && systemctl status nginx\r" },
   { label: "View error log", command: "tail -f /var/log/nginx/error.log\r" },
 ];
@@ -89,7 +96,8 @@ export default function TerminalPage() {
 
       if (termRef.current) {
         term.open(termRef.current);
-        fit.fit();
+        // Defer fit so the DOM has finished laying out
+        requestAnimationFrame(() => { fit.fit(); });
       }
 
       const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3001";
@@ -125,18 +133,26 @@ export default function TerminalPage() {
         }
       });
 
-      const handleResize = () => {
+      const sendResize = () => {
         fit.fit();
         if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({
-            type: "resize",
-            cols: term.cols,
-            rows: term.rows,
-          }));
+          ws.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
         }
       };
-      window.addEventListener("resize", handleResize);
-      cleanupRef.current = () => window.removeEventListener("resize", handleResize);
+
+      window.addEventListener("resize", sendResize);
+
+      // Also watch the terminal container for size changes (e.g. sidebar open/close)
+      let ro: ResizeObserver | null = null;
+      if (termRef.current && typeof ResizeObserver !== "undefined") {
+        ro = new ResizeObserver(() => sendResize());
+        ro.observe(termRef.current);
+      }
+
+      cleanupRef.current = () => {
+        window.removeEventListener("resize", sendResize);
+        ro?.disconnect();
+      };
     }
 
     init();
@@ -154,7 +170,7 @@ export default function TerminalPage() {
 
   if (status === "forbidden") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-bg-base">
+      <div className="h-screen flex items-center justify-center bg-bg-base">
         <p className="text-text-secondary">You do not have access to the terminal.</p>
       </div>
     );
@@ -162,12 +178,15 @@ export default function TerminalPage() {
 
   return (
     <div
-      className="flex flex-col min-h-screen"
+      className="flex flex-col"
       style={{
+        height: "100vh",
         background: "#0a0a0a",
         fontFamily: "'DM Mono', monospace",
+        overflow: "hidden",
       }}
     >
+      <style>{TERMINAL_STYLE}</style>
       <div
         className="flex items-center gap-3 px-5 py-3 border-b shrink-0"
         style={{
@@ -244,7 +263,13 @@ export default function TerminalPage() {
 
         <div
           ref={termRef}
-          className="flex-1 p-3 overflow-hidden"
+          style={{
+            flex: 1,
+            padding: "8px",
+            overflow: "hidden",
+            minWidth: 0,
+            minHeight: 0,
+          }}
         />
       </div>
     </div>
