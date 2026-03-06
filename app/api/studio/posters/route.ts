@@ -37,7 +37,10 @@ export async function GET(request: NextRequest) {
       createdAt: (p.createdAt as any)?.toMillis?.() ?? null,
     }));
 
-    return NextResponse.json({ posters: formatted });
+    return NextResponse.json(
+      { posters: formatted },
+      { headers: { "Cache-Control": "private, no-store, max-age=0" } }
+    );
   } catch (err) {
     console.error("[studio/posters GET]", err);
     return NextResponse.json({ error: "Failed to fetch posters" }, { status: 500 });

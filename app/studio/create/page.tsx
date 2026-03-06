@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { getClientIdToken } from "@/lib/auth-client";
 import { IMAGE_PROVIDERS, DEFAULT_IMAGE_PROVIDER, isProviderLockedForPlan } from "@/lib/image-models";
+import { Button } from "@/components/studio/ui";
+import CreateLoading from "./loading";
 import "./create-page.css";
 
 interface Client {
@@ -112,8 +114,8 @@ function CreateForm() {
     tokenP.then((token) => {
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
       Promise.all([
-        fetch("/api/studio/agency", { headers }),
-        fetch("/api/studio/usage", { headers }),
+        fetch("/api/studio/agency", { headers, cache: "no-store" }),
+        fetch("/api/studio/usage", { headers, cache: "no-store" }),
       ]).then(([agencyRes, usageRes]) => {
         if (agencyRes.ok) agencyRes.json().then((d) => d?.agency?.plan && setStudioPlan(d.agency.plan));
         if (usageRes.ok) usageRes.json().then((u) => setUsage({ used: u.postersUsedThisMonth ?? 0, limit: u.posterLimit ?? null }));
@@ -139,8 +141,8 @@ function CreateForm() {
 
       if (!clientsLoadedRef.current) {
         clientsLoadedRef.current = true;
-        const fetches: Promise<Response>[] = [fetch("/api/studio/clients?status=active", { headers })];
-        if (preselectedClientId) fetches.push(fetch(`/api/studio/clients/${preselectedClientId}/brand-kits`, { headers }));
+        const fetches: Promise<Response>[] = [fetch("/api/studio/clients?status=active", { headers, cache: "no-store" })];
+        if (preselectedClientId) fetches.push(fetch(`/api/studio/clients/${preselectedClientId}/brand-kits`, { headers, cache: "no-store" }));
         const results = await Promise.all(fetches);
         const clientsRes = results[0];
         const kitsRes = preselectedClientId ? results[1] : null;
@@ -164,7 +166,7 @@ function CreateForm() {
         return;
       }
       try {
-        const res = await fetch(`/api/studio/clients/${selectedClientId}/brand-kits`, { headers });
+        const res = await fetch(`/api/studio/clients/${selectedClientId}/brand-kits`, { headers, cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
           const kitList: BrandKit[] = data.kits ?? [];
@@ -265,39 +267,20 @@ function CreateForm() {
 
   if (generated) {
     return (
-      <div className="studio-create-root studio-create-layout" style={{ minHeight: "100vh" }}>
+      <div className="studio-create-root max-w-none -mx-4 md:-mx-8 w-[calc(100%+2rem)] md:w-[calc(100%+4rem)] min-h-[calc(100vh-140px)] studio-create-body flex flex-col md:flex-row">
         <div className="studio-create-left">
-          <div className="studio-create-left-scroll" style={{ paddingBottom: 24 }}>
-            <div style={{ maxWidth: 480, margin: "0 auto", textAlign: "center", paddingTop: 48 }}>
-              <CheckCircle2 size={48} style={{ color: "var(--accent)", marginBottom: 16 }} />
-              <h2 className="font-display" style={{ fontSize: 20, fontWeight: 600, color: "var(--text-primary)", marginBottom: 8 }}>Poster generated</h2>
-              <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 24 }}>Ready for review and approval.</p>
-              <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-                <button
-                  type="button"
-                  onClick={() => setGenerated(null)}
-                  style={{
-                    padding: "12px 20px",
-                    borderRadius: 10,
-                    border: "1px solid var(--border-hover)",
-                    background: "var(--bg-surface)",
-                    color: "var(--text-secondary)",
-                    fontSize: 13,
-                    fontWeight: 500,
-                  }}
-                >
+          <div className="studio-create-left-scroll pb-6">
+            <div className="max-w-md mx-auto text-center pt-12">
+              <CheckCircle2 size={48} className="text-[#E8FF47] mb-4" />
+              <h2 className="text-[20px] font-semibold text-[#fafafa] mb-2">Poster generated</h2>
+              <p className="text-[13px] text-[#71717a] mb-6">Ready for review and approval.</p>
+              <div className="flex gap-3 justify-center flex-wrap">
+                <Button variant="secondary" size="md" onClick={() => setGenerated(null)}>
                   Generate another
-                </button>
+                </Button>
                 <Link
                   href={`/studio/posters?clientId=${selectedClientId}`}
-                  style={{
-                    padding: "12px 20px",
-                    borderRadius: 10,
-                    background: "var(--accent)",
-                    color: "#080808",
-                    fontSize: 13,
-                    fontWeight: 700,
-                  }}
+                  className="inline-flex items-center justify-center font-medium rounded-lg h-[38px] px-4 text-[13px] bg-[#E8FF47] text-[#080808] font-semibold hover:bg-[#B8CC38] hover:-translate-y-px"
                 >
                   View poster
                 </Link>
@@ -307,68 +290,30 @@ function CreateForm() {
         </div>
         <div className="studio-create-right">
           <div className="studio-create-preview-inner">
-            <div
-              className="studio-create-canvas-wrap"
-              style={{ maxWidth: "100%", maxHeight: "100%" }}
-            >
-              <div className="studio-create-canvas-inner" style={{ aspectRatio: 1, width: 320 }}>
-                <img src={generated.imageUrl} alt="Generated poster" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+            <div className="studio-create-canvas-wrap max-w-full max-h-full">
+              <div className="studio-create-canvas-inner aspect-square w-80">
+                <img src={generated.imageUrl} alt="Generated poster" className="w-full h-full object-contain" />
               </div>
             </div>
-            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+            <div className="flex gap-2 mt-4">
               <a
                 href={generated.imageUrl}
                 download="poster.jpg"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{
-                  height: 36,
-                  paddingLeft: 16,
-                  paddingRight: 16,
-                  borderRadius: 8,
-                  border: "1px solid var(--border-hover)",
-                  color: "var(--text-secondary)",
-                  fontSize: 12,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
+                className="inline-flex items-center justify-center font-medium rounded-lg h-8 px-3 text-[13px] bg-[#111111] border border-[#ffffff0f] text-[#fafafa] hover:bg-[#181818] hover:border-[#ffffff18] transition-all"
               >
-                <Download size={14} /> Download
+                <Download size={14} className="mr-1" /> Download
               </a>
               <Link
                 href={`/studio/posters?clientId=${selectedClientId}`}
-                style={{
-                  height: 36,
-                  paddingLeft: 16,
-                  paddingRight: 16,
-                  borderRadius: 8,
-                  background: "var(--accent)",
-                  color: "#080808",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
+                className="inline-flex items-center justify-center font-medium rounded-lg h-8 px-3 text-[13px] min-h-[32px] bg-[#E8FF47] text-[#080808] font-semibold hover:bg-[#B8CC38] rounded-lg"
               >
                 Approve
               </Link>
-              <button
-                type="button"
-                onClick={() => setGenerated(null)}
-                style={{
-                  height: 36,
-                  paddingLeft: 16,
-                  paddingRight: 16,
-                  borderRadius: 8,
-                  border: "1px solid var(--border)",
-                  color: "var(--text-muted)",
-                  fontSize: 12,
-                }}
-              >
-                <RefreshCw size={14} /> Regenerate
-              </button>
+              <Button variant="ghost" size="sm" onClick={() => setGenerated(null)}>
+                <RefreshCw size={14} className="mr-1" /> Regenerate
+              </Button>
             </div>
           </div>
         </div>
@@ -377,57 +322,7 @@ function CreateForm() {
   }
 
   return (
-    <div className="studio-create-root studio-create-layout" style={{ minHeight: "100vh" }}>
-      {/* Top bar — full width */}
-      <div className="studio-create-topbar">
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Link
-            href="/studio"
-            style={{ fontSize: 13, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 6 }}
-          >
-            <ArrowLeft size={14} /> Studio
-          </Link>
-          <span style={{ color: "var(--text-muted)", fontSize: 12 }}>/</span>
-          <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Generate Poster</span>
-        </div>
-        <div className="studio-create-step-dots-wrap" style={{ display: "flex", gap: 6 }}>
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div
-              key={i}
-              className={`studio-create-step-dot ${i < currentStep ? "complete" : i === currentStep ? "active" : ""}`}
-            />
-          ))}
-        </div>
-        <div
-          style={{
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border)",
-            borderRadius: 20,
-            padding: "6px 12px",
-            fontSize: 11,
-            color: "var(--text-muted)",
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          <span>{usage.used} / {usage.limit ?? "∞"} posters</span>
-          {usage.limit != null && usage.limit > 0 && (
-            <div style={{ width: 40, height: 4, background: "var(--bg-elevated)", borderRadius: 2, overflow: "hidden" }}>
-              <div
-                style={{
-                  height: "100%",
-                  width: `${Math.min(100, (usage.used / usage.limit) * 100)}%`,
-                  background: "var(--accent)",
-                  borderRadius: 2,
-                }}
-              />
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="studio-create-body">
+    <div className="studio-create-root max-w-none -mx-4 md:-mx-8 w-[calc(100%+2rem)] md:w-[calc(100%+4rem)] min-h-[calc(100vh-140px)] studio-create-body flex flex-col md:flex-row">
       {/* Left panel */}
       <div className="studio-create-left">
         <div className="studio-create-left-scroll" style={{ opacity: loading ? 0.5 : 1, pointerEvents: loading ? "none" : "auto" }}>
@@ -933,14 +828,13 @@ function CreateForm() {
           )}
         </div>
       </div>
-      </div>
     </div>
   );
 }
 
 export default function StudioCreatePage() {
   return (
-    <Suspense fallback={<div className="studio-create-root" style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><Loader2 size={24} className="animate-spin" style={{ color: "var(--text-muted)" }} /></div>}>
+    <Suspense fallback={<CreateLoading />}>
       <CreateForm />
     </Suspense>
   );

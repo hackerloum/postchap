@@ -64,9 +64,9 @@ export default function StudioOverviewPage() {
         const token = await getClientIdToken();
         const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
         const [clientsRes, usageRes, occasionsRes] = await Promise.all([
-          fetch("/api/studio/clients?status=active", { headers }),
-          fetch("/api/studio/usage", { headers }),
-          fetch("/api/studio/occasions?days=14", { headers }),
+          fetch("/api/studio/clients?status=active", { headers, cache: "no-store" }),
+          fetch("/api/studio/usage", { headers, cache: "no-store" }),
+          fetch("/api/studio/occasions?days=14", { headers, cache: "no-store" }),
         ]);
         if (clientsRes.ok) {
           const d = await clientsRes.json();

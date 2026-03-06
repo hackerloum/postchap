@@ -58,33 +58,49 @@ function PostersContent() {
       if (selectedClientId) params.set("clientId", selectedClientId);
       if (statusFilter !== "all") params.set("approvalStatus", statusFilter);
       params.set("limit", "50");
-      const res = await fetch(`/api/studio/posters?${params}`, { headers });
+      const res = await fetch(`/api/studio/posters?${params}`, { headers, cache: "no-store" });
       if (res.ok) setPosters((await res.json()).posters ?? []);
     } catch {}
     finally { setLoading(false); }
   }
 
+  async function loadPostersAndClients() {
+    const token = await getClientIdToken();
+    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+    const params = new URLSearchParams();
+    if (selectedClientId) params.set("clientId", selectedClientId);
+    if (statusFilter !== "all") params.set("approvalStatus", statusFilter);
+    params.set("limit", "50");
+    const [clientsRes, postersRes] = await Promise.all([
+      fetch("/api/studio/clients?status=active", { headers, cache: "no-store" }),
+      fetch(`/api/studio/posters?${params}`, { headers, cache: "no-store" }),
+    ]);
+    if (clientsRes.ok) setClients((await clientsRes.json()).clients ?? []);
+    if (postersRes.ok) setPosters((await postersRes.json()).posters ?? []);
+  }
+
   useEffect(() => {
     let cancelled = false;
-    async function load() {
-      const token = await getClientIdToken();
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const params = new URLSearchParams();
-      if (selectedClientId) params.set("clientId", selectedClientId);
-      if (statusFilter !== "all") params.set("approvalStatus", statusFilter);
-      params.set("limit", "50");
-      const [clientsRes, postersRes] = await Promise.all([
-        fetch("/api/studio/clients?status=active", { headers }),
-        fetch(`/api/studio/posters?${params}`, { headers }),
-      ]);
-      if (cancelled) return;
-      if (clientsRes.ok) setClients((await clientsRes.json()).clients ?? []);
-      if (postersRes.ok) setPosters((await postersRes.json()).posters ?? []);
-      setLoading(false);
-    }
     setLoading(true);
-    load();
+    loadPostersAndClients()
+      .then(() => { if (!cancelled) setLoading(false); })
+      .catch(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
+  }, [selectedClientId, statusFilter]);
+
+  // Refetch when tab becomes visible again (debounced to avoid thrash on quick tab switches)
+  useEffect(() => {
+    let lastHiddenAt = 0;
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        const hiddenDuration = lastHiddenAt ? Date.now() - lastHiddenAt : 0;
+        if (hiddenDuration > 1500) loadPostersAndClients();
+      } else {
+        lastHiddenAt = Date.now();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
   }, [selectedClientId, statusFilter]);
 
   async function updateApproval(posterId: string, status: string, comment?: string) {

@@ -1,12 +1,26 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
-import { BottomTabBar } from "./BottomTabBar";
-import { MobileMoreSheet } from "./MobileMoreSheet";
-import { Toaster } from "@/components/studio/ui";
-import { SearchPalette } from "@/components/studio/shared";
+
+const BottomTabBar = dynamic(() => import("./BottomTabBar").then((m) => m.BottomTabBar), { ssr: false });
+
+const MobileMoreSheet = dynamic(
+  () => import("./MobileMoreSheet").then((m) => m.MobileMoreSheet),
+  { ssr: false }
+);
+
+const SearchPalette = dynamic(
+  () => import("@/components/studio/shared/SearchPalette").then((m) => m.SearchPalette),
+  { ssr: false }
+);
+
+const Toaster = dynamic(
+  () => import("@/components/studio/ui/Toast").then((m) => m.Toaster),
+  { ssr: false }
+);
 
 function useTablet() {
   const [isTablet, setIsTablet] = useState(false);
@@ -53,9 +67,11 @@ export function StudioLayout({ children, primaryAction = "generate" }: StudioLay
         onCollapse={() => setSidebarExpanded(false)}
       />
       <div
-        className="relative z-10 flex flex-col min-h-screen h-screen md:h-auto md:min-h-screen md:pl-[56px] lg:pl-[232px] overflow-hidden"
+        className="relative z-10 flex flex-col h-screen min-h-0 md:pl-[56px] lg:pl-[232px] overflow-hidden"
       >
-        <TopBar primaryAction={primaryAction} onSearchClick={() => setSearchOpen(true)} />
+        <header className="flex-shrink-0 z-20">
+          <TopBar primaryAction={primaryAction} onSearchClick={() => setSearchOpen(true)} />
+        </header>
         <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pt-0 pb-20 md:pb-8 px-4 md:px-8 lg:px-8">
           <div className="max-w-[1400px] mx-auto py-6 md:py-8">
             {children}
