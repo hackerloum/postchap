@@ -197,12 +197,9 @@ export async function compositePoster({
 
   const compositeInputs: sharp.OverlayOptions[] = [];
 
-  const logoZoneX = logoSafeZone?.x != null ? Math.round(logoSafeZone.x * scale) : 0;
-  const logoZoneY = logoSafeZone?.y != null ? Math.round(logoSafeZone.y * scale) : 0;
-  const logoZoneW = logoSafeZone?.width != null ? Math.round(logoSafeZone.width * scale) : null;
-  const logoZoneH = logoSafeZone?.height != null ? Math.round(logoSafeZone.height * scale) : null;
-
-  const LOGO_SIZE = logoZoneW != null && logoZoneH != null ? Math.min(logoZoneW, logoZoneH) : Math.round(140 * scale);
+  const LOGO_SIZE = Math.round(140 * scale);
+  const LOGO_PAD_X = Math.round(20 * scale);
+  const LOGO_PAD_Y = Math.round(16 * scale);
 
   if (!logoHandledByAI && brandKit.logoUrl) {
     try {
@@ -210,8 +207,6 @@ export async function compositePoster({
       const logoBuffer = await downloadImage(brandKit.logoUrl);
       if (logoBuffer) {
         console.log("[sharp] Logo downloaded, bytes:", logoBuffer.length);
-        const logoTop = Math.max(0, logoZoneY);
-        const logoLeft = Math.max(0, Math.min(logoZoneX, W - LOGO_SIZE));
         const logoResized = await sharp(logoBuffer)
           .resize(LOGO_SIZE, LOGO_SIZE, {
             fit: "contain",
@@ -221,11 +216,11 @@ export async function compositePoster({
           .toBuffer();
         compositeInputs.push({
           input: logoResized,
-          top: logoTop,
-          left: logoLeft,
+          top: LOGO_PAD_Y,
+          left: LOGO_PAD_X,
           blend: "over",
         });
-        console.log("[sharp] Logo queued at", logoLeft, logoTop);
+        console.log("[sharp] Logo queued at", LOGO_PAD_X, LOGO_PAD_Y);
       } else {
         console.warn("[sharp] Logo buffer was null — logo not composited");
       }
@@ -447,8 +442,6 @@ export async function compositePoster({
       console.log("[sharp] Downloading logo (full overlay):", brandKit.logoUrl.slice(0, 80));
       const logoBuffer = await downloadImage(brandKit.logoUrl);
       if (logoBuffer) {
-        const logoTop = Math.max(0, logoZoneY);
-        const logoLeft = Math.max(0, Math.min(logoZoneX, W - LOGO_SIZE));
         const logoResized = await sharp(logoBuffer)
           .resize(LOGO_SIZE, LOGO_SIZE, {
             fit: "contain",
@@ -458,11 +451,11 @@ export async function compositePoster({
           .toBuffer();
         fullOverlayInputs.push({
           input: logoResized,
-          top: logoTop,
-          left: logoLeft,
+          top: LOGO_PAD_Y,
+          left: LOGO_PAD_X,
           blend: "over",
         });
-        console.log("[sharp] Logo queued (full overlay) at", logoLeft, logoTop);
+        console.log("[sharp] Logo queued (full overlay) at", LOGO_PAD_X, LOGO_PAD_Y);
       } else {
         console.warn("[sharp] Logo buffer was null (full overlay) — logo not composited");
       }
