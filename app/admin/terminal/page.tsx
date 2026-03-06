@@ -136,6 +136,14 @@ export default function TerminalPage() {
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const [mobileSheetTab, setMobileSheetTab] = useState<"commands" | "metrics">("commands");
   const [isMobile, setIsMobile] = useState(false);
+  const [vpsGraphs, setVpsGraphs] = useState<{
+    cpu_img: string | null;
+    mem_img: string | null;
+    net_img: string | null;
+    disk_img: string | null;
+  } | null>(null);
+  const [graphTime, setGraphTime] = useState<"hour" | "day" | "week">("hour");
+
   const [vpsInfo, setVpsInfo] = useState<{
     cpuPercent: number | null;
     cpuText: string | null;
@@ -191,6 +199,23 @@ export default function TerminalPage() {
     const t = setInterval(fetchVpsInfo, 60 * 1000);
     return () => clearInterval(t);
   }, [status, fetchVpsInfo]);
+
+  const fetchVpsGraphs = useCallback(async (time: "hour" | "day" | "week" = "hour") => {
+    try {
+      const res = await fetch(`/api/admin/vps-graphs?time=${time}`, { credentials: "same-origin" });
+      const data = await res.json();
+      if (!data.error) setVpsGraphs(data);
+    } catch {
+      // silently fail for graphs
+    }
+  }, []);
+
+  useEffect(() => {
+    if (status !== "connected") return;
+    fetchVpsGraphs(graphTime);
+    const t = setInterval(() => fetchVpsGraphs(graphTime), 5 * 60 * 1000);
+    return () => clearInterval(t);
+  }, [status, fetchVpsGraphs, graphTime]);
 
   const effectiveFontSize = isMobile ? 12 : fontSize;
 
@@ -275,10 +300,10 @@ export default function TerminalPage() {
 
       const term = new Terminal({
         cursorBlink: true,
-        fontSize: 13,
-        fontFamily: "'SF Mono', 'Fira Code', 'Menlo', monospace",
-        lineHeight: 1.5,
-        letterSpacing: 0.3,
+        fontSize: 14,
+        fontFamily: "'Fira Code', 'Cascadia Code', 'Menlo', 'Consolas', 'DejaVu Sans Mono', monospace",
+        lineHeight: 1.2,
+        letterSpacing: 0,
         cursorStyle: "block",
         scrollback: 10000,
         convertEol: true,
@@ -943,25 +968,62 @@ export default function TerminalPage() {
                     </div>
                   </>
                 )}
+                {/* OS info */}
+                {process.env.NEXT_PUBLIC_VPS_OS && (
+                  <>
+                    <div className="h-px bg-[#ffffff08]" />
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] text-[#71717a]">OS</span>
+                      <span className="text-[10px] font-medium text-[#a1a1aa]">{process.env.NEXT_PUBLIC_VPS_OS}</span>
+                    </div>
+                  </>
+                )}
+                {/* Live graphs */}
                 <div className="h-px bg-[#ffffff08]" />
                 <div>
-                  <div className="flex justify-between items-baseline mb-2">
-                    <span className="text-[10px] text-[#71717a]">PROCESSES</span>
-                    <span className="font-mono text-[10px] text-[#fafafa]">142</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-[#71717a]">GRAPHS</p>
+                    <div className="flex rounded overflow-hidden border border-[#ffffff10]">
+                      {(["hour", "day", "week"] as const).map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => { setGraphTime(t); fetchVpsGraphs(t); }}
+                          className={`px-1.5 py-0.5 text-[8px] uppercase transition-colors ${
+                            graphTime === t ? "bg-[#E8FF47] text-black font-bold" : "text-[#71717a] hover:text-[#fafafa]"
+                          }`}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div className="space-y-0">
-                    {["pm2: artmaster", "nginx", "node: ws-terminal", "cron", "sshd"].map((name, i) => (
-                      <div
-                        key={name}
-                        className="flex justify-between items-center h-6 px-2 rounded hover:bg-[#ffffff04] text-[11px] text-[#a1a1aa]"
-                      >
-                        <span className="truncate">{name}</span>
-                        <span className="font-mono text-[10px] text-[#71717a]">
-                          {["2.1%", "0.4%", "0.8%", "0.1%", "0.2%"][i]}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                  {vpsGraphs ? (
+                    <div className="space-y-2">
+                      {([
+                        { key: "cpu_img", label: "CPU" },
+                        { key: "mem_img", label: "RAM" },
+                        { key: "net_img", label: "NETWORK" },
+                        { key: "disk_img", label: "DISK" },
+                      ] as { key: keyof typeof vpsGraphs; label: string }[]).map(({ key, label }) =>
+                        vpsGraphs[key] ? (
+                          <div key={key}>
+                            <p className="text-[8px] text-[#71717a] mb-0.5">{label}</p>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={`data:image/png;base64,${vpsGraphs[key]}`}
+                              alt={`${label} graph`}
+                              className="w-full rounded border border-[#ffffff08]"
+                            />
+                          </div>
+                        ) : null
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-16 text-[10px] text-[#3f3f46]">
+                      No graph data
+                    </div>
+                  )}
                 </div>
                 <div className="h-px bg-[#ffffff08]" />
                 <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-[#71717a] py-1">APP SERVICES</p>
@@ -993,22 +1055,6 @@ export default function TerminalPage() {
                   </button>
                 ))}
                 <div className="h-px bg-[#ffffff08]" />
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { label: "LOAD AVG", value: "0.42" },
-                    { label: "SWAP", value: "0 MB" },
-                    { label: "ZOMBIES", value: "0" },
-                    { label: "THREADS", value: "847" },
-                  ].map((t) => (
-                    <div
-                      key={t.label}
-                      className="bg-[#111111] border border-[#ffffff08] rounded-md p-2.5"
-                    >
-                      <p className="text-[9px] uppercase text-[#71717a] mb-0.5">{t.label}</p>
-                      <p className="text-[18px] font-semibold text-[#fafafa]">{t.value}</p>
-                    </div>
-                  ))}
-                </div>
               </div>
             </aside>
           </div>
