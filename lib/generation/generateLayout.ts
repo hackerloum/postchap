@@ -154,16 +154,16 @@ export function buildPosterLayout(
   // Remove any GPT-generated logo element — we inject a canonical one below.
   const withoutLogo: PosterElement[] = elements.filter((e) => e.type !== "logo");
 
-  // Inject real logo element from brand kit
+  // Inject real logo element from brand kit — top-left corner with safe margin
   if (brandKit.logoUrl) {
     const logoEl: LogoElement = {
       id: "logo",
       type: "logo",
       src: brandKit.logoUrl,
-      x: 1,
-      y: 1,
-      width: 20,
-      height: 12,
+      x: 3,
+      y: 3,
+      width: 18,
+      height: 18,
       opacity: 1,
       locked: true,
       zIndex: 50,

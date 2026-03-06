@@ -8,7 +8,7 @@ import { fetchImageAsBase64 } from "@/lib/freepik/generateImage";
 import type { BrandDNA, BrandKit } from "@/types/generation";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const VISION_MODEL = "gemini-2.0-flash";
+const VISION_MODEL = "gemini-2.5-flash";
 const MAX_STORE_PHOTOS = 3;
 
 /** Input shape for analysis (subset of BrandKit + optional store photos). */
