@@ -110,7 +110,7 @@ function CreateForm() {
   useEffect(() => {
     const tokenP = getClientIdToken();
     tokenP.then((token) => {
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
       Promise.all([
         fetch("/api/studio/agency", { headers }),
         fetch("/api/studio/usage", { headers }),
@@ -135,7 +135,7 @@ function CreateForm() {
   useEffect(() => {
     async function load() {
       const token = await getClientIdToken();
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
       if (!clientsLoadedRef.current) {
         clientsLoadedRef.current = true;
@@ -210,8 +210,8 @@ function CreateForm() {
             theme: selectedRecommendation.theme,
             topic: selectedRecommendation.topic,
             description: selectedRecommendation.description ?? "",
-            suggestedHeadline: headlineOverride.trim() || selectedRecommendation.suggestedHeadline ?? "",
-            suggestedCta: ctaOverride.trim() || selectedRecommendation.suggestedCta ?? "",
+            suggestedHeadline: (headlineOverride.trim() || selectedRecommendation.suggestedHeadline) ?? "",
+            suggestedCta: (ctaOverride.trim() || selectedRecommendation.suggestedCta) ?? "",
             visualMood: selectedRecommendation.visualMood ?? "",
             hashtags: selectedRecommendation.hashtags,
           }
