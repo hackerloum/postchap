@@ -111,14 +111,20 @@ export async function generateImage(
     return generateFreepikPrimary(prompt, freepikAspectRatio, brandKit ?? undefined);
   }
 
-  // Freepik: force mystic-only (no logo reference — Sharp handles it)
+  // Freepik: apply same logo placement constraints (top-left only) so scheduled + user + admin match
+  const hasLogo = !!brandKit?.logoUrl;
+  const negativeConstraints = getNegativeConstraints(resolvedId, hasLogo, brandKit?.brandName);
+  const freepikPrompt = negativeConstraints
+    ? `${prompt}\n\n${negativeConstraints}`
+    : prompt;
+
   if (resolvedId === "freepik:mystic") {
-    const result = await generateFreepikMysticOnly(prompt, freepikAspectRatio);
+    const result = await generateFreepikMysticOnly(freepikPrompt, freepikAspectRatio);
     return { ...result, logoHandledByAI: false };
   }
 
   // freepik:seedream — Seedream primary → Mystic fallback (logo ref passed through)
-  return generateFreepikPrimary(prompt, freepikAspectRatio, brandKit ?? undefined);
+  return generateFreepikPrimary(freepikPrompt, freepikAspectRatio, brandKit ?? undefined);
 }
 
 /**
