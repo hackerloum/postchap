@@ -78,16 +78,14 @@ export function buildGeminiPromptWithLogo(
 
   const logoInstruction = hasLogo
     ? `
-LOGO INTEGRATION:
-The brand logo has been provided as a visual reference above.
-- Integrate it naturally into the top-left of the composition
-- Use its color palette as the foundation for the entire design
-- Match its visual weight and style energy
-- Do NOT leave a blank dead zone — the logo is being composed by the AI
+MULTI-MODAL LOGO REFERENCE:
+The brand logo has been provided as inline data above.
+- Identity anchoring: extract its core geometry and color values; use them as the foundation for the design
+- Integrate it seamlessly into the final design as a subtle but authoritative signature
+- Intelligent composition: place the logo where it fits the design best — respect the chosen style and layout (no fixed coordinate)
 - Do NOT recreate, redraw, or modify the logo — render it exactly as shown
 - Do NOT add effects, glows, or shadows to the logo itself
-- Minimum logo size: roughly 15% of poster width
-- Ensure the background behind the logo provides enough contrast
+- Ensure the logo has enough contrast and reads clearly
 `.trim()
     : `
 LOGO ZONE:
@@ -181,25 +179,22 @@ export async function generateImageNanaBanana(
     }
   }
 
-  // Part 1 — Logo reference (if exists)
+  // Part 1 — Logo reference (Multi-Modal Reference: inlineData + identity anchoring)
   if (brandKit?.logoUrl) {
     const logo = await imageUrlToInlineData(brandKit.logoUrl);
     if (logo) {
       parts.push({ inlineData: { mimeType: logo.mimeType, data: logo.data } });
       parts.push({
-        text: `BRAND LOGO REFERENCE (the image above):
-This is the exact logo for ${brandKit.brandName ?? "this brand"}.
-- Study the logo's colors — use them as the PRIMARY color anchor for the entire design
-- Study the logo's shapes and visual style — let it inform the design aesthetic
-- Place the logo in the TOP-LEFT corner, clearly visible, respecting the design style
-- The logo must look like it BELONGS in the composition, not stamped on top
-- Minimum size: roughly 15% of poster width
-- Ensure the background behind the logo provides enough contrast
-- DO NOT recreate, redraw, or modify the logo — render it exactly as shown
-- DO NOT add effects, glows, or shadows to the logo itself`,
+        text: `BRAND LOGO REFERENCE (the image above): Extract its core geometry and color values.
+Integrate it seamlessly into the final design as a subtle but authoritative signature.
+- Identity anchoring: use the logo's shapes and colors as the primary anchor for the design
+- Intelligent composition: integrate the logo into the composition so it respects the chosen design style and layout — do not use a fixed coordinate; place it where it fits the design best
+- Render the logo exactly as shown — do NOT recreate, redraw, or modify it
+- Do NOT add effects, glows, or shadows to the logo itself
+- Ensure the logo reads clearly and has enough contrast against the background`,
       });
       logoSentToAI = true;
-      console.log("[NanaBanana] Logo sent as inline data");
+      console.log("[NanaBanana] Logo sent as inline data (multi-modal reference)");
     }
   }
 

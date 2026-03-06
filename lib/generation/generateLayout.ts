@@ -143,19 +143,25 @@ Generate the full layout JSON now.
 // override src and position to ensure accuracy).
 // ---------------------------------------------------------------------------
 
+export interface BuildPosterLayoutOptions {
+  /** When true, the background image already has the logo (e.g. Gemini multi-modal reference); skip adding a logo element to avoid duplication. */
+  logoAlreadyInImage?: boolean;
+}
+
 export function buildPosterLayout(
   gptOutput: LayoutGptOutput,
   backgroundImageUrl: string,
   brandKit: BrandKit,
-  format: PlatformFormat
+  format: PlatformFormat,
+  options?: BuildPosterLayoutOptions
 ): PosterLayout {
   const elements: PosterElement[] = [...gptOutput.elements];
 
-  // Remove any GPT-generated logo element — we inject a canonical one below.
+  // Remove any GPT-generated logo element — we inject a canonical one below (unless logo is already in the image).
   const withoutLogo: PosterElement[] = elements.filter((e) => e.type !== "logo");
 
-  // Inject real logo element from brand kit — top-left corner with safe margin
-  if (brandKit.logoUrl) {
+  // Inject real logo element from brand kit — unless AI already integrated it (multi-modal reference)
+  if (brandKit.logoUrl && !options?.logoAlreadyInImage) {
     const logoEl: LogoElement = {
       id: "logo",
       type: "logo",

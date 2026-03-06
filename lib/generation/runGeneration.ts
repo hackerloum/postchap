@@ -231,16 +231,17 @@ export async function runGenerationForUser(
     // Build background-only image prompt (no text instruction appended)
     const bgPrompt = `${gptLayout.backgroundPrompt}\n\n${BACKGROUND_ONLY_INSTRUCTION}`;
 
+    // Pass logo so Gemini/Seedream can use multi-modal reference (identity anchoring + intelligent composition)
     const { buffer: backgroundBuffer } = await generateImage(
       bgPrompt,
       format.freepikAspectRatio,
       imageProviderId,
       {
         brandName:    brandKit.brandName,
-        // No logoUrl — background is text+logo free
-        primaryColor:   brandKit.primaryColor,
+        logoUrl:      brandKit.logoUrl,
+        primaryColor: brandKit.primaryColor,
         secondaryColor: brandKit.secondaryColor,
-        accentColor:    brandKit.accentColor,
+        accentColor:   brandKit.accentColor,
       }
     );
 
@@ -261,7 +262,11 @@ export async function runGenerationForUser(
       `${posterId}_bg`
     );
 
-    const posterLayout = buildPosterLayout(gptLayout, backgroundImageUrl, brandKit, format);
+    // When Gemini (or other provider) integrated the logo into the image, don't add a duplicate logo element
+    const logoAlreadyInImage = !!(brandKit.logoUrl && imageProviderId?.toString().startsWith("gemini:"));
+    const posterLayout = buildPosterLayout(gptLayout, backgroundImageUrl, brandKit, format, {
+      logoAlreadyInImage,
+    });
     posterLayout.posterId = posterId;
 
     await posterRef.update({

@@ -126,15 +126,23 @@ Composite runs in `lib/sharp/compositePoster.ts`:
 
 ## Logo Placement
 
-### Why a Separate Logo Overlay?
+The system handles brand logos in two ways depending on provider and mode:
 
-The image model (Seedream/Gemini) is instructed **not** to render logos because:
+### Multi-Modal Reference (Gemini, and Seedream when logo is sent)
 
-- It tends to invent fake or low-quality logos.
-- It cannot use the user’s real logo asset.
-- Logos need exact positioning and contrast.
+When the logo is sent to the AI as a visual reference:
 
-So the prompt includes a **“top-left dead zone”** (≈250×120 px) that must be empty. The real logo is composited over that zone.
+1. **Visual Reference**: The brand logo is sent as an `inlineData` part (Base64) to the model.
+2. **Identity Anchoring**: The AI is instructed to:
+   - *"BRAND LOGO REFERENCE: Extract its core geometry and color values."*
+   - *"Integrate it seamlessly into the final design as a subtle but authoritative signature."*
+3. **Intelligent Composition**: The AI integrates the logo into the design’s composition (no fixed coordinate); placement respects the chosen design style. Sharp does not add a logo overlay when the AI has already integrated it (`logoHandledByAI: true`).
+
+This is used for **Gemini** image generation and for the **editable layout** path when a logo is present (logo is passed so the background image can include it).
+
+### Sharp Composite (Mystic, or when no logo is sent)
+
+When the model does **not** receive the logo (e.g. Freepik Mystic, or no `logoUrl`), the prompt uses a **“top-left dead zone”** (≈250×120 px) that must be empty. The real logo is then composited by Sharp over that zone (badge + logo).
 
 ### Logo Badge Layout
 

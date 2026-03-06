@@ -26,7 +26,7 @@ export function getNegativeConstraints(provider: string, hasLogo: boolean, brand
     ? `\n- CRITICAL: The brand name "${brandName}" MUST NOT appear as standalone text anywhere in the image. The logo IS the brand identity.`
     : "";
 
-  // Seedream or Gemini WITH logo reference — different instructions
+  // Seedream or Gemini WITH logo reference — multi-modal: AI composes logo placement
   if ((isSeedream || isGemini) && hasLogo) {
     const bottomRule = isGemini
       ? `
@@ -35,7 +35,6 @@ export function getNegativeConstraints(provider: string, hasLogo: boolean, brand
     return `NEGATIVE CONSTRAINTS:
 - Do NOT redraw or recreate the logo — use the reference exactly as provided
 - Do NOT add glow, outline, shadow, or effects to the logo
-- Do NOT place the logo anywhere except top-left
 - Do NOT render brand name as separate text anywhere — the logo already represents the brand${brandNameRule}
 - No watermarks. No copyright symbols. No AI artifacts.
 - Only these text elements allowed: headline, subheadline, CTA phrase${bottomRule}`;
