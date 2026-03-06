@@ -58,6 +58,7 @@ function PostersContent() {
       if (selectedClientId) params.set("clientId", selectedClientId);
       if (statusFilter !== "all") params.set("approvalStatus", statusFilter);
       params.set("limit", "50");
+      params.set("_t", String(Date.now()));
       const res = await fetch(`/api/studio/posters?${params}`, { headers, cache: "no-store" });
       if (res.ok) setPosters((await res.json()).posters ?? []);
     } catch {}
@@ -71,6 +72,7 @@ function PostersContent() {
     if (selectedClientId) params.set("clientId", selectedClientId);
     if (statusFilter !== "all") params.set("approvalStatus", statusFilter);
     params.set("limit", "50");
+    params.set("_t", String(Date.now()));
     const [clientsRes, postersRes] = await Promise.all([
       fetch("/api/studio/clients?status=active", { headers, cache: "no-store" }),
       fetch(`/api/studio/posters?${params}`, { headers, cache: "no-store" }),
@@ -87,6 +89,15 @@ function PostersContent() {
       .catch(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [selectedClientId, statusFilter]);
+
+  // After "View poster" from create: refetch once so the newly generated poster appears (write may commit after first load)
+  useEffect(() => {
+    if (!selectedClientId) return;
+    const t = setTimeout(() => {
+      loadPostersAndClients();
+    }, 800);
+    return () => clearTimeout(t);
+  }, [selectedClientId]);
 
   // Refetch when tab becomes visible again (debounced to avoid thrash on quick tab switches)
   useEffect(() => {
