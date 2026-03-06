@@ -81,8 +81,8 @@ export function buildGeminiPromptWithLogo(
 MULTI-MODAL LOGO REFERENCE:
 The brand logo has been provided as inline data above.
 - Identity anchoring: extract its core geometry and color values; use them as the foundation for the design
-- Integrate it seamlessly into the final design as a subtle but authoritative signature
-- Intelligent composition: place the logo where it fits the design best — respect the chosen style and layout (no fixed coordinate)
+- Integrate it as a subtle but authoritative signature in the TOP-LEFT CORNER ONLY
+- CRITICAL: Place the logo ONLY in the top-left corner (first ~20% of width, first ~15% of height). Do NOT place the logo in the bottom, right, or center of the poster
 - Do NOT recreate, redraw, or modify the logo — render it exactly as shown
 - Do NOT add effects, glows, or shadows to the logo itself
 - Ensure the logo has enough contrast and reads clearly
@@ -186,9 +186,9 @@ export async function generateImageNanaBanana(
       parts.push({ inlineData: { mimeType: logo.mimeType, data: logo.data } });
       parts.push({
         text: `BRAND LOGO REFERENCE (the image above): Extract its core geometry and color values.
-Integrate it seamlessly into the final design as a subtle but authoritative signature.
+Integrate it as a subtle but authoritative signature in the TOP-LEFT CORNER ONLY.
 - Identity anchoring: use the logo's shapes and colors as the primary anchor for the design
-- Intelligent composition: integrate the logo into the composition so it respects the chosen design style and layout — do not use a fixed coordinate; place it where it fits the design best
+- CRITICAL — LOGO POSITION: Place the logo ONLY in the top-left corner (roughly first 20% width, first 15% height). Do NOT place the logo in the bottom-right, top-right, center-right, or anywhere else. Only one logo, only in the top-left
 - Render the logo exactly as shown — do NOT recreate, redraw, or modify it
 - Do NOT add effects, glows, or shadows to the logo itself
 - Ensure the logo reads clearly and has enough contrast against the background`,

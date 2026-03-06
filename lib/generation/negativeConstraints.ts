@@ -26,7 +26,7 @@ export function getNegativeConstraints(provider: string, hasLogo: boolean, brand
     ? `\n- CRITICAL: The brand name "${brandName}" MUST NOT appear as standalone text anywhere in the image. The logo IS the brand identity.`
     : "";
 
-  // Seedream or Gemini WITH logo reference — multi-modal: AI composes logo placement
+  // Seedream or Gemini WITH logo reference — logo must be top-left only, nowhere else
   if ((isSeedream || isGemini) && hasLogo) {
     const bottomRule = isGemini
       ? `
@@ -35,6 +35,8 @@ export function getNegativeConstraints(provider: string, hasLogo: boolean, brand
     return `NEGATIVE CONSTRAINTS:
 - Do NOT redraw or recreate the logo — use the reference exactly as provided
 - Do NOT add glow, outline, shadow, or effects to the logo
+- The logo must appear ONLY in the top-left corner. Do NOT place any logo, brand mark, or brand graphic in the bottom-right, top-right, center-right, or center of the poster
+- Do NOT render the same logo or any brand mark in multiple places — only one instance in the top-left
 - Do NOT render brand name as separate text anywhere — the logo already represents the brand${brandNameRule}
 - No watermarks. No copyright symbols. No AI artifacts.
 - Only these text elements allowed: headline, subheadline, CTA phrase${bottomRule}`;
