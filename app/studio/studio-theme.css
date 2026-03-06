@@ -1,44 +1,55 @@
-/* ArtMaster Studio — brand-aligned dark theme */
+/* ArtMaster Studio — design system tokens (spec) */
 
 .studio-theme {
-  --studio-bg-base:        #080808;
-  --studio-bg-surface:     #0d0d0d;
-  --studio-bg-elevated:    #111111;
-  --studio-border:         #222222;
-  --studio-border-subtle:  #1a1a1a;
-  --studio-accent:         #e8ff47;
-  --studio-accent-glow:    rgba(232, 255, 71, 0.14);
-  --studio-text-primary:   #fafafa;
-  --studio-text-secondary: #a1a1aa;
-  --studio-text-muted:     #52525b;
-  --studio-text-dim:       #3f3f46;
-  --studio-topbar-border:  #1a1a1a;
-  --studio-sidebar-border: #1f1f1f;
-  --studio-track-bg:       #1f1f1f;
-  --studio-row-hover:      rgba(255, 255, 255, 0.03);
-  --studio-card-glow:      rgba(232, 255, 71, 0.04);
-  --studio-card-glow-blue: rgba(77, 158, 255, 0.06);
-  --studio-card-glow-green:rgba(61, 220, 132, 0.06);
-  --studio-font:           -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+  --accent: #E8FF47;
+  --accent-dim: #B8CC38;
+  --accent-muted: #E8FF4715;
+  --accent-border: #E8FF4725;
+  --bg-base: #080808;
+  --bg-surface: #111111;
+  --bg-elevated: #181818;
+  --bg-overlay: #222222;
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --border: #ffffff0f;
+  --border-hover: #ffffff18;
+  --border-accent: #E8FF4730;
+  --destructive: #ef4444;
+  --success: #4ade80;
+  --warning: #fbbf24;
+
+  /* Aliases for compatibility */
+  --studio-bg-base: var(--bg-base);
+  --studio-bg-surface: var(--bg-surface);
+  --studio-bg-elevated: var(--bg-elevated);
+  --studio-accent: var(--accent);
+  --studio-accent-glow: rgba(232, 255, 71, 0.2);
+  --studio-text-primary: var(--text-primary);
+  --studio-text-secondary: var(--text-secondary);
+  --studio-text-muted: var(--text-muted);
+  --studio-border: var(--border);
+  --studio-topbar-border: #ffffff08;
+  --studio-sidebar-border: #ffffff08;
+  --studio-row-hover: rgba(255, 255, 255, 0.04);
+  --studio-font: -apple-system, "SF Pro Display", "SF Pro Text", BlinkMacSystemFont, sans-serif;
 }
 
-/* All text in studio uses SF Pro */
+.studio-theme,
 .studio-theme * {
   font-family: var(--studio-font);
 }
 
-.studio-theme .studio-font-display {
+.studio-theme .studio-font-display,
+.studio-theme [data-font="display"] {
   font-family: var(--studio-font);
-}
-
-.studio-theme .studio-font-ui {
-  font-family: var(--studio-font);
+  font-weight: 600;
 }
 
 @keyframes studio-fade-up {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -47,17 +58,17 @@
 }
 
 .studio-theme .studio-animate-fade-up {
-  animation: studio-fade-up 0.4s ease-out forwards;
+  animation: studio-fade-up 0.2s ease-out forwards;
 }
 
 @keyframes studio-pulse-glow {
   0%, 100% {
     opacity: 0.8;
-    box-shadow: 0 0 0 0 var(--studio-accent-glow);
+    box-shadow: 0 0 0 0 var(--accent-border);
   }
   50% {
     opacity: 1;
-    box-shadow: 0 0 10px 2px var(--studio-accent-glow);
+    box-shadow: 0 0 10px 2px var(--accent-border);
   }
 }
 
@@ -65,7 +76,27 @@
   animation: studio-pulse-glow 2s ease-in-out infinite;
 }
 
+@keyframes studio-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.studio-theme .studio-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.06) 25%,
+    rgba(255, 255, 255, 0.14) 50%,
+    rgba(255, 255, 255, 0.06) 75%
+  );
+  background-size: 200% 100%;
+  animation: studio-shimmer 1.5s infinite;
+}
+
 .studio-theme .studio-stat-card:hover {
-  border-color: rgba(232, 255, 71, 0.3);
+  border-color: var(--border-hover);
   transition: border-color 0.15s ease;
 }

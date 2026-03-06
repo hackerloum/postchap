@@ -2,35 +2,34 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Users, Plus, Search, MoreHorizontal, Archive, Edit3, Sparkles, Loader2 } from "lucide-react";
+import { Users, Search, Edit3, Sparkles } from "lucide-react";
 import { getClientIdToken } from "@/lib/auth-client";
+import { Button, Badge, Skeleton, EmptyState, ConfirmDialog, Avatar } from "@/components/studio/ui";
+import { ClientCard } from "@/components/studio/shared";
 
 interface Client {
   id: string;
   clientName: string;
   contactEmail?: string;
   industry?: string;
-  location?: string;
   status: string;
   postersThisMonth: number;
   monthlyQuota: number;
   tags: string[];
-  createdAt: number | null;
 }
+
+const STATUS_TABS = ["all", "active", "paused", "archived"] as const;
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("active");
-  const [menuOpen, setMenuOpen] = useState<string | null>(null);
-
-  const [filterRefreshing, setFilterRefreshing] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<typeof STATUS_TABS[number]>("active");
+  const [archiveTarget, setArchiveTarget] = useState<Client | null>(null);
   const initialLoadDone = useRef(false);
 
   async function loadClients(showFullLoading: boolean) {
     if (showFullLoading) setLoading(true);
-    else setFilterRefreshing(true);
     try {
       const token = await getClientIdToken();
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
@@ -40,10 +39,10 @@ export default function ClientsPage() {
         const d = await res.json();
         setClients(d.clients ?? []);
       }
-    } catch {}
-    finally {
-      if (showFullLoading) setLoading(false);
-      else setFilterRefreshing(false);
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -64,197 +63,213 @@ export default function ClientsPage() {
       body: JSON.stringify({ status: "archived" }),
     });
     loadClients(false);
-    setMenuOpen(null);
+    setArchiveTarget(null);
   }
 
-  const filtered = clients.filter((c) =>
-    c.clientName.toLowerCase().includes(search.toLowerCase()) ||
-    (c.industry ?? "").toLowerCase().includes(search.toLowerCase())
+  const filtered = clients.filter(
+    (c) =>
+      c.clientName.toLowerCase().includes(search.toLowerCase()) ||
+      (c.industry ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    <div className="max-w-5xl mx-auto px-5 py-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="font-semibold text-[24px] text-text-primary tracking-tight">Clients</h1>
-          <p className="font-mono text-[13px] text-text-muted mt-1">{clients.length} total</p>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <h1 className="text-[28px] font-bold text-[#fafafa] tracking-tight">
+            Clients
+          </h1>
+          <Badge variant="default">{clients.length}</Badge>
         </div>
-        <Link
-          href="/studio/clients/new"
-          className="inline-flex items-center gap-2 bg-info text-black font-semibold text-[13px] px-4 py-2.5 rounded-xl hover:bg-info/90 transition-colors"
-        >
-          <Plus size={15} />
-          Add client
+        <Link href="/studio/clients/new">
+          <Button variant="primary" size="md">
+            Add client
+          </Button>
         </Link>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-3 mb-5">
-        <div className="relative flex-1 max-w-xs">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 max-w-[280px]">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#71717a]" />
           <input
-            type="text"
+            type="search"
             placeholder="Search clients..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-bg-surface border border-border-default rounded-xl pl-9 pr-4 py-2 text-[13px] text-text-primary placeholder:text-text-muted outline-none focus:border-info transition-colors"
+            className="w-full h-[38px] pl-9 pr-4 rounded-lg text-[13px] text-[#fafafa] placeholder:text-[#71717a] bg-[#111111] border border-[#ffffff0f] focus:outline-none focus:border-[#E8FF4740]"
           />
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 bg-bg-surface border border-border-default rounded-xl p-1">
-            {["active", "paused", "archived", "all"].map((s) => (
-              <button
-                key={s}
-                onClick={() => setStatusFilter(s)}
-                disabled={filterRefreshing}
-                className={`px-3 py-1 rounded-lg font-mono text-[11px] transition-colors capitalize disabled:opacity-70 ${
-                  statusFilter === s
-                    ? "bg-bg-elevated text-text-primary"
-                    : "text-text-muted hover:text-text-secondary"
-                }`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-          {filterRefreshing && <Loader2 size={14} className="animate-spin text-text-muted" />}
+        <div className="flex items-center gap-1 border-b border-[#ffffff08]">
+          {STATUS_TABS.map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`px-3 py-2 text-[11px] font-medium capitalize transition-colors ${
+                statusFilter === s
+                  ? "text-[#fafafa] border-b-2 border-[#E8FF47] -mb-px"
+                  : "text-[#71717a] hover:text-[#a1a1aa]"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Client list */}
       {loading ? (
         <div className="space-y-2">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-20 bg-bg-surface border border-border-subtle rounded-2xl animate-pulse" />
+            <Skeleton key={i} className="h-[52px] w-full rounded-lg" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-bg-surface border border-border-default rounded-2xl p-12 text-center">
-          <Users size={28} className="text-text-muted mx-auto mb-3" />
-          <p className="font-semibold text-[15px] text-text-primary mb-1">No clients yet</p>
-          <p className="font-mono text-[12px] text-text-muted mb-5">
-            Add your first client to start generating posters for them.
-          </p>
-          <Link
-            href="/studio/clients/new"
-            className="inline-flex items-center gap-2 bg-info text-black font-semibold text-[13px] px-5 py-2.5 rounded-xl hover:bg-info/90 transition-colors"
-          >
-            <Plus size={14} />
-            Add first client
-          </Link>
-        </div>
+        <EmptyState
+          icon={Users}
+          title="No clients yet"
+          description="Add your first client to start generating posters."
+          actionLabel="Add client"
+          onAction={() => window.location.assign("/studio/clients/new")}
+        />
       ) : (
-        <div className="space-y-2">
-          {filtered.map((client) => (
-            <div
-              key={client.id}
-              className="group bg-bg-surface border border-border-default rounded-2xl p-4 hover:border-border-strong transition-colors relative"
-            >
-              <div className="flex items-center gap-4">
-                {/* Avatar */}
-                <div className="w-10 h-10 rounded-xl bg-bg-elevated border border-border-default flex items-center justify-center font-semibold text-[14px] text-text-primary shrink-0">
-                  {client.clientName.charAt(0).toUpperCase()}
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={`/studio/clients/${client.id}`}
-                      className="font-semibold text-[14px] text-text-primary hover:text-info transition-colors truncate"
-                    >
-                      {client.clientName}
-                    </Link>
-                    {client.status !== "active" && (
-                      <span className={`font-mono text-[10px] px-2 py-0.5 rounded-full capitalize ${
-                        client.status === "paused" ? "bg-warning/15 text-warning" : "bg-bg-elevated text-text-muted"
-                      }`}>
-                        {client.status}
-                      </span>
-                    )}
-                  </div>
-                  <p className="font-mono text-[11px] text-text-muted truncate">
-                    {[client.industry, client.location].filter(Boolean).join(" · ") || "No details"}
-                  </p>
-                  {client.tags.length > 0 && (
-                    <div className="flex items-center gap-1 mt-1 flex-wrap">
-                      {client.tags.slice(0, 3).map((tag) => (
-                        <span key={tag} className="font-mono text-[10px] bg-bg-elevated px-2 py-0.5 rounded text-text-muted">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Poster count */}
-                <div className="hidden sm:block text-right shrink-0">
-                  <p className="font-semibold text-[14px] text-text-primary">{client.postersThisMonth}</p>
-                  <p className="font-mono text-[10px] text-text-muted">/ {client.monthlyQuota} this month</p>
-                  <div className="w-16 bg-bg-elevated rounded-full h-1 mt-1">
-                    <div
-                      className="h-1 rounded-full bg-info"
-                      style={{ width: `${Math.min((client.postersThisMonth / client.monthlyQuota) * 100, 100)}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-1 shrink-0">
-                  <Link
-                    href={`/studio/create?clientId=${client.id}`}
-                    className="hidden sm:inline-flex items-center gap-1.5 bg-info/10 border border-info/20 text-info font-medium text-[12px] px-3 py-1.5 rounded-lg hover:bg-info/15 transition-colors"
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block rounded-[10px] border border-[#ffffff0f] overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[#ffffff08]">
+                  <th className="text-left py-3 px-4 text-[10px] font-medium uppercase tracking-[0.08em] text-[#71717a]">
+                    Client
+                  </th>
+                  <th className="text-left py-3 px-4 text-[10px] font-medium uppercase tracking-[0.08em] text-[#71717a]">
+                    Industry
+                  </th>
+                  <th className="text-left py-3 px-4 text-[10px] font-medium uppercase tracking-[0.08em] text-[#71717a]">
+                    Posters
+                  </th>
+                  <th className="text-left py-3 px-4 text-[10px] font-medium uppercase tracking-[0.08em] text-[#71717a]">
+                    Quota
+                  </th>
+                  <th className="text-left py-3 px-4 text-[10px] font-medium uppercase tracking-[0.08em] text-[#71717a]">
+                    Status
+                  </th>
+                  <th className="w-24" />
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((client) => (
+                  <tr
+                    key={client.id}
+                    className="border-b border-[#ffffff08] hover:bg-[#ffffff04] transition-colors group"
                   >
-                    <Sparkles size={11} />
-                    Generate
-                  </Link>
-                  <div className="relative">
-                    <button
-                      onClick={() => setMenuOpen(menuOpen === client.id ? null : client.id)}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg bg-bg-elevated text-text-muted hover:text-text-primary hover:bg-bg-overlay transition-colors"
-                    >
-                      <MoreHorizontal size={15} />
-                    </button>
-                    {menuOpen === client.id && (
-                      <div className="absolute right-0 top-full mt-1 w-44 bg-bg-overlay border border-border-default rounded-xl shadow-xl z-50 py-1">
+                    <td className="py-3 px-4">
+                      <Link
+                        href={`/studio/clients/${client.id}`}
+                        className="flex items-center gap-3"
+                      >
+                        <Avatar name={client.clientName} id={client.id} size="sm" />
+                        <div>
+                          <p className="text-[13px] font-medium text-[#fafafa]">
+                            {client.clientName}
+                          </p>
+                          <p className="text-[11px] text-[#71717a]">
+                            {client.contactEmail || "—"}
+                          </p>
+                        </div>
+                      </Link>
+                    </td>
+                    <td className="py-3 px-4 text-[12px] text-[#a1a1aa]">
+                      {client.industry || "—"}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[13px] font-semibold text-[#fafafa]">
+                          {client.postersThisMonth}
+                        </span>
+                        <div className="w-10 h-[3px] rounded-full bg-[#ffffff08] overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-[#E8FF47]"
+                            style={{
+                              width: `${client.monthlyQuota ? Math.min((client.postersThisMonth / client.monthlyQuota) * 100, 100) : 0}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-[12px] text-[#71717a]">
+                      {client.monthlyQuota}
+                    </td>
+                    <td className="py-3 px-4">
+                      <Badge
+                        variant={
+                          client.status === "active"
+                            ? "success"
+                            : client.status === "paused"
+                              ? "warning"
+                              : "default"
+                        }
+                      >
+                        {client.status}
+                      </Badge>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Link
                           href={`/studio/clients/${client.id}/edit`}
-                          className="flex items-center gap-2 px-3 py-2 text-[13px] text-text-secondary hover:bg-bg-elevated hover:text-text-primary transition-colors"
-                          onClick={() => setMenuOpen(null)}
+                          className="p-2 rounded-lg text-[#71717a] hover:bg-[#ffffff08] hover:text-[#fafafa]"
+                          aria-label="Edit"
                         >
-                          <Edit3 size={13} />
-                          Edit client
+                          <Edit3 size={14} />
                         </Link>
                         <Link
                           href={`/studio/create?clientId=${client.id}`}
-                          className="flex items-center gap-2 px-3 py-2 text-[13px] text-text-secondary hover:bg-bg-elevated hover:text-text-primary transition-colors"
-                          onClick={() => setMenuOpen(null)}
+                          className="p-2 rounded-lg text-[#71717a] hover:bg-[#ffffff08] hover:text-[#E8FF47]"
+                          aria-label="Generate"
                         >
-                          <Sparkles size={13} />
-                          Generate poster
+                          <Sparkles size={14} />
                         </Link>
                         <button
-                          onClick={() => archiveClient(client.id)}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-text-muted hover:bg-bg-elevated hover:text-text-primary transition-colors"
+                          type="button"
+                          onClick={() => setArchiveTarget(client)}
+                          className="p-2 rounded-lg text-[#71717a] hover:bg-[#ffffff08] hover:text-[#ef4444] text-[12px]"
+                          aria-label="Archive"
                         >
-                          <Archive size={13} />
                           Archive
                         </button>
                       </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile/tablet cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:hidden gap-4">
+            {filtered.map((client) => (
+              <ClientCard
+                key={client.id}
+                id={client.id}
+                name={client.clientName}
+                industry={client.industry}
+                status={client.status}
+                postersThisMonth={client.postersThisMonth}
+                monthlyQuota={client.monthlyQuota}
+                variant="card"
+              />
+            ))}
+          </div>
+        </>
       )}
 
-      {/* Click outside to close menu */}
-      {menuOpen && (
-        <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(null)} />
-      )}
+      <ConfirmDialog
+        open={!!archiveTarget}
+        onClose={() => setArchiveTarget(null)}
+        onConfirm={() => { if (archiveTarget) void archiveClient(archiveTarget.id); }}
+        title="Archive client?"
+        description={`${archiveTarget?.clientName ?? ""} will be moved to archived. You can restore later.`}
+        confirmLabel="Archive"
+        cancelLabel="Cancel"
+      />
     </div>
   );
 }

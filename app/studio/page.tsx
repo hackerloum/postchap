@@ -4,15 +4,16 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Users,
-  Sparkles,
   Images,
-  UserPlus,
-  ChevronRight,
   DollarSign,
   Zap,
-  ArrowUpRight,
+  UserPlus,
+  Sparkles,
+  Calendar,
 } from "lucide-react";
 import { getClientIdToken } from "@/lib/auth-client";
+import { Button, Badge, Card, Skeleton, EmptyState } from "@/components/studio/ui";
+import { ClientCard, OccasionRow } from "@/components/studio/shared";
 
 interface ClientSummary {
   id: string;
@@ -41,8 +42,6 @@ interface OccasionAlert {
   date: string;
 }
 
-const CLIENT_COLORS = ["#e8ff47", "#4d9eff", "#3ddc84", "#f59e0b", "#ef4444"];
-
 const EMPTY_USAGE: UsageData = {
   plan: "—",
   postersUsedThisMonth: 0,
@@ -52,11 +51,12 @@ const EMPTY_USAGE: UsageData = {
   totalEstimatedCostUsd: 0,
 };
 
-export default function StudioDashboardPage() {
+export default function StudioOverviewPage() {
   const [clients, setClients] = useState<ClientSummary[]>([]);
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [occasions, setOccasions] = useState<OccasionAlert[]>([]);
   const [loading, setLoading] = useState(true);
+  const [clientSearch, setClientSearch] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -68,11 +68,9 @@ export default function StudioDashboardPage() {
           fetch("/api/studio/usage", { headers }),
           fetch("/api/studio/occasions?days=14", { headers }),
         ]);
-
         if (clientsRes.ok) {
           const d = await clientsRes.json();
-          const list = (d.clients ?? []).slice(0, 6) as ClientSummary[];
-          setClients(list);
+          setClients((d.clients ?? []).slice(0, 6) as ClientSummary[]);
         }
         if (usageRes.ok) {
           const u = await usageRes.json();
@@ -90,7 +88,7 @@ export default function StudioDashboardPage() {
           setOccasions((d.alerts ?? []).slice(0, 5) as OccasionAlert[]);
         }
       } catch {
-        // Leave state as initial (empty/empty usage)
+        // ignore
       } finally {
         setLoading(false);
       }
@@ -98,465 +96,295 @@ export default function StudioDashboardPage() {
     load();
   }, []);
 
-  const displayClients = clients;
-  const displayOccasions = occasions;
   const displayUsage = usage ?? EMPTY_USAGE;
-
   const quotaPercent = displayUsage.posterLimit
     ? Math.min((displayUsage.postersUsedThisMonth / displayUsage.posterLimit) * 100, 100)
     : 0;
   const isQuotaHigh = quotaPercent >= 80;
-
   const [quotaAnimated, setQuotaAnimated] = useState(0);
   useEffect(() => {
     const t = setTimeout(() => setQuotaAnimated(quotaPercent), 100);
     return () => clearTimeout(t);
   }, [quotaPercent]);
 
-  const isTrial = displayUsage.plan === "trial";
+  const filteredClients = clientSearch.trim()
+    ? clients.filter(
+        (c) =>
+          c.clientName.toLowerCase().includes(clientSearch.toLowerCase()) ||
+          (c.industry ?? "").toLowerCase().includes(clientSearch.toLowerCase())
+      )
+    : clients;
 
   return (
-    <div className="max-w-[1100px] mx-auto space-y-8">
-
-      {isTrial && (
-        <div
-          className="studio-animate-fade-up rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
-          style={{
-            background: "rgba(232,255,71,0.06)",
-            borderColor: "rgba(232,255,71,0.25)",
-            animationDelay: "0ms",
-          }}
-        >
-          <p className="text-[13px]" style={{ color: "var(--studio-text-primary)" }}>
-            <strong>Trial plan</strong> — view only. Upgrade to add clients and generate posters.
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-[28px] font-bold text-[#fafafa] tracking-tight">
+            Studio
+          </h1>
+          <p className="text-[14px] text-[#71717a] mt-0.5">
+            Manage clients, generate posters, track approvals
           </p>
-          <Link
-            href="/studio/billing"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-semibold shrink-0 transition-opacity hover:opacity-90"
-            style={{ background: "var(--studio-accent)", color: "#080808" }}
-          >
-            <Zap size={14} />
-            Upgrade to use Studio
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/studio/clients/new">
+            <Button variant="secondary" size="md">
+              <UserPlus size={14} className="mr-2" />
+              Add client
+            </Button>
+          </Link>
+          <Link href="/studio/create">
+            <Button variant="primary" size="md">
+              <Sparkles size={14} className="mr-2" />
+              Generate
+            </Button>
           </Link>
         </div>
-      )}
-
-      {/* Page header */}
-      <div className="studio-animate-fade-up" style={{ animationDelay: "80ms" }}>
-        <h1
-          className="text-[32px] font-bold tracking-tight"
-          style={{ color: "var(--studio-text-primary)", letterSpacing: "-0.03em" }}
-        >
-          Overview
-        </h1>
-        <p className="text-[13px] mt-1" style={{ color: "var(--studio-text-muted)" }}>
-          Clients · Posters · Usage
-        </p>
       </div>
 
-      {/* Stat cards */}
-      <div
-        className="grid grid-cols-2 md:grid-cols-4 gap-3 studio-animate-fade-up"
-        style={{ animationDelay: "80ms" }}
-      >
+      {/* Stats grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           {
-            label: "Active clients",
-            value: String(displayUsage.activeClients),
+            label: "ACTIVE CLIENTS",
+            value: loading ? "—" : String(displayUsage.activeClients),
             sub: "this month",
             icon: Users,
-            accent: "#e8ff47",
-            glow: "rgba(232,255,71,0.04)",
+            iconBg: "bg-[#E8FF4710]",
+            iconBorder: "border-[#E8FF4725]",
+            iconColor: "#E8FF47",
           },
           {
-            label: "Posters",
-            value: String(displayUsage.postersUsedThisMonth),
+            label: "POSTERS THIS MONTH",
+            value: loading ? "—" : String(displayUsage.postersUsedThisMonth),
             sub: displayUsage.posterLimit ? `of ${displayUsage.posterLimit}` : "unlimited",
             icon: Images,
-            accent: "#4d9eff",
-            glow: "rgba(77,158,255,0.04)",
+            iconBg: "bg-[#818cf810]",
+            iconBorder: "border-[#818cf825]",
+            iconColor: "#818cf8",
           },
           {
-            label: "AI cost",
-            value: `$${displayUsage.totalEstimatedCostUsd.toFixed(2)}`,
+            label: "AI COST",
+            value: loading ? "—" : `$${displayUsage.totalEstimatedCostUsd.toFixed(2)}`,
             sub: "this month",
             icon: DollarSign,
-            accent: "#3ddc84",
-            glow: "rgba(61,220,132,0.04)",
+            iconBg: "bg-[#4ade8010]",
+            iconBorder: "border-[#4ade8025]",
+            iconColor: "#4ade80",
           },
           {
-            label: "Plan",
-            value: (displayUsage.plan || "pro").toUpperCase(),
-            sub: "Upgrade",
+            label: "PLAN",
+            value: (displayUsage.plan || "—").toUpperCase(),
+            sub: "Upgrade →",
             subHref: "/studio/billing",
             icon: Zap,
-            accent: "#e8ff47",
-            glow: "rgba(232,255,71,0.04)",
+            iconBg: "bg-[#E8FF4710]",
+            iconBorder: "border-[#E8FF4725]",
+            iconColor: "#E8FF47",
           },
-        ].map((card) => {
-          const Icon = card.icon;
+        ].map((stat) => {
+          const Icon = stat.icon;
           return (
-            <div
-              key={card.label}
-              className="studio-stat-card rounded-xl border p-5 transition-all duration-150"
-              style={{
-                background: "var(--studio-bg-surface)",
-                borderColor: "var(--studio-border)",
-                boxShadow: `inset 0 0 50px 0 ${card.glow}`,
-              }}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] font-medium" style={{ color: "var(--studio-text-muted)" }}>
-                  {card.label}
+            <Card key={stat.label} className="p-5">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-[#71717a]">
+                  {stat.label}
                 </span>
                 <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center"
-                  style={{ background: `${card.accent}14`, border: `1px solid ${card.accent}30` }}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center border ${stat.iconBg} ${stat.iconBorder}`}
+                  style={{ color: stat.iconColor }}
                 >
-                  <Icon size={13} style={{ color: card.accent }} />
+                  <Icon size={16} />
                 </div>
               </div>
-              <p
-                className="text-[28px] font-bold tracking-tight"
-                style={{ color: "var(--studio-text-primary)", letterSpacing: "-0.03em" }}
-              >
-                {card.value}
-              </p>
-              {card.subHref ? (
-                <Link
-                  href={card.subHref}
-                  className="inline-flex items-center gap-0.5 text-[11px] font-medium mt-1 transition-opacity hover:opacity-80"
-                  style={{ color: "var(--studio-accent)" }}
-                >
-                  {card.sub} <ArrowUpRight size={11} />
-                </Link>
+              {loading ? (
+                <Skeleton className="h-8 w-24 mb-2" />
               ) : (
-                <p className="text-[11px] mt-1" style={{ color: "var(--studio-text-muted)" }}>
-                  {card.sub}
+                <p className="text-[32px] font-bold text-[#fafafa] leading-none tracking-tight">
+                  {stat.value}
                 </p>
               )}
-            </div>
+              {stat.subHref ? (
+                <Link
+                  href={stat.subHref}
+                  className="text-[12px] font-medium text-[#E8FF47] hover:underline mt-1 inline-block"
+                >
+                  {stat.sub}
+                </Link>
+              ) : (
+                <p className="text-[12px] text-[#71717a] mt-1">{stat.sub}</p>
+              )}
+            </Card>
           );
         })}
       </div>
 
       {/* Quota bar */}
       {displayUsage.posterLimit != null && (
-        <div
-          className="rounded-xl border p-5 studio-animate-fade-up"
-          style={{
-            background: "var(--studio-bg-surface)",
-            borderColor: "var(--studio-border)",
-            animationDelay: "160ms",
-          }}
-        >
+        <Card className="p-5">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] font-medium" style={{ color: "var(--studio-text-secondary)" }}>
-              Poster quota
+            <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-[#71717a]">
+              POSTER QUOTA
             </span>
-            <span
-              className="text-[11px] font-semibold tabular-nums"
-              style={{ color: isQuotaHigh ? "#ef4444" : "var(--studio-accent)" }}
-            >
-              {displayUsage.postersUsedThisMonth} / {displayUsage.posterLimit}
-            </span>
+            <div className="flex items-center gap-2">
+              <Badge variant={isQuotaHigh ? "danger" : "accent"}>
+                {Math.round(quotaPercent)}%
+              </Badge>
+              <span className="text-[12px] text-[#71717a] tabular-nums">
+                {displayUsage.postersUsedThisMonth} / {displayUsage.posterLimit}
+              </span>
+            </div>
           </div>
-          <div
-            className="h-[3px] rounded-full overflow-hidden"
-            style={{ background: "var(--studio-track-bg)" }}
-          >
+          <div className="h-1 rounded-full bg-[#ffffff08] overflow-hidden">
             <div
-              className="h-full rounded-full transition-[width] duration-1000 ease-out"
+              className="h-full rounded-full transition-[width] duration-[800ms] ease-out"
               style={{
                 width: `${quotaAnimated}%`,
-                background: isQuotaHigh
-                  ? "linear-gradient(90deg, #b91c1c, #ef4444)"
-                  : "linear-gradient(90deg, #b8cc38, #e8ff47)",
-                boxShadow: isQuotaHigh ? "0 0 8px rgba(239,68,68,0.4)" : "0 0 8px rgba(232,255,71,0.3)",
+                backgroundColor: isQuotaHigh ? "#ef4444" : "#E8FF47",
+                boxShadow: isQuotaHigh ? "0 0 8px rgba(239,68,68,0.4)" : "0 0 8px rgba(232,255,71,0.4)",
               }}
             />
           </div>
-        </div>
+        </Card>
       )}
 
-      <div className="grid md:grid-cols-3 gap-6">
-        {/* Active clients table */}
-        <div
-          className="md:col-span-2 rounded-xl border overflow-hidden studio-animate-fade-up"
-          style={{
-            background: "var(--studio-bg-surface)",
-            borderColor: "var(--studio-border)",
-            animationDelay: "240ms",
-          }}
-        >
-          <div
-            className="flex items-center justify-between px-6 py-4 border-b"
-            style={{ borderColor: "var(--studio-border-subtle)" }}
-          >
-            <h2 className="text-[14px] font-semibold" style={{ color: "var(--studio-text-primary)" }}>
+      {/* Two column: 60/40 */}
+      <div className="grid lg:grid-cols-[1fr_0.65fr] gap-6">
+        {/* Active clients */}
+        <Card className="overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b border-[#ffffff08]">
+            <h2 className="text-[16px] font-semibold text-[#fafafa]">
               Active clients
             </h2>
-            <div className="flex items-center gap-3">
-              <span
-                className="text-[10px] font-medium px-2 py-0.5 rounded-full"
-                style={{
-                  background: "rgba(232,255,71,0.08)",
-                  color: "var(--studio-accent)",
-                }}
-              >
-                {displayClients.length}
-              </span>
+            <div className="flex items-center gap-2">
+              <Badge variant="accent">{filteredClients.length}</Badge>
               <Link
                 href="/studio/clients"
-                className="inline-flex items-center gap-0.5 text-[11px] font-medium transition-colors hover:text-white"
-                style={{ color: "var(--studio-text-muted)" }}
+                className="text-[12px] text-[#71717a] hover:text-[#E8FF47] transition-colors"
               >
-                View all <ArrowUpRight size={11} />
+                View all →
               </Link>
             </div>
           </div>
-
-          {loading ? (
-            <div className="divide-y" style={{ borderColor: "var(--studio-border-subtle)" }}>
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="px-6 py-4 flex items-center gap-4">
-                  <div className="w-9 h-9 rounded-lg bg-white/5 animate-pulse" />
-                  <div className="flex-1 h-3 bg-white/5 rounded animate-pulse" />
-                </div>
-              ))}
-            </div>
-          ) : displayClients.length === 0 ? (
-            <div
-              className="px-6 py-12 text-center"
-              style={{ color: "var(--studio-text-muted)" }}
-            >
-              <p className="text-[13px] font-medium">No clients yet</p>
-              <p className="text-[11px] mt-1">Add your first client to start generating posters.</p>
-              <Link
-                href="/studio/clients/new"
-                className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-lg text-[12px] font-semibold transition-opacity hover:opacity-90"
-                style={{ background: "var(--studio-accent)", color: "#080808" }}
-              >
-                <UserPlus size={14} />
-                Add client
-              </Link>
-            </div>
-          ) : (
-            <div className="divide-y" style={{ borderColor: "var(--studio-border-subtle)" }}>
-              {displayClients.map((client, i) => {
-                const color = CLIENT_COLORS[i % CLIENT_COLORS.length];
-                const pct = client.monthlyQuota
-                  ? Math.min((client.postersThisMonth / client.monthlyQuota) * 100, 100)
-                  : 0;
-                return (
-                  <Link
-                    key={client.id}
-                    href={`/studio/clients/${client.id}`}
-                    className="flex items-center gap-4 px-6 py-3.5 transition-colors duration-150 hover:bg-white/[0.02]"
-                  >
-                    <div
-                      className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold"
-                      style={{
-                        background: `${color}14`,
-                        border: `1px solid ${color}35`,
-                        color,
-                      }}
-                    >
-                      {client.clientName.charAt(0)}
+          <div className="p-4">
+            <input
+              type="search"
+              placeholder="Search clients..."
+              value={clientSearch}
+              onChange={(e) => setClientSearch(e.target.value)}
+              className="w-full h-9 px-3 rounded-lg text-[13px] text-[#fafafa] placeholder:text-[#71717a] bg-[#080808] border border-[#ffffff0f] focus:outline-none focus:border-[#E8FF4740] mb-3"
+            />
+            {loading ? (
+              <>
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex items-center gap-3 py-3 border-b border-[#ffffff06]">
+                    <Skeleton className="w-9 h-9 rounded-lg shrink-0" />
+                    <div className="flex-1">
+                      <Skeleton className="h-4 w-32 mb-2" />
+                      <Skeleton className="h-3 w-24" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-medium" style={{ color: "var(--studio-text-primary)" }}>
-                        {client.clientName}
-                      </p>
-                      <p className="text-[11px] mt-0.5" style={{ color: "var(--studio-text-muted)" }}>
-                        {client.industry || "—"}
-                      </p>
-                      <div
-                        className="mt-2 h-[2px] rounded-full overflow-hidden max-w-[72px]"
-                        style={{ background: "var(--studio-border)" }}
-                      >
-                        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-[15px] font-bold tabular-nums" style={{ color: "var(--studio-text-primary)" }}>
-                        {client.postersThisMonth}
-                      </p>
-                      <p className="text-[10px]" style={{ color: "var(--studio-text-muted)" }}>
-                        of {client.monthlyQuota}
-                      </p>
-                    </div>
-                    <ChevronRight size={15} style={{ color: "var(--studio-text-muted)" }} />
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-
+                  </div>
+                ))}
+              </>
+            ) : filteredClients.length === 0 ? (
+              <EmptyState
+                icon={Users}
+                title="No clients yet"
+                description="Add your first client to get started"
+                actionLabel="Add client"
+                onAction={() => window.location.assign("/studio/clients/new")}
+              />
+            ) : (
+              filteredClients.map((client) => (
+                <ClientCard
+                  key={client.id}
+                  id={client.id}
+                  name={client.clientName}
+                  industry={client.industry}
+                  status={client.status}
+                  postersThisMonth={client.postersThisMonth}
+                  monthlyQuota={client.monthlyQuota}
+                  variant="row"
+                />
+              ))
+            )}
+          </div>
           <Link
             href="/studio/clients/new"
-            className="flex items-center justify-center gap-2 py-4 border-t border-dashed text-[11px] font-medium transition-colors duration-150 hover:border-[var(--studio-accent)] hover:text-[var(--studio-accent)]"
-            style={{ borderColor: "var(--studio-border)", color: "var(--studio-text-muted)" }}
+            className="flex items-center justify-center gap-2 py-4 mx-4 mb-4 border border-dashed border-[#ffffff12] rounded-lg text-[13px] font-medium text-[#71717a] hover:border-[#E8FF4730] hover:text-[#E8FF47] transition-colors"
           >
-            <UserPlus size={13} />
+            <UserPlus size={14} />
             Add new client
           </Link>
-        </div>
+        </Card>
 
-        {/* Right column: occasions + quick actions */}
+        {/* Right: occasions + quick stats */}
         <div className="space-y-5">
-          {/* Upcoming occasions */}
-          <div
-            className="rounded-xl border overflow-hidden studio-animate-fade-up"
-            style={{
-              background: "var(--studio-bg-surface)",
-              borderColor: "var(--studio-border)",
-              animationDelay: "280ms",
-            }}
-          >
-            <div
-              className="flex items-center justify-between px-5 py-3.5 border-b"
-              style={{ borderColor: "var(--studio-border-subtle)" }}
-            >
+          <Card className="overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-[#ffffff08]">
               <div className="flex items-center gap-2">
-                <span
-                  className="w-1.5 h-1.5 rounded-full studio-pulse-dot shrink-0"
-                  style={{ background: "var(--studio-accent)" }}
-                />
-                <h2 className="text-[13px] font-semibold" style={{ color: "var(--studio-text-primary)" }}>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#E8FF47] animate-pulse" />
+                <h2 className="text-[14px] font-semibold text-[#fafafa]">
                   Upcoming occasions
                 </h2>
               </div>
               <Link
                 href="/studio/occasions"
-                className="inline-flex items-center gap-0.5 text-[10px] font-medium transition-colors hover:text-white"
-                style={{ color: "var(--studio-text-muted)" }}
+                className="text-[12px] text-[#71717a] hover:text-[#E8FF47] transition-colors"
               >
-                All <ArrowUpRight size={10} />
+                View all →
               </Link>
             </div>
-
-            <div className="divide-y" style={{ borderColor: "var(--studio-border-subtle)" }}>
-              {displayOccasions.length === 0 ? (
-                <div
-                  className="px-5 py-6 text-center text-[11px]"
-                  style={{ color: "var(--studio-text-muted)" }}
-                >
-                  No occasions in the next 14 days
+            <div className="p-2">
+              {loading ? (
+                <div className="space-y-2 p-2">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-14 w-full" />
+                  ))}
                 </div>
+              ) : occasions.length === 0 ? (
+                <EmptyState
+                  icon={Calendar}
+                  title="No upcoming occasions"
+                  description="Occasions are auto-detected for your clients"
+                />
               ) : (
-                displayOccasions.map((occ, i) => {
-                  const urgencyRed = occ.daysUntil <= 5;
-                  const urgencyAmber = occ.daysUntil <= 14 && !urgencyRed;
-                  const badgeColor = urgencyRed ? "#ef4444" : urgencyAmber ? "#e8ff47" : "#3ddc84";
-                  return (
-                    <div
-                      key={i}
-                      className="flex items-center gap-3 px-5 py-3 transition-colors duration-150 hover:bg-white/[0.02]"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[12px] font-medium" style={{ color: "var(--studio-text-primary)" }}>
-                          {occ.title}
-                        </p>
-                        <p className="text-[10px] mt-0.5" style={{ color: "var(--studio-text-muted)" }}>
-                          {occ.clientName}
-                        </p>
-                      </div>
-                      <span
-                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 tabular-nums"
-                        style={{
-                          background: `${badgeColor}15`,
-                          color: badgeColor,
-                        }}
-                      >
-                        {occ.daysUntil === 0 ? "Today" : `${occ.daysUntil}d`}
-                      </span>
-                      <Link
-                        href={`/studio/create?clientId=${occ.clientId}&occasion=${encodeURIComponent(occ.title)}`}
-                        className="text-[10px] font-semibold shrink-0 transition-opacity hover:opacity-70"
-                        style={{ color: "var(--studio-accent)" }}
-                      >
-                        →
-                      </Link>
-                    </div>
-                  );
-                })
+                occasions.map((occ, i) => (
+                  <OccasionRow
+                    key={i}
+                    clientId={occ.clientId}
+                    clientName={occ.clientName}
+                    title={occ.title}
+                    type={occ.type}
+                    date={occ.date}
+                    daysUntil={occ.daysUntil}
+                  />
+                ))
               )}
             </div>
-          </div>
+          </Card>
 
-          {/* Quick actions */}
-          <div className="space-y-2 studio-animate-fade-up" style={{ animationDelay: "320ms" }}>
-            {[
-              { label: "Generate poster", sub: "Pick client & occasion", href: "/studio/create", icon: Sparkles, accent: "#e8ff47" },
-              { label: "Add client", sub: "New brand to manage", href: "/studio/clients/new", icon: UserPlus, accent: "#4d9eff" },
-              { label: "Invite team", sub: "Designers & reviewers", href: "/studio/team", icon: Users, accent: "#3ddc84" },
-              { label: "View posters", sub: "Approve or request edits", href: "/studio/posters", icon: Images, accent: "#f59e0b" },
-            ].map((action) => {
-              const Icon = action.icon;
-              return (
-                <Link
-                  key={action.href}
-                  href={action.href}
-                  className="flex items-center gap-3 p-3.5 rounded-xl border transition-all duration-150 hover:border-white/10 hover:bg-white/[0.02]"
-                  style={{
-                    background: "var(--studio-bg-surface)",
-                    borderColor: "var(--studio-border)",
-                  }}
-                >
-                  <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                    style={{ background: `${action.accent}14`, border: `1px solid ${action.accent}30` }}
-                  >
-                    <Icon size={14} style={{ color: action.accent }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-semibold" style={{ color: "var(--studio-text-primary)" }}>
-                      {action.label}
-                    </p>
-                    <p className="text-[10px] mt-0.5" style={{ color: "var(--studio-text-muted)" }}>
-                      {action.sub}
-                    </p>
-                  </div>
-                  <ChevronRight size={14} style={{ color: "var(--studio-text-muted)" }} />
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Monthly snapshot */}
-      <div
-        className="rounded-xl border p-6 studio-animate-fade-up"
-        style={{
-          background: "var(--studio-bg-surface)",
-          borderColor: "var(--studio-border)",
-          animationDelay: "360ms",
-        }}
-      >
-        <p className="text-[11px] font-semibold tracking-widest mb-5" style={{ color: "var(--studio-text-muted)" }}>
-          THIS MONTH
-        </p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {[
-            { label: "Posters generated", value: String(displayUsage.postersUsedThisMonth) },
-            { label: "Active clients", value: String(displayUsage.activeClients) },
-            { label: "AI spend", value: `$${displayUsage.totalEstimatedCostUsd.toFixed(2)}` },
-            { label: "Approvals pending", value: "—" },
-          ].map((row) => (
-            <div key={row.label}>
-              <p
-                className="text-[26px] font-bold tabular-nums"
-                style={{ color: "var(--studio-text-primary)", letterSpacing: "-0.03em" }}
-              >
-                {row.value}
-              </p>
-              <p className="text-[11px] mt-1" style={{ color: "var(--studio-text-muted)" }}>
-                {row.label}
-              </p>
+          <Card className="p-4 bg-gradient-to-br from-[#E8FF4705] to-transparent border-[#E8FF4718]">
+            <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-[#71717a] mb-4">
+              THIS MONTH
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { label: "Posters", value: String(displayUsage.postersUsedThisMonth) },
+                { label: "Clients", value: String(displayUsage.activeClients) },
+                { label: "AI spend", value: `$${displayUsage.totalEstimatedCostUsd.toFixed(2)}` },
+                { label: "Quota", value: displayUsage.posterLimit ? `${displayUsage.posterLimit} max` : "∞" },
+              ].map((row) => (
+                <div key={row.label}>
+                  <p className="text-[22px] font-bold text-[#fafafa] tabular-nums">
+                    {row.value}
+                  </p>
+                  <p className="text-[9px] uppercase text-[#71717a]">{row.label}</p>
+                </div>
+              ))}
             </div>
-          ))}
+          </Card>
         </div>
       </div>
     </div>

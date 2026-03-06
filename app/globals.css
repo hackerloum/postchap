@@ -22,7 +22,16 @@
 }
 
 * {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+  font-family: -apple-system, "SF Pro Display", "SF Pro Text", BlinkMacSystemFont, sans-serif;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 @keyframes fade-up {
@@ -143,4 +152,25 @@ body {
 }
 .prose-blog img {
   border-radius: 0.5rem;
+}
+
+/* Studio: scrollbar, selection, focus */
+.studio-theme ::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.studio-theme ::-webkit-scrollbar-track {
+  background: var(--bg-surface, #111111);
+}
+.studio-theme ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+.studio-theme ::selection {
+  background: rgba(232, 255, 71, 0.25);
+  color: #E8FF47;
+}
+.studio-theme :focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(232, 255, 71, 0.15);
 }

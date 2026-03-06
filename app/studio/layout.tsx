@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { verifyCookieAuth } from "@/lib/firebase/verify-auth";
 import { getAgencyForUser } from "@/lib/studio/db";
 import { SessionRefresher } from "@/app/dashboard/SessionRefresher";
-import { StudioShell } from "@/components/studio/StudioShell";
+import { StudioLayout as StudioLayoutClient } from "@/components/studio/layout/StudioLayout";
 import "./studio-theme.css";
 
 export const metadata: Metadata = {
@@ -51,7 +51,7 @@ export default async function StudioLayout({ children }: { children: React.React
   return (
     <>
       <SessionRefresher />
-      <StudioShell>{children}</StudioShell>
+      <StudioLayoutClient>{children}</StudioLayoutClient>
     </>
   );
 }

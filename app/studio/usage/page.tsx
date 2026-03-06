@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { BarChart3, TrendingUp, AlertCircle, Zap } from "lucide-react";
+import { BarChart3, Zap, AlertCircle } from "lucide-react";
 import { getClientIdToken } from "@/lib/auth-client";
+import { Button, Card, Skeleton } from "@/components/studio/ui";
 
 interface ClientUsage {
   clientId: string;
@@ -32,131 +33,177 @@ export default function StudioUsagePage() {
     async function load() {
       try {
         const token = await getClientIdToken();
-        const res = await fetch("/api/studio/usage", {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await fetch("/api/studio/usage", { headers });
         if (res.ok) setUsage(await res.json());
-      } catch {}
-      finally { setLoading(false); }
+      } catch {
+        // ignore
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, []);
 
   if (loading) {
     return (
-      <div className="max-w-3xl mx-auto px-5 py-8 space-y-4">
-        {[1, 2, 3].map((i) => <div key={i} className="h-24 bg-bg-surface rounded-2xl animate-pulse" />)}
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-24 rounded-[10px]" />
+          ))}
+        </div>
       </div>
     );
   }
 
-  if (!usage) return <div className="max-w-3xl mx-auto px-5 py-8 text-center"><p className="text-text-muted font-mono text-[13px]">Failed to load usage data.</p></div>;
+  if (!usage) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-[13px] text-[#71717a]">Failed to load usage data.</p>
+      </div>
+    );
+  }
+
+  const isQuotaHigh = usage.percentUsed >= 80;
 
   return (
-    <div className="max-w-3xl mx-auto px-5 py-8">
-      <div className="mb-6">
-        <h1 className="font-semibold text-[24px] text-text-primary tracking-tight">Usage</h1>
-        <p className="font-mono text-[13px] text-text-muted mt-1">Track poster usage and costs per client.</p>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-[28px] font-bold text-[#fafafa] tracking-tight">Usage</h1>
+          <p className="text-[14px] text-[#71717a] mt-0.5">Track poster usage and costs per client.</p>
+        </div>
+        <Link href="/studio/billing">
+          <Button variant="primary" size="md">
+            <Zap size={14} className="mr-2" />
+            Upgrade
+          </Button>
+        </Link>
       </div>
 
-      {/* Overview stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div className="bg-bg-surface border border-border-default rounded-2xl p-4">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-1">Posters used</p>
-          <p className="font-semibold text-[26px] text-text-primary">{usage.postersUsedThisMonth}</p>
-          {usage.posterLimit && <p className="font-mono text-[10px] text-text-muted">of {usage.posterLimit}</p>}
-        </div>
-        <div className="bg-bg-surface border border-border-default rounded-2xl p-4">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-1">Remaining</p>
-          <p className="font-semibold text-[26px] text-text-primary">{usage.postersRemaining ?? "∞"}</p>
-          <p className="font-mono text-[10px] text-text-muted">this month</p>
-        </div>
-        <div className="bg-bg-surface border border-border-default rounded-2xl p-4">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-1">Est. AI cost</p>
-          <p className="font-semibold text-[26px] text-text-primary">${usage.totalEstimatedCostUsd.toFixed(2)}</p>
-          <p className="font-mono text-[10px] text-text-muted">this month</p>
-        </div>
-        <div className="bg-bg-surface border border-border-default rounded-2xl p-4">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-1">Active clients</p>
-          <p className="font-semibold text-[26px] text-text-primary">{usage.activeClients}</p>
-        </div>
-      </div>
-
-      {/* Quota bar */}
-      {usage.posterLimit && (
-        <div className="bg-bg-surface border border-border-default rounded-2xl p-5 mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <p className="font-mono text-[11px] text-text-muted">Monthly poster quota</p>
-            <p className="font-mono text-[11px] text-text-secondary font-semibold capitalize">{usage.plan} plan</p>
+      <Card className="p-5 bg-gradient-to-br from-[#E8FF4706] to-transparent border-[#E8FF4718]">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h2 className="text-[24px] font-bold text-[#fafafa] capitalize">{usage.plan} plan</h2>
+            <p className="text-[13px] text-[#a1a1aa] mt-1">Features and quota</p>
           </div>
-          <div className="w-full bg-bg-elevated rounded-full h-3 mb-2">
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-[32px] font-bold text-[#fafafa]">
+                {usage.postersUsedThisMonth}
+                {usage.posterLimit != null && ` / ${usage.posterLimit}`}
+              </p>
+              <p className="text-[12px] text-[#71717a]">Posters this month</p>
+            </div>
+            <Link href="/studio/billing">
+              <Button variant="secondary" size="md">Manage subscription</Button>
+            </Link>
+          </div>
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="p-5">
+          <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[#71717a] mb-1">Posters used</p>
+          <p className="text-[26px] font-bold text-[#fafafa]">{usage.postersUsedThisMonth}</p>
+          {usage.posterLimit && <p className="text-[12px] text-[#71717a]">of {usage.posterLimit}</p>}
+        </Card>
+        <Card className="p-5">
+          <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[#71717a] mb-1">Remaining</p>
+          <p className="text-[26px] font-bold text-[#fafafa]">{usage.postersRemaining ?? "∞"}</p>
+          <p className="text-[12px] text-[#71717a]">this month</p>
+        </Card>
+        <Card className="p-5">
+          <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[#71717a] mb-1">Est. AI cost</p>
+          <p className="text-[26px] font-bold text-[#fafafa]">${usage.totalEstimatedCostUsd.toFixed(2)}</p>
+          <p className="text-[12px] text-[#71717a]">this month</p>
+        </Card>
+        <Card className="p-5">
+          <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[#71717a] mb-1">Active clients</p>
+          <p className="text-[26px] font-bold text-[#fafafa]">{usage.activeClients}</p>
+        </Card>
+      </div>
+
+      {usage.posterLimit != null && (
+        <Card className="p-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[#71717a]">Monthly poster quota</p>
+            <p className="text-[12px] text-[#a1a1aa] font-medium capitalize">{usage.plan} plan</p>
+          </div>
+          <div className="h-2 w-full rounded-full bg-[#ffffff08] overflow-hidden">
             <div
-              className={`h-3 rounded-full transition-all ${
-                usage.percentUsed >= 90 ? "bg-error" : usage.percentUsed >= 70 ? "bg-warning" : "bg-info"
+              className={`h-full rounded-full transition-all ${
+                isQuotaHigh ? "bg-[#ef4444]" : "bg-[#E8FF47]"
               }`}
               style={{ width: `${Math.min(usage.percentUsed, 100)}%` }}
             />
           </div>
-          <p className="font-mono text-[11px] text-text-muted">{usage.percentUsed}% used</p>
-          {usage.percentUsed >= 80 && (
-            <div className="flex items-center gap-2 mt-2 p-3 bg-warning/10 border border-warning/20 rounded-xl">
-              <AlertCircle size={13} className="text-warning" />
-              <p className="font-mono text-[11px] text-warning">
-                Running low on posters.{" "}
-                <Link href="/studio/billing" className="underline">Upgrade your plan →</Link>
+          <p className="text-[12px] text-[#71717a] mt-2">{usage.percentUsed}% used</p>
+          {isQuotaHigh && (
+            <div className="flex items-center gap-2 mt-3 p-3 rounded-lg bg-[#fbbf2412] border border-[#fbbf2425]">
+              <AlertCircle size={16} className="text-[#fbbf24]" />
+              <p className="text-[12px] text-[#fbbf24]">
+                Running low. <Link href="/studio/billing" className="underline">Upgrade →</Link>
               </p>
             </div>
           )}
-        </div>
+        </Card>
       )}
 
-      {/* Per-client breakdown */}
       <div>
-        <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-3">Usage by client</p>
+        <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[#71717a] mb-3">Usage by client</p>
         {usage.clientUsage.length === 0 ? (
-          <div className="bg-bg-surface border border-border-default rounded-2xl p-6 text-center">
-            <p className="font-mono text-[12px] text-text-muted">No client usage data yet.</p>
-          </div>
+          <Card className="p-8 text-center">
+            <p className="text-[13px] text-[#71717a]">No client usage data yet.</p>
+          </Card>
         ) : (
           <div className="space-y-2">
             {usage.clientUsage
               .sort((a, b) => b.postersThisMonth - a.postersThisMonth)
-              .map((client) => (
-                <div key={client.clientId} className="bg-bg-surface border border-border-default rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <Link href={`/studio/clients/${client.clientId}`} className="font-medium text-[13px] text-text-primary hover:text-info transition-colors">
-                        {client.clientName}
-                      </Link>
-                      <p className="font-mono text-[11px] text-text-muted mt-0.5">${client.estimatedCostUsd.toFixed(2)} est. cost</p>
+              .map((client) => {
+                const pct = client.monthlyQuota
+                  ? Math.min((client.postersThisMonth / client.monthlyQuota) * 100, 100)
+                  : 0;
+                return (
+                  <Card key={client.clientId} className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <Link
+                          href={`/studio/clients/${client.clientId}`}
+                          className="text-[13px] font-medium text-[#fafafa] hover:text-[#E8FF47] transition-colors"
+                        >
+                          {client.clientName}
+                        </Link>
+                        <p className="text-[11px] text-[#71717a]">${client.estimatedCostUsd.toFixed(2)} est. cost</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[13px] font-semibold text-[#fafafa]">{client.postersThisMonth}</p>
+                        <p className="text-[10px] text-[#71717a]">/ {client.monthlyQuota} quota</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-[13px] text-text-primary">{client.postersThisMonth}</p>
-                      <p className="font-mono text-[10px] text-text-muted">/ {client.monthlyQuota} quota</p>
+                    <div className="h-1.5 w-full rounded-full bg-[#ffffff08] overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[#E8FF47]"
+                        style={{ width: `${pct}%` }}
+                      />
                     </div>
-                  </div>
-                  <div className="w-full bg-bg-elevated rounded-full h-1.5">
-                    <div
-                      className="h-1.5 rounded-full bg-info"
-                      style={{ width: `${Math.min((client.postersThisMonth / client.monthlyQuota) * 100, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                  </Card>
+                );
+              })}
           </div>
         )}
       </div>
 
-      {/* Cost insight */}
-      <div className="mt-8 bg-bg-surface border border-border-default rounded-2xl p-5">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-3">Cost insight</p>
-        <p className="text-[13px] text-text-secondary">
-          Each poster costs approximately <span className="text-text-primary font-semibold">$0.055 in AI credits</span>.
-          At {usage.postersUsedThisMonth} posters this month, your total AI cost is{" "}
-          <span className="text-text-primary font-semibold">${usage.totalEstimatedCostUsd.toFixed(2)}</span>.
-          Your Studio plan fee covers everything else.
+      <Card className="p-5">
+        <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[#71717a] mb-2">Cost insight</p>
+        <p className="text-[13px] text-[#a1a1aa]">
+          Each poster costs approximately <span className="text-[#fafafa] font-semibold">$0.055 in AI credits</span>.
+          At {usage.postersUsedThisMonth} posters this month, total AI cost is{" "}
+          <span className="text-[#fafafa] font-semibold">${usage.totalEstimatedCostUsd.toFixed(2)}</span>.
         </p>
-      </div>
+      </Card>
     </div>
   );
 }

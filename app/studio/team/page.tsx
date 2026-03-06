@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Plus, Trash2, Edit3, Loader2, Copy, CheckCircle2 } from "lucide-react";
+import { Users, Plus, Trash2, Loader2, Copy } from "lucide-react";
 import { getClientIdToken } from "@/lib/auth-client";
 import { toast } from "sonner";
+import { Button, Card, Avatar, Badge, Skeleton, EmptyState, ConfirmDialog } from "@/components/studio/ui";
 
 interface TeamMember {
   id: string;
@@ -24,6 +25,7 @@ export default function StudioTeamPage() {
   const [inviteRole, setInviteRole] = useState("designer");
   const [inviting, setInviting] = useState(false);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<TeamMember | null>(null);
 
   async function load() {
     setLoading(true);
@@ -66,126 +68,107 @@ export default function StudioTeamPage() {
   }
 
   async function removeMember(memberId: string) {
-    if (!confirm("Remove this team member?")) return;
     const token = await getClientIdToken();
-    const res = await fetch(`/api/studio/team/${memberId}`, {
-      method: "DELETE",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+    const res = await fetch(`/api/studio/team/${memberId}`, { method: "DELETE", headers });
     if (res.ok) { toast.success("Member removed"); load(); }
     else toast.error("Failed to remove member");
+    setRemoveTarget(null);
   }
 
-  const roleColors: Record<string, string> = {
-    owner: "bg-accent/15 text-accent",
-    manager: "bg-info/15 text-info",
-    designer: "bg-success/15 text-success",
-    reviewer: "bg-warning/15 text-warning",
-    intern: "bg-bg-elevated text-text-muted",
+  const roleVariant: Record<string, "default" | "accent" | "success" | "warning"> = {
+    owner: "accent",
+    manager: "default",
+    designer: "success",
+    reviewer: "warning",
+    intern: "default",
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-5 py-8">
-      <div className="mb-6">
-        <h1 className="font-semibold text-[24px] text-text-primary tracking-tight">Team</h1>
-        <p className="font-mono text-[13px] text-text-muted mt-1">Manage team members and their access.</p>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-[28px] font-bold text-[#fafafa] tracking-tight">Team</h1>
+          <p className="text-[14px] text-[#71717a] mt-0.5">Manage team members and their access.</p>
+        </div>
+        <a href="#invite">
+          <Button variant="primary" size="md">Invite member</Button>
+        </a>
       </div>
 
-      {/* Invite form */}
-      <div className="bg-bg-surface border border-border-default rounded-2xl p-5 mb-6">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-4">Invite team member</p>
+      <Card id="invite" className="p-5">
+        <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[#71717a] mb-4">Invite team member</p>
         <form onSubmit={inviteMember} className="space-y-3">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="sm:col-span-2">
               <input
                 type="email"
                 placeholder="colleague@email.com"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 required
-                className="w-full bg-bg-base border border-border-default rounded-xl px-4 py-3 text-[13px] text-text-primary placeholder:text-text-muted outline-none focus:border-info transition-colors"
+                className="w-full h-[38px] px-4 rounded-lg text-[13px] text-[#fafafa] placeholder:text-[#71717a] bg-[#111111] border border-[#ffffff0f] focus:outline-none focus:border-[#E8FF4740]"
               />
             </div>
             <select
               value={inviteRole}
               onChange={(e) => setInviteRole(e.target.value)}
-              className="w-full bg-bg-base border border-border-default rounded-xl px-3 py-3 text-[13px] text-text-primary outline-none focus:border-info transition-colors"
+              className="w-full h-[38px] px-4 rounded-lg text-[13px] text-[#fafafa] bg-[#111111] border border-[#ffffff0f] focus:outline-none focus:border-[#E8FF4740]"
             >
-              {ROLES.map((r) => <option key={r} value={r} className="capitalize">{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
+              {ROLES.map((r) => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
             </select>
           </div>
-          <button
-            type="submit"
-            disabled={inviting || !inviteEmail.trim()}
-            className="w-full bg-info text-black font-semibold text-[13px] py-3 rounded-xl hover:bg-info/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {inviting ? <Loader2 size={14} className="animate-spin" /> : <><Plus size={14} /> Send invite</>}
-          </button>
+          <Button type="submit" variant="primary" size="md" className="w-full" disabled={inviting || !inviteEmail.trim()} loading={inviting}>
+            <Plus size={14} className="mr-2" /> Send invite
+          </Button>
         </form>
-
         {inviteUrl && (
-          <div className="mt-3 p-3 bg-bg-base border border-border-default rounded-xl">
-            <p className="font-mono text-[10px] text-text-muted mb-1.5">Share this invite link:</p>
+          <div className="mt-3 p-3 rounded-lg bg-[#080808] border border-[#ffffff0f]">
+            <p className="text-[10px] text-[#71717a] mb-1.5">Share this invite link:</p>
             <div className="flex items-center gap-2">
-              <span className="flex-1 font-mono text-[11px] text-text-secondary truncate">{inviteUrl}</span>
-              <button
-                onClick={() => { navigator.clipboard.writeText(inviteUrl); toast.success("Copied!"); }}
-                className="text-text-muted hover:text-text-primary transition-colors"
-              >
-                <Copy size={13} />
+              <span className="flex-1 text-[11px] text-[#a1a1aa] truncate">{inviteUrl}</span>
+              <button type="button" onClick={() => { navigator.clipboard.writeText(inviteUrl); toast.success("Copied!"); }} className="p-2 text-[#71717a] hover:text-[#fafafa]">
+                <Copy size={14} />
               </button>
             </div>
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* Team member list */}
       <div>
-        <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-3">Team members</p>
+        <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[#71717a] mb-3">Team members</p>
         {loading ? (
           <div className="space-y-2">
-            {[1, 2, 3].map((i) => <div key={i} className="h-16 bg-bg-surface border border-border-subtle rounded-xl animate-pulse" />)}
+            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 rounded-[10px]" />)}
           </div>
         ) : members.length === 0 ? (
-          <div className="bg-bg-surface border border-border-default rounded-2xl p-8 text-center">
-            <Users size={24} className="text-text-muted mx-auto mb-2" />
-            <p className="font-mono text-[12px] text-text-muted">No team members yet.</p>
-          </div>
+          <EmptyState icon={Users} title="No team members yet" description="Invite team members to collaborate." actionLabel="Invite member" onAction={() => document.getElementById("invite")?.scrollIntoView()} />
         ) : (
           <div className="space-y-2">
             {members.map((m) => {
-              const displayLabel = m.displayName || m.email || (m.role === "owner" ? "Owner" : "Team member");
-              const subLabel = m.email && m.displayName ? m.email : null;
+              const displayLabel = m.displayName || m.email || (m.role === "owner" ? "Owner" : "Member");
               return (
-              <div key={m.id} className="flex items-center gap-3 bg-bg-surface border border-border-default rounded-xl p-4">
-                <div className="w-9 h-9 rounded-full bg-bg-elevated border border-border-default flex items-center justify-center font-semibold text-[13px] text-text-primary shrink-0">
-                  {displayLabel.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-[13px] text-text-primary truncate">{displayLabel}</p>
-                  {subLabel && <p className="font-mono text-[11px] text-text-muted truncate">{subLabel}</p>}
-                </div>
-                <span className={`font-mono text-[10px] px-2 py-0.5 rounded-full capitalize ${roleColors[m.role] ?? "bg-bg-elevated text-text-muted"}`}>
-                  {m.role}
-                </span>
-                {m.role !== "owner" && (
-                  <button
-                    onClick={() => removeMember(m.id)}
-                    className="text-text-muted hover:text-error transition-colors"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                )}
-              </div>
-            );
+                <Card key={m.id} className="p-4 flex items-center gap-3">
+                  <Avatar name={displayLabel} id={m.userId} size="md" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-medium text-[#fafafa] truncate">{displayLabel}</p>
+                    {m.email && <p className="text-[11px] text-[#71717a] truncate">{m.email}</p>}
+                  </div>
+                  <Badge variant={roleVariant[m.role] ?? "default"}>{m.role}</Badge>
+                  {m.role !== "owner" && (
+                    <button type="button" onClick={() => setRemoveTarget(m)} className="p-2 text-[#71717a] hover:text-[#ef4444] transition-colors">
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </Card>
+              );
             })}
           </div>
         )}
       </div>
 
-      {/* Role guide */}
-      <div className="mt-8 bg-bg-surface border border-border-default rounded-2xl p-5">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-3">Role permissions</p>
+      <Card className="p-5">
+        <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[#71717a] mb-3">Role permissions</p>
         <div className="space-y-2 text-[13px]">
           {[
             { role: "owner", desc: "Full access, billing, all clients" },
@@ -195,12 +178,21 @@ export default function StudioTeamPage() {
             { role: "intern", desc: "View only, with comments" },
           ].map(({ role, desc }) => (
             <div key={role} className="flex items-center gap-3">
-              <span className={`font-mono text-[10px] px-2 py-0.5 rounded-full capitalize shrink-0 ${roleColors[role] ?? ""}`}>{role}</span>
-              <span className="text-text-secondary">{desc}</span>
+              <Badge variant={roleVariant[role] ?? "default"}>{role}</Badge>
+              <span className="text-[#a1a1aa]">{desc}</span>
             </div>
           ))}
         </div>
-      </div>
+      </Card>
+
+      <ConfirmDialog
+        open={!!removeTarget}
+        onClose={() => setRemoveTarget(null)}
+        onConfirm={() => { if (removeTarget) void removeMember(removeTarget.id); }}
+        title="Remove team member?"
+        description={removeTarget ? `${removeTarget.displayName || removeTarget.email} will lose access.` : ""}
+        confirmLabel="Remove"
+      />
     </div>
   );
 }
