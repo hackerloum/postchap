@@ -557,6 +557,7 @@ export default function TerminalPage() {
         }
       `}</style>
 
+      {/* Connecting overlay — sits on top, removed when shell is ready */}
       {showConnecting && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#080808]">
           <Image src="/artmasterwordmarklogo-03-03.webp" alt="ArtMaster" width={100} height={28} className="opacity-80 mb-6" />
@@ -590,7 +591,8 @@ export default function TerminalPage() {
         </div>
       )}
 
-      {!showConnecting && (
+      {/* Main layout always rendered so termRef div exists for xterm to open into */}
+      <div style={{ visibility: showConnecting ? "hidden" : "visible", display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
         <>
           {/* Top status bar — 52px; condensed on mobile */}
           <div
@@ -1185,7 +1187,7 @@ export default function TerminalPage() {
             </div>
           )}
         </>
-      )}
+      </div>
 
     </div>
   );
