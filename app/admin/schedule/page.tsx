@@ -212,6 +212,32 @@ export default function AdminSchedulePage() {
           </p>
         </div>
       </div>
+
+      <div className="mt-6 bg-bg-surface border border-border-subtle rounded-xl p-4">
+        <h3 className="text-[13px] font-semibold text-text-primary mb-3">VPS cron jobs</h3>
+        <p className="text-[11px] text-text-muted mb-3">
+          These run on your VPS (not Vercel) and call the app at the times below. Configure them on
+          the server using <span className="font-mono text-text-primary">scripts/trigger-cron.sh</span> and
+          crontab; see <span className="font-mono text-text-primary">docs/CRON_VPS.md</span> in the repo for setup.
+        </p>
+        <div className="font-mono text-[11px] space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-text-muted">00:00 UTC</span>
+            <span className="text-text-primary">scheduled-generation</span>
+            <span className="text-text-muted">— daily poster generation for enabled schedules</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-text-muted">06:00 UTC</span>
+            <span className="text-text-primary">occasion-alerts</span>
+            <span className="text-text-muted">— upcoming occasions (future: email)</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-text-muted">08:00 UTC</span>
+            <span className="text-text-primary">scheduled-posts</span>
+            <span className="text-text-muted">— post due Instagram scheduled posts</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
