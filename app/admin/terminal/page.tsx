@@ -375,7 +375,8 @@ export default function TerminalPage() {
   const handleFontSize = useCallback((delta: number) => {
     setFontSize((f) => {
       const next = Math.max(10, Math.min(24, f + delta));
-      xtermRef.current?.terminal?.setOption("fontSize", next);
+      const term = xtermRef.current?.terminal;
+      if (term) term.options.fontSize = next;
       requestAnimationFrame(() => xtermRef.current?.fit?.fit());
       return next;
     });
@@ -397,7 +398,7 @@ export default function TerminalPage() {
     const term = xtermRef.current?.terminal;
     const fit = xtermRef.current?.fit;
     if (term) {
-      term.setOption("fontSize", effectiveFontSize);
+      term.options.fontSize = effectiveFontSize;
       requestAnimationFrame(() => fit?.fit());
     }
   }, [effectiveFontSize]);
