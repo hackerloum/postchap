@@ -166,6 +166,11 @@ wss.on("connection", (ws: WebSocket) => {
               // ignore non-JSON (e.g. legacy raw input)
             }
           });
+
+          // Tell the client the shell is ready so it can enable input/quick commands
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: "shell_ready" }));
+          }
       });
     });
 

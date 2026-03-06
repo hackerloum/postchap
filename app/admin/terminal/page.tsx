@@ -136,6 +136,24 @@ export default function TerminalPage() {
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const [mobileSheetTab, setMobileSheetTab] = useState<"commands" | "metrics">("commands");
   const [isMobile, setIsMobile] = useState(false);
+  const [vpsInfo, setVpsInfo] = useState<{
+    cpuPercent: number | null;
+    cpuText: string | null;
+    ramGb: number;
+    ramUsedText: string | null;
+    ramPercent: number | null;
+    diskGb: number;
+    diskUsedText: string | null;
+    diskPercent: number | null;
+    bandwidthTb: number;
+    bandwidthUsageTb: number | null;
+    uptimeText: string | null;
+    ip: string | null;
+    hostname: string | null;
+    vmStatus: string | null;
+  } | null>(null);
+  const [vpsInfoLoading, setVpsInfoLoading] = useState(false);
+  const [vpsInfoError, setVpsInfoError] = useState<string | null>(null);
 
   const hostLabel = process.env.NEXT_PUBLIC_VPS_HOST_LABEL || "artmastervps";
 
@@ -145,6 +163,34 @@ export default function TerminalPage() {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
+
+  const fetchVpsInfo = useCallback(async () => {
+    setVpsInfoLoading(true);
+    setVpsInfoError(null);
+    try {
+      const res = await fetch("/api/admin/vps-info", { credentials: "same-origin" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setVpsInfoError(data.error || `HTTP ${res.status}`);
+        setVpsInfo(null);
+        return;
+      }
+      const data = await res.json();
+      setVpsInfo(data);
+    } catch (e) {
+      setVpsInfoError(e instanceof Error ? e.message : "Failed to fetch");
+      setVpsInfo(null);
+    } finally {
+      setVpsInfoLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (status !== "connected") return;
+    fetchVpsInfo();
+    const t = setInterval(fetchVpsInfo, 60 * 1000);
+    return () => clearInterval(t);
+  }, [status, fetchVpsInfo]);
 
   const effectiveFontSize = isMobile ? 12 : fontSize;
 
@@ -156,20 +202,23 @@ export default function TerminalPage() {
   }, []);
 
   const runQuickCommand = useCallback(
-    async (command: string, label: string) => {
+    (command: string, label: string) => {
       const term = xtermRef.current?.terminal;
       if (!term || status !== "connected") return;
       setRunningCommandId(label);
       setRunningStartTime(Date.now());
       setLastCommandResult(null);
 
-      const cmdWithoutCr = command.replace(/\r$/, "");
-      for (let i = 0; i < cmdWithoutCr.length; i++) {
-        await new Promise((r) => setTimeout(r, 30));
-        if (wsRef.current?.readyState !== WebSocket.OPEN) break;
-        sendCommand(cmdWithoutCr[i]);
-      }
-      sendCommand("\r");
+      const cmdWithoutCr = command.replace(/\r$/, "").trim();
+      if (!cmdWithoutCr) return;
+
+      // Focus terminal so user sees output
+      termRef.current?.focus();
+      term.focus();
+
+      // Send full command + Enter in one go so the shell receives it reliably
+      sendCommand(cmdWithoutCr + "\r");
+
       setCommandHistory((prev) => {
         const next = [cmdWithoutCr, ...prev.filter((c) => c !== cmdWithoutCr)].slice(0, 10);
         try {
@@ -184,7 +233,7 @@ export default function TerminalPage() {
         setRunningStartTime(null);
         setLastCommandResult({ ok: true, duration: (Date.now() - start) / 1000 });
       };
-      setTimeout(done, 1500);
+      setTimeout(done, 2000);
     },
     [status, sendCommand]
   );
@@ -274,6 +323,7 @@ export default function TerminalPage() {
       wsRef.current = ws;
       ws.binaryType = "arraybuffer";
 
+      let shellReadyFallback: ReturnType<typeof setTimeout> | null = null;
       ws.onopen = () => {
         ws.send(token);
         setStatus("connected");
@@ -287,15 +337,13 @@ export default function TerminalPage() {
         ];
         let i = 0;
         const showNext = () => {
-          if (i >= lines.length) {
-            setShellReady(true);
-            return;
-          }
+          if (i >= lines.length) return;
           setConnectionLogVisible(i + 1);
           i++;
           setTimeout(showNext, 400);
         };
         setTimeout(showNext, 400);
+        shellReadyFallback = setTimeout(() => setShellReady(true), 10000);
       };
 
       ws.onmessage = (event) => {
@@ -306,6 +354,14 @@ export default function TerminalPage() {
         if (typeof data === "string" && data.startsWith("{")) {
           try {
             const j = JSON.parse(data) as { type?: string; data?: unknown };
+            if (j.type === "shell_ready") {
+              if (shellReadyFallback) {
+                clearTimeout(shellReadyFallback);
+                shellReadyFallback = null;
+              }
+              setShellReady(true);
+              return;
+            }
             if (j.type === "metrics") setServerInfo((s) => ({ ...s }));
             return;
           } catch {}
@@ -767,53 +823,105 @@ export default function TerminalPage() {
             >
               <div className="pt-4 pb-2 px-4 flex items-center justify-between">
                 <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-[#71717a]">SERVER METRICS</p>
-                <span className="flex items-center gap-1.5 text-[8px] text-[#4ade80] bg-[#4ade8012] border border-[#4ade8025] rounded px-1.5 py-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] animate-pulse" />
-                  LIVE
-                </span>
+                {vpsInfoError ? (
+                  <span className="text-[8px] text-[#fbbf24]" title={vpsInfoError}>API err</span>
+                ) : vpsInfoLoading && !vpsInfo ? (
+                  <span className="text-[8px] text-[#71717a]">Loading…</span>
+                ) : vpsInfo ? (
+                  <span className="flex items-center gap-1.5 text-[8px] text-[#4ade80] bg-[#4ade8012] border border-[#4ade8025] rounded px-1.5 py-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#4ade80] animate-pulse" />
+                    LIVE
+                  </span>
+                ) : null}
               </div>
               <div className="px-4 space-y-4 pb-4">
                 <div>
                   <div className="flex justify-between items-baseline mb-1">
                     <span className="text-[10px] text-[#71717a]">CPU</span>
-                    <span className="text-[14px] font-semibold text-[#fafafa]">24%</span>
+                    <span className="text-[14px] font-semibold text-[#fafafa]">
+                      {vpsInfo?.cpuPercent != null ? `${vpsInfo.cpuPercent.toFixed(1)}%` : vpsInfo?.cpuText ?? "—"}
+                    </span>
                   </div>
                   <div className="h-1.5 rounded-full bg-[#ffffff08] overflow-hidden">
-                    <div className="h-full rounded-full bg-[#4ade80] w-[24%]" style={{ boxShadow: "0 0 8px rgba(74,222,128,0.4)" }} />
+                    <div
+                      className="h-full rounded-full bg-[#4ade80] transition-[width] duration-300"
+                      style={{
+                        width: vpsInfo?.cpuPercent != null ? `${Math.min(100, vpsInfo.cpuPercent)}%` : "0%",
+                        boxShadow: vpsInfo?.cpuPercent != null ? "0 0 8px rgba(74,222,128,0.4)" : undefined,
+                      }}
+                    />
                   </div>
-                  <div className="h-10 mt-1 rounded bg-[#ffffff08]" />
                 </div>
                 <div className="h-px bg-[#ffffff08]" />
                 <div>
                   <div className="flex justify-between items-baseline mb-1">
                     <span className="text-[10px] text-[#71717a]">MEMORY</span>
-                    <span className="text-[14px] font-semibold text-[#fafafa]">2.1 GB / 8 GB</span>
+                    <span className="text-[14px] font-semibold text-[#fafafa]">
+                      {vpsInfo?.ramUsedText && vpsInfo.ramGb ? `${vpsInfo.ramUsedText} / ${vpsInfo.ramGb} GB` : "—"}
+                    </span>
                   </div>
                   <div className="h-1.5 rounded-full bg-[#ffffff08] overflow-hidden">
-                    <div className="h-full rounded-full bg-[#E8FF47] w-[26%]" style={{ boxShadow: "0 0 8px rgba(232,255,71,0.4)" }} />
+                    <div
+                      className="h-full rounded-full bg-[#E8FF47] transition-[width] duration-300"
+                      style={{
+                        width: vpsInfo?.ramPercent != null ? `${Math.min(100, vpsInfo.ramPercent)}%` : "0%",
+                        boxShadow: vpsInfo?.ramPercent != null ? "0 0 8px rgba(232,255,71,0.4)" : undefined,
+                      }}
+                    />
                   </div>
                 </div>
                 <div className="h-px bg-[#ffffff08]" />
                 <div>
                   <div className="flex justify-between items-baseline mb-1">
                     <span className="text-[10px] text-[#71717a]">DISK</span>
-                    <span className="text-[14px] font-semibold text-[#fafafa]">47.2 GB / 80 GB</span>
+                    <span className="text-[14px] font-semibold text-[#fafafa]">
+                      {vpsInfo?.diskUsedText && vpsInfo.diskGb ? `${vpsInfo.diskUsedText} / ${vpsInfo.diskGb} GB` : "—"}
+                    </span>
                   </div>
                   <div className="h-1.5 rounded-full bg-[#ffffff08] overflow-hidden">
-                    <div className="h-full rounded-full bg-[#60a5fa] w-[59%]" />
+                    <div
+                      className={`h-full rounded-full transition-[width] duration-300 ${(vpsInfo?.diskPercent ?? 0) > 85 ? "bg-[#ef4444]" : "bg-[#60a5fa]"}`}
+                      style={{ width: vpsInfo?.diskPercent != null ? `${Math.min(100, vpsInfo.diskPercent)}%` : "0%" }}
+                    />
                   </div>
                 </div>
                 <div className="h-px bg-[#ffffff08]" />
                 <div>
                   <div className="flex justify-between mb-1">
-                    <span className="text-[10px] text-[#71717a]">NETWORK</span>
+                    <span className="text-[10px] text-[#71717a]">BANDWIDTH</span>
                   </div>
                   <div className="flex justify-between text-[11px]">
-                    <span className="text-[#4ade80]">↑ UP 1.2 MB/s</span>
-                    <span className="text-[#60a5fa]">↓ DOWN 3.4 MB/s</span>
+                    <span className="text-[#a1a1aa]">
+                      {vpsInfo?.bandwidthUsageTb != null && vpsInfo.bandwidthTb != null
+                        ? `${vpsInfo.bandwidthUsageTb.toFixed(2)} / ${vpsInfo.bandwidthTb} TB`
+                        : vpsInfo?.bandwidthTb != null
+                          ? `${vpsInfo.bandwidthTb} TB`
+                          : "—"}
+                    </span>
                   </div>
-                  <div className="h-10 mt-1 rounded bg-[#ffffff08]" />
                 </div>
+                {vpsInfo?.uptimeText && (
+                  <>
+                    <div className="h-px bg-[#ffffff08]" />
+                    <div>
+                      <div className="flex justify-between items-baseline mb-1">
+                        <span className="text-[10px] text-[#71717a]">UPTIME</span>
+                        <span className="text-[12px] font-medium text-[#fafafa]">{vpsInfo.uptimeText}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+                {vpsInfo?.vmStatus && (
+                  <>
+                    <div className="h-px bg-[#ffffff08]" />
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] text-[#71717a]">VM STATUS</span>
+                      <span className={`text-[10px] font-medium ${vpsInfo.vmStatus === "running" ? "text-[#4ade80]" : "text-[#fbbf24]"}`}>
+                        {vpsInfo.vmStatus.toUpperCase()}
+                      </span>
+                    </div>
+                  </>
+                )}
                 <div className="h-px bg-[#ffffff08]" />
                 <div>
                   <div className="flex justify-between items-baseline mb-2">
