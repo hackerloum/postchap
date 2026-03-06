@@ -152,36 +152,15 @@ export async function compositePoster({
   const compositeInputs: sharp.OverlayOptions[] = [];
 
   const LOGO_SIZE = Math.round(140 * scale);
-  const BADGE_PAD_X = Math.round(20 * scale);
-  const BADGE_PAD_Y = Math.round(16 * scale);
-  const BADGE_W = LOGO_SIZE + BADGE_PAD_X * 2;
-  const BADGE_H = LOGO_SIZE + BADGE_PAD_Y * 2;
-  // Only round the bottom-right corner — top-left corner anchors to image edge
-  const BADGE_R = Math.round(20 * scale);
+  const LOGO_PAD_X = Math.round(20 * scale);
+  const LOGO_PAD_Y = Math.round(16 * scale);
 
   if (!logoHandledByAI && brandKit.logoUrl) {
     try {
       console.log("[sharp] Downloading logo:", brandKit.logoUrl.slice(0, 80));
       const logoBuffer = await downloadImage(brandKit.logoUrl);
       if (logoBuffer) {
-        // 1. Opaque badge anchored flush to top-left corner — fully covers any AI icon
-        const badgeSvg = `<svg width="${BADGE_W}" height="${BADGE_H}" xmlns="http://www.w3.org/2000/svg">
-          <rect x="0" y="0" width="${BADGE_W}" height="${BADGE_H}"
-                rx="0" ry="0"
-                fill="rgba(0,0,0,0.92)" />
-          <rect x="${Math.round(BADGE_W * 0.6)}" y="${Math.round(BADGE_H * 0.6)}"
-                width="${Math.round(BADGE_W * 0.4)}" height="${Math.round(BADGE_H * 0.4)}"
-                rx="${BADGE_R}" ry="${BADGE_R}"
-                fill="rgba(0,0,0,0.92)" />
-        </svg>`;
-        compositeInputs.push({
-          input: Buffer.from(badgeSvg),
-          top: 0,
-          left: 0,
-          blend: "over",
-        });
-
-        // 2. Logo centered within the badge
+        // Logo only — no black badge; place directly at top-left with padding (matches user flow)
         const logoResized = await sharp(logoBuffer)
           .resize(LOGO_SIZE, LOGO_SIZE, {
             fit: "contain",
@@ -191,11 +170,11 @@ export async function compositePoster({
           .toBuffer();
         compositeInputs.push({
           input: logoResized,
-          top: BADGE_PAD_Y,
-          left: BADGE_PAD_X,
+          top: LOGO_PAD_Y,
+          left: LOGO_PAD_X,
           blend: "over",
         });
-        console.log("[sharp] Logo queued at", BADGE_PAD_X, BADGE_PAD_Y);
+        console.log("[sharp] Logo queued at", LOGO_PAD_X, LOGO_PAD_Y);
       } else {
         console.warn("[sharp] Logo buffer was null — logo not composited");
       }
@@ -411,21 +390,7 @@ export async function compositePoster({
       console.log("[sharp] Downloading logo (full overlay):", brandKit.logoUrl.slice(0, 80));
       const logoBuffer = await downloadImage(brandKit.logoUrl);
       if (logoBuffer) {
-        const badgeSvg2 = `<svg width="${BADGE_W}" height="${BADGE_H}" xmlns="http://www.w3.org/2000/svg">
-          <rect x="0" y="0" width="${BADGE_W}" height="${BADGE_H}"
-                rx="0" ry="0"
-                fill="rgba(0,0,0,0.92)" />
-          <rect x="${Math.round(BADGE_W * 0.6)}" y="${Math.round(BADGE_H * 0.6)}"
-                width="${Math.round(BADGE_W * 0.4)}" height="${Math.round(BADGE_H * 0.4)}"
-                rx="${BADGE_R}" ry="${BADGE_R}"
-                fill="rgba(0,0,0,0.92)" />
-        </svg>`;
-        fullOverlayInputs.push({
-          input: Buffer.from(badgeSvg2),
-          top: 0,
-          left: 0,
-          blend: "over",
-        });
+        // Logo only — no black badge; place directly at top-left with padding (matches user flow)
         const logoResized = await sharp(logoBuffer)
           .resize(LOGO_SIZE, LOGO_SIZE, {
             fit: "contain",
@@ -435,11 +400,11 @@ export async function compositePoster({
           .toBuffer();
         fullOverlayInputs.push({
           input: logoResized,
-          top: BADGE_PAD_Y,
-          left: BADGE_PAD_X,
+          top: LOGO_PAD_Y,
+          left: LOGO_PAD_X,
           blend: "over",
         });
-        console.log("[sharp] Logo queued (full overlay) at", BADGE_PAD_X, BADGE_PAD_Y);
+        console.log("[sharp] Logo queued (full overlay) at", LOGO_PAD_X, LOGO_PAD_Y);
       } else {
         console.warn("[sharp] Logo buffer was null (full overlay) — logo not composited");
       }

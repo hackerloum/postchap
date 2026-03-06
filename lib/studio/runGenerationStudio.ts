@@ -91,15 +91,17 @@ export async function runGenerationForStudio(
     const gptLayout = await generateLayout(brief, brandKit, format);
     const bgPrompt = `${gptLayout.backgroundPrompt}\n\n${BACKGROUND_ONLY_INSTRUCTION}`;
 
+    // Multi-modal reference: pass logo so Gemini/Seedream can integrate it (identity anchoring + intelligent composition)
     const { buffer: backgroundBuffer } = await generateImage(
       bgPrompt,
       format.freepikAspectRatio,
       imageProviderId,
       {
-        brandName: brandKit.brandName,
+        brandName:    brandKit.brandName,
+        logoUrl:      brandKit.logoUrl,
         primaryColor: brandKit.primaryColor,
         secondaryColor: brandKit.secondaryColor,
-        accentColor: brandKit.accentColor,
+        accentColor:   brandKit.accentColor,
       }
     );
 
@@ -116,7 +118,10 @@ export async function runGenerationForStudio(
     const posterId = ref.id;
 
     const backgroundImageUrl = await uploadBufferToCloudinary(backgroundBuffer, cloudinaryFolder, `${posterId}_bg`);
-    const posterLayout = buildPosterLayout(gptLayout, backgroundImageUrl, brandKit, format);
+    const logoAlreadyInImage = !!(brandKit.logoUrl && imageProviderId?.toString().startsWith("gemini:"));
+    const posterLayout = buildPosterLayout(gptLayout, backgroundImageUrl, brandKit, format, {
+      logoAlreadyInImage,
+    });
     posterLayout.posterId = posterId;
 
     await ref.update({
@@ -170,7 +175,7 @@ export async function runGenerationForStudio(
     }
   }
 
-  const { buffer: backgroundBuffer } = await generateImage(
+  const { buffer: backgroundBuffer, imageHasText, logoHandledByAI, addCTAFromSharp } = await generateImage(
     imagePrompt,
     format.freepikAspectRatio,
     imageProviderId,
@@ -182,10 +187,6 @@ export async function runGenerationForStudio(
       accentColor: brandKit.accentColor,
     }
   );
-
-  let imageHasText = false;
-  let logoHandledByAI = false;
-  let addCTAFromSharp = false;
 
   const compositeBrandKit = {
     brandName: brandKit.brandName ?? "",
