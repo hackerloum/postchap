@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
       brandKitId: d.brandKitId ?? "",
       notifyEmail: d.notifyEmail ?? true,
       notifySms: d.notifySms ?? false,
+      activeDays: Array.isArray(d.activeDays) ? d.activeDays : [0, 1, 2, 3, 4, 5, 6],
       nextRunAt: nextRunAt != null ? nextRunAt : null,
       lastRunAt: lastRunAt != null ? lastRunAt : null,
     });
@@ -74,6 +75,7 @@ export async function PATCH(request: NextRequest) {
     brandKitId?: string;
     notifyEmail?: boolean;
     notifySms?: boolean;
+    activeDays?: number[];
   };
   try {
     body = await request.json();
@@ -114,6 +116,11 @@ export async function PATCH(request: NextRequest) {
   const brandKitId = body.brandKitId ?? current.brandKitId ?? "";
   const notifyEmail = body.notifyEmail ?? current.notifyEmail ?? true;
   const notifySms = body.notifySms ?? current.notifySms ?? false;
+  const rawActiveDays = body.activeDays ?? (Array.isArray(current.activeDays) ? current.activeDays : null);
+  const activeDays: number[] =
+    Array.isArray(rawActiveDays) && rawActiveDays.length > 0
+      ? rawActiveDays.filter((d) => typeof d === "number" && d >= 0 && d <= 6)
+      : [0, 1, 2, 3, 4, 5, 6];
 
   if (enabled && brandKitId) {
     const kitSnap = await db
@@ -132,7 +139,7 @@ export async function PATCH(request: NextRequest) {
 
   let nextRunAt: Timestamp | null = null;
   if (enabled && time && timezone) {
-    const next = getNextRunAt(time, timezone);
+    const next = getNextRunAt(time, timezone, new Date(), activeDays);
     nextRunAt = Timestamp.fromDate(next);
   }
 
@@ -143,6 +150,7 @@ export async function PATCH(request: NextRequest) {
     brandKitId,
     notifyEmail,
     notifySms,
+    activeDays,
     ...(nextRunAt && { nextRunAt }),
     updatedAt: Timestamp.now(),
   };
@@ -161,6 +169,7 @@ export async function PATCH(request: NextRequest) {
     brandKitId: savedData.brandKitId ?? "",
     notifyEmail: savedData.notifyEmail ?? true,
     notifySms: savedData.notifySms ?? false,
+    activeDays: Array.isArray(savedData.activeDays) ? savedData.activeDays : [0, 1, 2, 3, 4, 5, 6],
     nextRunAt: nextRunAtMs,
     lastRunAt: lastRunAtMs ?? null,
   });

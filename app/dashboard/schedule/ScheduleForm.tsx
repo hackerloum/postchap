@@ -12,15 +12,163 @@ import {
 } from "@/lib/schedule/timeSlots";
 import { getBrandKitsAction, type BrandKitItem } from "../brand-kits/actions";
 
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6]; // 0=Sun, 1=Mon, ..., 6=Sat
+
+const DAY_LABELS: Record<number, string> = {
+  1: "Mon",
+  2: "Tue",
+  3: "Wed",
+  4: "Thu",
+  5: "Fri",
+  6: "Sat",
+  0: "Sun",
+};
+
+// Display order: Mon–Sun
+const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+
 const TIMEZONES = [
-  { value: "Africa/Lagos", label: "Lagos (WAT)" },
-  { value: "Africa/Nairobi", label: "Nairobi (EAT)" },
-  { value: "Africa/Johannesburg", label: "Johannesburg (SAST)" },
-  { value: "Africa/Accra", label: "Accra (GMT)" },
-  { value: "America/New_York", label: "New York (EST)" },
-  { value: "Europe/London", label: "London (GMT)" },
-  { value: "Asia/Dubai", label: "Dubai (GST)" },
+  // Africa
+  { value: "Africa/Lagos", label: "Lagos / West Africa (WAT, UTC+1)" },
+  { value: "Africa/Nairobi", label: "Nairobi / East Africa (EAT, UTC+3)" },
+  { value: "Africa/Johannesburg", label: "Johannesburg (SAST, UTC+2)" },
+  { value: "Africa/Accra", label: "Accra / Ghana (GMT, UTC+0)" },
+  { value: "Africa/Cairo", label: "Cairo (EET, UTC+2)" },
+  { value: "Africa/Casablanca", label: "Casablanca (WET, UTC+0/+1)" },
+  { value: "Africa/Abidjan", label: "Abidjan / Dakar (GMT, UTC+0)" },
+  { value: "Africa/Douala", label: "Douala / Cameroon (WAT, UTC+1)" },
+  { value: "Africa/Kigali", label: "Kigali / Rwanda (CAT, UTC+2)" },
+  { value: "Africa/Dar_es_Salaam", label: "Dar es Salaam / Tanzania (EAT, UTC+3)" },
+  { value: "Africa/Addis_Ababa", label: "Addis Ababa / Ethiopia (EAT, UTC+3)" },
+  { value: "Africa/Kampala", label: "Kampala / Uganda (EAT, UTC+3)" },
+  { value: "Africa/Lusaka", label: "Lusaka / Zambia (CAT, UTC+2)" },
+  { value: "Africa/Harare", label: "Harare / Zimbabwe (CAT, UTC+2)" },
+  // Americas
+  { value: "America/New_York", label: "New York / Toronto (ET, UTC-5)" },
+  { value: "America/Chicago", label: "Chicago (CT, UTC-6)" },
+  { value: "America/Denver", label: "Denver (MT, UTC-7)" },
+  { value: "America/Los_Angeles", label: "Los Angeles (PT, UTC-8)" },
+  { value: "America/Sao_Paulo", label: "São Paulo (BRT, UTC-3)" },
+  { value: "America/Bogota", label: "Bogotá (COT, UTC-5)" },
+  { value: "America/Lima", label: "Lima (PET, UTC-5)" },
+  { value: "America/Mexico_City", label: "Mexico City (CST, UTC-6)" },
+  // Europe
+  { value: "Europe/London", label: "London (GMT/BST)" },
+  { value: "Europe/Paris", label: "Paris / Berlin (CET, UTC+1)" },
+  { value: "Europe/Istanbul", label: "Istanbul (TRT, UTC+3)" },
+  { value: "Europe/Moscow", label: "Moscow (MSK, UTC+3)" },
+  // Middle East & Asia
+  { value: "Asia/Riyadh", label: "Riyadh / Kuwait (AST, UTC+3)" },
+  { value: "Asia/Dubai", label: "Dubai / Abu Dhabi (GST, UTC+4)" },
+  { value: "Asia/Karachi", label: "Karachi (PKT, UTC+5)" },
+  { value: "Asia/Kolkata", label: "India (IST, UTC+5:30)" },
+  { value: "Asia/Dhaka", label: "Dhaka (BST, UTC+6)" },
+  { value: "Asia/Bangkok", label: "Bangkok (ICT, UTC+7)" },
+  { value: "Asia/Singapore", label: "Singapore / KL (SGT, UTC+8)" },
+  { value: "Asia/Tokyo", label: "Tokyo (JST, UTC+9)" },
+  { value: "Asia/Seoul", label: "Seoul (KST, UTC+9)" },
+  // Pacific
+  { value: "Australia/Sydney", label: "Sydney (AEST, UTC+10/+11)" },
+  { value: "Pacific/Auckland", label: "Auckland (NZST, UTC+12)" },
 ];
+
+// ─── Timezone helpers ─────────────────────────────────────────────────────────
+
+function getDetectedTimezone(): string | null {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function buildTimezoneList(detected: string | null): typeof TIMEZONES {
+  if (!detected) return TIMEZONES;
+  if (TIMEZONES.some((t) => t.value === detected)) return TIMEZONES;
+  // Add detected timezone at the top if it's not already in the list
+  return [{ value: detected, label: `${detected} (your timezone)` }, ...TIMEZONES];
+}
+
+// ─── Run-time helpers ─────────────────────────────────────────────────────────
+
+function getDayOfWeekInTz(date: Date, timezone: string): number {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      weekday: "short",
+    }).formatToParts(date);
+    const w = parts.find((p) => p.type === "weekday")?.value ?? "Sun";
+    return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(w);
+  } catch {
+    return date.getDay();
+  }
+}
+
+function isTimePassedInTz(time: string, timezone: string): boolean {
+  try {
+    const [schH, schM] = time.split(":").map(Number);
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).formatToParts(new Date());
+    const curH = parseInt(parts.find((p) => p.type === "hour")?.value ?? "0");
+    const curM = parseInt(parts.find((p) => p.type === "minute")?.value ?? "0");
+    return curH > schH || (curH === schH && curM >= schM);
+  } catch {
+    return false;
+  }
+}
+
+function getNextRuns(
+  time: string,
+  timezone: string,
+  count: number,
+  activeDays: number[]
+): { dateLabel: string; timeLabel: string }[] {
+  const runs: { dateLabel: string; timeLabel: string }[] = [];
+  const safeDays = activeDays.length > 0 ? activeDays : ALL_DAYS;
+  const now = new Date();
+  let daysForward = 0;
+
+  while (runs.length < count && daysForward <= 14) {
+    const d = new Date(now);
+    d.setDate(d.getDate() + daysForward);
+
+    const dayOfWeek = getDayOfWeekInTz(d, timezone);
+    if (!safeDays.includes(dayOfWeek)) {
+      daysForward++;
+      continue;
+    }
+
+    if (daysForward === 0 && isTimePassedInTz(time, timezone)) {
+      daysForward++;
+      continue;
+    }
+
+    const dateLabel =
+      daysForward === 0
+        ? "Today"
+        : daysForward === 1
+          ? "Tomorrow"
+          : d.toLocaleDateString("en-GB", {
+              weekday: "short",
+              day: "numeric",
+              month: "short",
+              timeZone: timezone,
+            });
+
+    runs.push({ dateLabel, timeLabel: formatTimeLabel(time) });
+    daysForward++;
+  }
+
+  return runs;
+}
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
 
 interface ScheduleData {
   enabled: boolean;
@@ -29,6 +177,7 @@ interface ScheduleData {
   brandKitId: string;
   notifyEmail: boolean;
   notifySms: boolean;
+  activeDays: number[];
   nextRunAt: number | null;
   lastRunAt: number | null;
 }
@@ -40,34 +189,12 @@ const DEFAULT_SCHEDULE: ScheduleData = {
   brandKitId: "",
   notifyEmail: true,
   notifySms: false,
+  activeDays: ALL_DAYS,
   nextRunAt: null,
   lastRunAt: null,
 };
 
-function getNextRuns(
-  time: string,
-  _timezone: string,
-  count: number
-): { dateLabel: string; timeLabel: string }[] {
-  const runs: { dateLabel: string; timeLabel: string }[] = [];
-  const now = new Date();
-
-  for (let i = 0; i < count; i++) {
-    const d = new Date(now);
-    d.setDate(d.getDate() + i + 1);
-
-    runs.push({
-      dateLabel: d.toLocaleDateString("en-GB", {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-      }),
-      timeLabel: formatTimeLabel(time),
-    });
-  }
-
-  return runs;
-}
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function ScheduleForm() {
   const [schedule, setSchedule] = useState<ScheduleData>(DEFAULT_SCHEDULE);
@@ -75,9 +202,13 @@ export function ScheduleForm() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [tzList, setTzList] = useState(TIMEZONES);
 
   useEffect(() => {
     let cancelled = false;
+    const detected = getDetectedTimezone();
+    setTzList(buildTimezoneList(detected));
+
     (async () => {
       const token = await getClientIdToken();
       const [scheduleRes, kitsList] = await Promise.all([
@@ -94,13 +225,23 @@ export function ScheduleForm() {
         const time = ALLOWED_SCHEDULE_TIMES.includes(rawTime)
           ? rawTime
           : snapToAllowedTime(rawTime);
+
+        // Auto-detect timezone only when the user hasn't saved a custom one yet
+        const isDefaultTimezone =
+          !data.enabled && data.nextRunAt == null;
+        const timezone =
+          isDefaultTimezone && detected
+            ? detected
+            : data.timezone ?? "Africa/Lagos";
+
         setSchedule({
           enabled: data.enabled ?? false,
           time,
-          timezone: data.timezone ?? "Africa/Lagos",
+          timezone,
           brandKitId: data.brandKitId ?? "",
           notifyEmail: data.notifyEmail ?? true,
           notifySms: data.notifySms ?? false,
+          activeDays: Array.isArray(data.activeDays) ? data.activeDays : ALL_DAYS,
           nextRunAt: data.nextRunAt ?? null,
           lastRunAt: data.lastRunAt ?? null,
         });
@@ -115,6 +256,18 @@ export function ScheduleForm() {
   const update = (partial: Partial<ScheduleData>) => {
     setSaved(false);
     setSchedule((prev) => ({ ...prev, ...partial }));
+  };
+
+  const toggleDay = (day: number) => {
+    setSaved(false);
+    setSchedule((prev) => {
+      const already = prev.activeDays.includes(day);
+      if (already && prev.activeDays.length === 1) return prev; // must keep at least one
+      const next = already
+        ? prev.activeDays.filter((d) => d !== day)
+        : [...prev.activeDays, day];
+      return { ...prev, activeDays: next };
+    });
   };
 
   const handleSave = async () => {
@@ -138,6 +291,7 @@ export function ScheduleForm() {
           brandKitId: schedule.brandKitId || undefined,
           notifyEmail: schedule.notifyEmail,
           notifySms: schedule.notifySms,
+          activeDays: schedule.activeDays,
         }),
       });
       if (!res.ok) {
@@ -162,9 +316,25 @@ export function ScheduleForm() {
   const noKits = kits.length === 0;
   const saveDisabled =
     saving || (schedule.enabled && (!schedule.brandKitId || noKits));
+
   const timezoneLabel =
-    TIMEZONES.find((z) => z.value === schedule.timezone)?.label ??
-    schedule.timezone;
+    tzList.find((z) => z.value === schedule.timezone)?.label ?? schedule.timezone;
+
+  const upcomingRuns = getNextRuns(
+    schedule.time,
+    schedule.timezone,
+    5,
+    schedule.activeDays
+  );
+
+  const nextRunLabel =
+    upcomingRuns.length > 0
+      ? `${upcomingRuns[0].dateLabel} at ${upcomingRuns[0].timeLabel}`
+      : "No upcoming runs";
+
+  const everyDay =
+    schedule.activeDays.length === 7 ||
+    ALL_DAYS.every((d) => schedule.activeDays.includes(d));
 
   if (loading) {
     return (
@@ -177,17 +347,17 @@ export function ScheduleForm() {
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* LEFT — settings (2 cols): Daily generation, Notifications, Brand kit */}
+        {/* LEFT — settings */}
         <div className="lg:col-span-2 space-y-4">
           {/* 1. Daily generation */}
           <div className="bg-bg-surface border border-border-default rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle">
               <div>
                 <p className="font-semibold text-[14px] text-text-primary">
-                  Daily generation
+                  Scheduled generation
                 </p>
                 <p className="text-[12px] text-text-muted mt-0.5">
-                  Automatically create a new poster every day
+                  Automatically create a new poster on your chosen days
                 </p>
               </div>
               <button
@@ -216,6 +386,7 @@ export function ScheduleForm() {
               }`}
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5">
+                {/* Time picker */}
                 <div>
                   <label className="font-mono text-[10px] uppercase tracking-wider text-text-muted block mb-2">
                     Generation time
@@ -242,6 +413,7 @@ export function ScheduleForm() {
                   </p>
                 </div>
 
+                {/* Timezone picker */}
                 <div>
                   <label className="font-mono text-[10px] uppercase tracking-wider text-text-muted block mb-2">
                     Timezone
@@ -252,7 +424,7 @@ export function ScheduleForm() {
                       onChange={(e) => update({ timezone: e.target.value })}
                       className="w-full bg-bg-elevated border border-border-default rounded-xl px-4 py-3 text-[13px] text-text-primary font-mono appearance-none outline-none hover:border-border-strong focus:border-accent transition-colors cursor-pointer min-h-[44px]"
                     >
-                      {TIMEZONES.map((tz) => (
+                      {tzList.map((tz) => (
                         <option key={tz.value} value={tz.value}>
                           {tz.label}
                         </option>
@@ -266,14 +438,58 @@ export function ScheduleForm() {
                 </div>
               </div>
 
+              {/* Days selector */}
+              <div className="px-5 pb-5">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="font-mono text-[10px] uppercase tracking-wider text-text-muted">
+                    Active days
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => update({ activeDays: everyDay ? [] : ALL_DAYS })}
+                    className="text-[11px] text-accent hover:underline"
+                  >
+                    {everyDay ? "Clear all" : "Every day"}
+                  </button>
+                </div>
+                <div className="flex gap-1.5 flex-wrap">
+                  {DAY_ORDER.map((day) => {
+                    const active = schedule.activeDays.includes(day);
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => toggleDay(day)}
+                        className={`w-10 h-10 rounded-xl text-[12px] font-semibold transition-all duration-150 border ${
+                          active
+                            ? "bg-accent text-black border-accent"
+                            : "bg-bg-elevated text-text-muted border-border-default hover:border-border-strong"
+                        }`}
+                      >
+                        {DAY_LABELS[day]}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-text-muted mt-2">
+                  {everyDay
+                    ? "Runs every day"
+                    : schedule.activeDays.length === 0
+                      ? "Select at least one day"
+                      : `Runs on ${DAY_ORDER.filter((d) => schedule.activeDays.includes(d))
+                          .map((d) => DAY_LABELS[d])
+                          .join(", ")}`}
+                </p>
+              </div>
+
+              {/* Next run banner */}
               {schedule.enabled && schedule.time && (
                 <div className="mx-5 mb-5 flex items-center gap-2 bg-accent/5 border border-accent/15 rounded-xl px-4 py-3">
                   <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse shrink-0" />
                   <p className="font-mono text-[12px] text-text-secondary">
                     Next generation:{" "}
                     <span className="text-text-primary font-semibold">
-                      Tomorrow at {formatTimeLabel(schedule.time)} (
-                      {timezoneLabel})
+                      {nextRunLabel} ({timezoneLabel})
                     </span>
                   </p>
                 </div>
@@ -313,9 +529,7 @@ export function ScheduleForm() {
                   role="button"
                   tabIndex={0}
                   onClick={() => item.set(!item.value)}
-                  onKeyDown={(e) =>
-                    e.key === "Enter" && item.set(!item.value)
-                  }
+                  onKeyDown={(e) => e.key === "Enter" && item.set(!item.value)}
                   className={`flex items-center justify-between px-4 py-3 rounded-xl border transition-all duration-150 cursor-pointer ${
                     item.value
                       ? "border-accent/30 bg-accent/3"
@@ -355,7 +569,7 @@ export function ScheduleForm() {
                 Brand kit
               </p>
               <p className="text-[12px] text-text-muted mt-0.5">
-                Which brand to use for daily poster generation
+                Which brand to use for scheduled poster generation
               </p>
             </div>
             {noKits ? (
@@ -380,9 +594,7 @@ export function ScheduleForm() {
                   >
                     <div
                       className="w-8 h-8 rounded-lg shrink-0 overflow-hidden border border-white/10"
-                      style={{
-                        background: kit.primaryColor ?? "#333",
-                      }}
+                      style={{ background: kit.primaryColor ?? "#333" }}
                     />
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-[13px] text-text-primary">
@@ -405,14 +617,16 @@ export function ScheduleForm() {
           </div>
         </div>
 
-        {/* RIGHT — status + save (no duplicate of left-column settings) */}
+        {/* RIGHT — status + save */}
         <div className="space-y-4">
           <div className="bg-bg-surface border border-border-default rounded-2xl p-5">
             <p className="font-semibold text-[14px] text-text-primary mb-1">
               Status
             </p>
             <p className="text-[12px] text-text-muted mb-4">
-              {schedule.enabled ? "Your schedule is active" : "Daily generation is off"}
+              {schedule.enabled
+                ? "Your schedule is active"
+                : "Scheduled generation is off"}
             </p>
 
             <div
@@ -437,8 +651,12 @@ export function ScheduleForm() {
                 </p>
                 <p className="text-[12px] text-text-muted truncate">
                   {schedule.enabled
-                    ? `${formatTimeLabel(schedule.time)} · ${timezoneLabel}${schedule.brandKitId ? ` · ${kits.find((k) => k.id === schedule.brandKitId)?.brandName ?? ""}` : ""}`
-                    : "Turn on daily generation in the left panel"}
+                    ? `${formatTimeLabel(schedule.time)} · ${timezoneLabel}${
+                        schedule.brandKitId
+                          ? ` · ${kits.find((k) => k.id === schedule.brandKitId)?.brandName ?? ""}`
+                          : ""
+                      }`
+                    : "Turn on scheduled generation above"}
                 </p>
               </div>
             </div>
@@ -471,6 +689,7 @@ export function ScheduleForm() {
             )}
           </div>
 
+          {/* Upcoming runs */}
           <div className="bg-bg-surface border border-border-default rounded-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-border-subtle">
               <p className="font-semibold text-[14px] text-text-primary">
@@ -484,40 +703,44 @@ export function ScheduleForm() {
             {!schedule.enabled ? (
               <div className="p-5 text-center">
                 <p className="text-[12px] text-text-muted">
-                  Turn on daily generation to see runs here.
+                  Turn on scheduled generation to see runs here.
+                </p>
+              </div>
+            ) : upcomingRuns.length === 0 ? (
+              <div className="p-5 text-center">
+                <p className="text-[12px] text-text-muted">
+                  No upcoming runs — select at least one active day.
                 </p>
               </div>
             ) : (
               <div className="divide-y divide-border-subtle/50">
-                {getNextRuns(schedule.time, schedule.timezone, 5).map(
-                  (run, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between px-5 py-3"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                            i === 0 ? "bg-accent" : "bg-border-strong"
-                          }`}
-                        />
-                        <span className="text-[12px] text-text-secondary">
-                          {run.dateLabel}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[12px] text-text-muted">
-                          {run.timeLabel}
-                        </span>
-                        {i === 0 && (
-                          <span className="text-[10px] font-medium text-accent bg-accent/10 border border-accent/20 rounded-full px-1.5 py-0.5">
-                            Next
-                          </span>
-                        )}
-                      </div>
+                {upcomingRuns.map((run, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between px-5 py-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                          i === 0 ? "bg-accent" : "bg-border-strong"
+                        }`}
+                      />
+                      <span className="text-[12px] text-text-secondary">
+                        {run.dateLabel}
+                      </span>
                     </div>
-                  )
-                )}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[12px] text-text-muted">
+                        {run.timeLabel}
+                      </span>
+                      {i === 0 && (
+                        <span className="text-[10px] font-medium text-accent bg-accent/10 border border-accent/20 rounded-full px-1.5 py-0.5">
+                          Next
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

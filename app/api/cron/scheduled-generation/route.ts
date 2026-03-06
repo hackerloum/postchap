@@ -99,7 +99,8 @@ export async function GET(request: NextRequest) {
 
     const time = (data.time as string) ?? "08:00";
     const timezone = (data.timezone as string) ?? "Africa/Lagos";
-    const nextDate = getNextRunAfter(new Date(), time, timezone);
+    const activeDays = Array.isArray(data.activeDays) ? (data.activeDays as number[]) : undefined;
+    const nextDate = getNextRunAfter(new Date(), time, timezone, activeDays);
     const advanceNextRun = async () => {
       await db.collection("schedules").doc(uid).update({
         nextRunAt: Timestamp.fromDate(nextDate),
