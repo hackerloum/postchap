@@ -4,11 +4,11 @@ Cron jobs are **not** run by Vercel. The VPS triggers the same API routes at fix
 
 ## Schedules (UTC)
 
-| Time  | Endpoint                | Purpose                          |
-|-------|-------------------------|----------------------------------|
-| 00:00 | scheduled-generation    | Daily poster generation for schedules |
-| 06:00 | occasion-alerts         | Upcoming occasions (future: email)    |
-| 08:00 | scheduled-posts         | Post due Instagram scheduled posts    |
+| Schedule | Endpoint                | Purpose                          |
+|----------|-------------------------|----------------------------------|
+| Every hour (0 * * * *) | scheduled-generation | Daily poster generation; runs hourly so user-chosen times (e.g. 07:00) are respected |
+| 06:00 daily | occasion-alerts         | Upcoming occasions (future: email)    |
+| 08:00 daily | scheduled-posts         | Post due Instagram scheduled posts    |
 
 ## One-time setup on the VPS
 
@@ -53,12 +53,13 @@ crontab -e
 Add these three lines (adjust the path if your repo is not at `/var/www/postchap`):
 
 ```cron
-0 0 * * * /var/www/postchap/scripts/trigger-cron.sh scheduled-generation >> /var/log/postchap-cron.log 2>&1
+0 * * * * /var/www/postchap/scripts/trigger-cron.sh scheduled-generation >> /var/log/postchap-cron.log 2>&1
 0 6 * * * /var/www/postchap/scripts/trigger-cron.sh occasion-alerts >> /var/log/postchap-cron.log 2>&1
 0 8 * * * /var/www/postchap/scripts/trigger-cron.sh scheduled-posts >> /var/log/postchap-cron.log 2>&1
 ```
 
-Save and exit. The cron daemon will run the script at midnight, 06:00, and 08:00 UTC every day.
+- **scheduled-generation** runs **every hour** so that when a user sets e.g. 07:00 in their timezone, the next hourly run picks them up (no 24h delay).
+- **occasion-alerts** and **scheduled-posts** run once per day at 06:00 and 08:00 UTC.
 
 ## Logs
 
