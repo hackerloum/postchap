@@ -2,9 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import {
+  updatePassword,
+  reauthenticateWithPopup,
+  GoogleAuthProvider,
+} from "firebase/auth";
+import { getAuthClient } from "@/lib/firebase/client";
 import { getClientIdToken } from "@/lib/auth-client";
 import { Button } from "@/components/ui/Button";
-import { Loader2, User } from "lucide-react";
+import { Loader2, User, Eye, EyeOff } from "lucide-react";
 
 const COUNTRY_OPTIONS: { code: string; label: string }[] = [
   { code: "TZ", label: "Tanzania" },
@@ -33,17 +39,29 @@ type Profile = {
   currency: string | null;
 };
 
+/** Returns true if user has email/password provider (not just Google). */
+function hasPasswordProvider(user: { providerData?: Array<{ providerId: string }> } | null): boolean {
+  if (!user?.providerData) return false;
+  return user.providerData.some((p) => p.providerId === "password");
+}
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [hasPassword, setHasPassword] = useState<boolean | null>(null);
 
   const [form, setForm] = useState({
     displayName: "",
     phoneNumber: "",
     countryCode: "",
   });
+
+  const [passwordForm, setPasswordForm] = useState({ password: "", confirmPassword: "" });
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,6 +98,65 @@ export default function ProfilePage() {
       cancelled = true;
     };
   }, []);
+
+  // Detect if user signed up with Google only (no password provider)
+  useEffect(() => {
+    const auth = getAuthClient();
+    const check = (user: { providerData?: Array<{ providerId: string }> } | null) => {
+      setHasPassword(user ? hasPasswordProvider(user) : null);
+    };
+    check(auth.currentUser);
+    const unsub = auth.onAuthStateChanged(check);
+    return () => unsub();
+  }, []);
+
+  async function handleSetPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setPasswordMessage(null);
+    const { password, confirmPassword } = passwordForm;
+    if (password.length < 8) {
+      setPasswordMessage({ type: "err", text: "Password must be at least 8 characters." });
+      return;
+    }
+    if (password !== confirmPassword) {
+      setPasswordMessage({ type: "err", text: "Passwords do not match." });
+      return;
+    }
+    setPasswordSaving(true);
+    try {
+      const auth = getAuthClient();
+      const user = auth.currentUser;
+      if (!user) {
+        setPasswordMessage({ type: "err", text: "Not signed in. Please sign in again." });
+        return;
+      }
+      try {
+        await updatePassword(user, password);
+        setPasswordForm({ password: "", confirmPassword: "" });
+        setHasPassword(true);
+        setPasswordMessage({ type: "ok", text: "Password set. You can now sign in with email and password." });
+      } catch (err: unknown) {
+        const code = err && typeof err === "object" && "code" in err ? (err as { code: string }).code : "";
+        if (code === "auth/requires-recent-login") {
+          const provider = new GoogleAuthProvider();
+          await reauthenticateWithPopup(user, provider);
+          await updatePassword(user, password);
+          setPasswordForm({ password: "", confirmPassword: "" });
+          setHasPassword(true);
+          setPasswordMessage({ type: "ok", text: "Password set. You can now sign in with email and password." });
+        } else {
+          setPasswordMessage({
+            type: "err",
+            text: code === "auth/weak-password" ? "Password must be at least 6 characters." : "Failed to set password. Try again.",
+          });
+        }
+      }
+    } catch {
+      setPasswordMessage({ type: "err", text: "Failed to set password. Try again." });
+    } finally {
+      setPasswordSaving(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -229,6 +306,69 @@ export default function ProfilePage() {
           )}
         </Button>
       </form>
+
+      {hasPassword === false && (
+        <div className="mt-10 pt-8 border-t border-border-default">
+          <h2 className="font-semibold text-lg text-text-primary mb-1">Add password</h2>
+          <p className="font-mono text-[11px] text-text-muted mb-4">
+            You signed in with Google. Add a password to also sign in with email and password.
+          </p>
+          <form onSubmit={handleSetPassword} className="space-y-4 max-w-sm">
+            <div>
+              <label htmlFor="profile-password" className="block font-mono text-[11px] uppercase tracking-widest text-text-muted mb-1.5">
+                New password
+              </label>
+              <div className="relative">
+                <input
+                  id="profile-password"
+                  type={showPassword ? "text" : "password"}
+                  value={passwordForm.password}
+                  onChange={(e) => setPasswordForm((f) => ({ ...f, password: e.target.value }))}
+                  placeholder="Min. 8 characters"
+                  className="w-full rounded-lg border border-border-default bg-bg-base px-3 py-2.5 pr-10 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label htmlFor="profile-confirm-password" className="block font-mono text-[11px] uppercase tracking-widest text-text-muted mb-1.5">
+                Confirm password
+              </label>
+              <input
+                id="profile-confirm-password"
+                type={showPassword ? "text" : "password"}
+                value={passwordForm.confirmPassword}
+                onChange={(e) => setPasswordForm((f) => ({ ...f, confirmPassword: e.target.value }))}
+                placeholder="Repeat password"
+                className="w-full rounded-lg border border-border-default bg-bg-base px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/50"
+                autoComplete="new-password"
+              />
+            </div>
+            {passwordMessage && (
+              <p className={passwordMessage.type === "ok" ? "text-success text-sm" : "text-red-500 text-sm"}>
+                {passwordMessage.text}
+              </p>
+            )}
+            <Button type="submit" variant="primary" disabled={passwordSaving}>
+              {passwordSaving ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Setting…
+                </>
+              ) : (
+                "Set password"
+              )}
+            </Button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
