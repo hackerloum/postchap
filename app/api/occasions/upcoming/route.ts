@@ -36,7 +36,8 @@ export async function GET(request: NextRequest) {
       countryCode = kit?.brandLocation?.countryCode ?? null;
     }
 
-    const occasions = getUpcomingOccasions(countryCode, 5);
+    const daysAhead = parseInt(request.nextUrl.searchParams.get("days") ?? "60", 10) || 60;
+    const occasions = getUpcomingOccasions(countryCode, 10, daysAhead);
 
     return NextResponse.json({ occasions });
   } catch (error) {

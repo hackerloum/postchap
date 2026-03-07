@@ -5,12 +5,15 @@ export interface UpcomingOccasion extends Occasion {
 }
 
 /**
- * Returns occasions that are within leadDays of today and relevant for the given country.
- * countryCode: e.g. "TZ", "KE", "NG" from user's brand location or profile.
+ * Returns occasions that are upcoming and relevant for the given country.
+ * @param countryCode - e.g. "TZ", "KE", "NG" from user's brand location or profile.
+ * @param maxResults - max number of occasions to return.
+ * @param daysAhead - if provided, show all occasions within this many days (overrides per-occasion leadDays).
  */
 export function getUpcomingOccasions(
   countryCode?: string | null,
-  maxResults = 5
+  maxResults = 5,
+  daysAhead?: number
 ): UpcomingOccasion[] {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -24,7 +27,8 @@ export function getUpcomingOccasions(
     const occDate = new Date(occ.date + "T00:00:00Z");
     const daysUntil = Math.ceil((occDate.getTime() - today.getTime()) / 86400000);
 
-    if (daysUntil > occ.leadDays) continue;
+    const withinWindow = daysAhead != null ? daysUntil <= daysAhead : daysUntil <= occ.leadDays;
+    if (!withinWindow) continue;
 
     const matchesCountry =
       !countryCode ||
